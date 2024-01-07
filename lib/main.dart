@@ -1,6 +1,7 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
 import 'package:slotted/api/firebase_options.dart';
@@ -26,7 +27,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Slotted',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 255, 134, 20)),
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color.fromARGB(255, 255, 134, 20)),
         useMaterial3: true,
       ),
       home: StreamBuilder<User?>(
@@ -59,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Text(
-          'Logged In: $loggedIn',
+          loggedIn ? 'Welcome: ${widget.user!.phoneNumber}' : 'Not Logged In',
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -69,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 setState(() {});
               }
             : () async {
-                await FirebaseAuthService().signIn('+1 914 582 2780');
+                await FirebaseAuthService().signIn('+1 914 582 2780', context);
                 setState(() {});
               },
         tooltip: loggedIn ? 'Sign Out' : 'Sign In',

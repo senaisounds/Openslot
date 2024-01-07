@@ -1,4 +1,8 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:slotted/widgets/code_verification_page.dart';
 
 class FirebaseAuthService {
   // Private constructor to create a singleton instance.
@@ -20,26 +24,51 @@ class FirebaseAuthService {
   User? get currentUser => _firebaseAuth.currentUser;
 
   // Method to sign in a user with email and password.
-  Future<void> signIn(String phoneNumber) async {
+  Future<void> signIn(String phoneNumber, BuildContext context) async {
     await _firebaseAuth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
         // Auto-retrieval or instant verification completed
-        print('verification completed');
         await _firebaseAuth.signInWithCredential(credential);
       },
       verificationFailed: (FirebaseAuthException e) {
         // Handle error
-        print('verification failed');
-        print(e);
+        showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(e.message ?? e.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
       },
       codeSent: (String verificationId, int? resendToken) {
         // Code sent for manual entry
-        print('code sent');
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) =>
+              CodeVerificationPage(verificationId: verificationId),
+        ));
       },
       codeAutoRetrievalTimeout: (String verificationId) {
         // Auto retrieval timeout
-        print('code auto retrieval timeout');
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Error'),
+            content: const Text('Verifcation timed out.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       },
     );
   }
