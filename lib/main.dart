@@ -2,9 +2,11 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
-import 'package:slotted/api/firebase_auth_service.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:slotted/api/firebase_options.dart';
+import 'package:slotted/common/colors.dart';
+import 'package:slotted/pages/main_nav.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,58 +26,22 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return CupertinoApp(
       title: 'Slotted',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(255, 255, 134, 20)),
-        useMaterial3: true,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      theme: const CupertinoThemeData(
+        primaryColor: slottedOrange,
+        barBackgroundColor: slottedOrange,
+        primaryContrastingColor: slottedOrange,
+        scaffoldBackgroundColor: slottedOrange,
       ),
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) =>
-            MyHomePage(title: 'Slotted Home Page', user: snapshot.data),
-      ),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title, required this.user});
-
-  final String title;
-  final User? user;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  Widget build(BuildContext context) {
-    final bool loggedIn = widget.user != null;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Text(
-          loggedIn ? 'Welcome: ${widget.user!.phoneNumber}' : 'Not Logged In',
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: loggedIn
-            ? () async {
-                await FirebaseAuthService().signOut();
-                setState(() {});
-              }
-            : () async {
-                await FirebaseAuthService().signIn('+1 914 582 2780', context);
-                setState(() {});
-              },
-        tooltip: loggedIn ? 'Sign Out' : 'Sign In',
-        child: loggedIn ? const Icon(Icons.logout) : const Icon(Icons.login),
+        builder: (context, snapshot) => MainNav(user: snapshot.data),
       ),
     );
   }
