@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "482276707475",
+    "project_id": "open-mic-5cc8e",
+    "storage_bucket": "open-mic-5cc8e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:482276707475:android:85c5c6e9656fc4b2d41166",
+        "android_client_info": {
+          "package_name": "com.example.slotted"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "482276707475-m95fktgkudevcbp9eg2e9ap08jetl3b7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCINNQs4kndPX8k7qhUAFX24OA9G6RNBKk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "482276707475-m95fktgkudevcbp9eg2e9ap08jetl3b7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "482276707475-48bktokto3ia7b9lmpmgqtm2fkve4ijm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.M3.Open-Mic"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
