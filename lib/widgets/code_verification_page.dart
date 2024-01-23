@@ -6,8 +6,7 @@ import 'package:flutter/material.dart';
 class CodeVerificationPage extends StatefulWidget {
   final String verificationId;
 
-  const CodeVerificationPage({Key? key, required this.verificationId})
-      : super(key: key);
+  const CodeVerificationPage({super.key, required this.verificationId});
 
   @override
   CodeVerificationPageState createState() => CodeVerificationPageState();
