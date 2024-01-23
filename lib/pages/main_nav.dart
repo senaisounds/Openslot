@@ -47,7 +47,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     setState(() {});
   }
 
-  final double iconSize = 44;
+  final double iconSize = 24;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +77,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       ),
       child: CupertinoTabScaffold(
         tabBar: CupertinoTabBar(
-          height: 54,
+          height: 56,
           backgroundColor: CupertinoColors.secondarySystemBackground,
           activeColor: slottedOrange,
           currentIndex: _tabController.index,
@@ -104,8 +104,8 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                 ),
                 child: Image.asset(
                   'lib/assets/images/s_logo.png',
-                  width: iconSize,
-                  height: iconSize,
+                  width: iconSize* 1.2,
+                  height: iconSize * 1.2,
                   color:
                       _tabController.index == 1 ? slottedOrange.withOpacity(0.93) : CupertinoColors.systemGrey.withOpacity(0.7),
                 ),

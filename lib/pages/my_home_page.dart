@@ -63,13 +63,13 @@ class _MyHomePageState extends State<MyHomePage> {
       child: CupertinoButton(
         borderRadius: BorderRadius.circular(12),
         padding: const EdgeInsets.all(0),
-        color: CupertinoColors.darkBackgroundGray,
         onPressed: () => _tappedEvent(event),
+        color: CupertinoColors.systemBackground,
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: CupertinoColors.label,
+            color: CupertinoColors.systemBackground,
             boxShadow: const [
               BoxShadow(
                 color: slottedOrange,
@@ -95,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 17,
-                              color: CupertinoColors.white),
+                              color: CupertinoColors.label),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -103,7 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           style: const TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 16,
-                              color: CupertinoColors.white),
+                              color: CupertinoColors.label),
                         ),
                       ],
                     ),
@@ -116,21 +116,21 @@ class _MyHomePageState extends State<MyHomePage> {
                         style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
-                            color: CupertinoColors.white),
+                            color: CupertinoColors.label),
                       ),
                       Text(
                         dateComponents.dayFull, // Display date and time
                         style: const TextStyle(
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
-                            color: CupertinoColors.white),
+                            color: CupertinoColors.label),
                       ),
                       Text(
                         dateComponents.time, // Display date and time
                         style: const TextStyle(
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
-                            color: CupertinoColors.white),
+                            color: CupertinoColors.label),
                       ),
                     ],
                   ),
@@ -142,7 +142,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
-                    color: CupertinoColors.white),
+                    color: CupertinoColors.label),
               ),
             ],
           ),
