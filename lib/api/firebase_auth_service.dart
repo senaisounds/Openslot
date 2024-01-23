@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:slotted/widgets/code_verification_page.dart';
 
@@ -35,7 +36,7 @@ class FirebaseAuthService {
         // Handle error
         showDialog(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => CupertinoAlertDialog(
           title: const Text('Error'),
           content: Text(e.message ?? e.toString()),
           actions: [
@@ -58,7 +59,7 @@ class FirebaseAuthService {
         // Auto retrieval timeout
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (context) => CupertinoAlertDialog(
             title: const Text('Error'),
             content: const Text('Verifcation timed out.'),
             actions: [

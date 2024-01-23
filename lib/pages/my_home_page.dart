@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/date_components.dart';
 // ignore: depend_on_referenced_packages
@@ -24,6 +25,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     // final bool loggedIn = widget.user != null;
     return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.systemBackground,
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('default').snapshots(),
         builder: (context, snapshot) {
@@ -38,6 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return event_1.dateTime.compareTo(event_0.dateTime);
               });
             return ListView.builder(
+              padding: const EdgeInsets.only(top: 4),
               itemCount: events.length,
               itemBuilder: (context, index) =>
                   _buildListItem(context, events[index]),
@@ -56,20 +59,24 @@ class _MyHomePageState extends State<MyHomePage> {
     final dateComponents = _convertDateTimeToStringComponents(event.dateTime);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       child: CupertinoButton(
         borderRadius: BorderRadius.circular(12),
         padding: const EdgeInsets.all(0),
-        color: CupertinoColors.white,
+        color: CupertinoColors.darkBackgroundGray,
         onPressed: () => _tappedEvent(event),
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: CupertinoColors.label.withOpacity(0.2),
-              width: 1.5,
-            ),
+            color: CupertinoColors.label,
+            boxShadow: const [
+              BoxShadow(
+                color: slottedOrange,
+                spreadRadius: 3,
+                blurRadius: 12,
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 17,
-                              color: CupertinoColors.label),
+                              color: CupertinoColors.white),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -96,7 +103,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           style: const TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 16,
-                              color: CupertinoColors.label),
+                              color: CupertinoColors.white),
                         ),
                       ],
                     ),
@@ -109,21 +116,21 @@ class _MyHomePageState extends State<MyHomePage> {
                         style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
-                            color: CupertinoColors.label),
+                            color: CupertinoColors.white),
                       ),
                       Text(
                         dateComponents.dayFull, // Display date and time
                         style: const TextStyle(
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
-                            color: CupertinoColors.label),
+                            color: CupertinoColors.white),
                       ),
                       Text(
                         dateComponents.time, // Display date and time
                         style: const TextStyle(
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
-                            color: CupertinoColors.label),
+                            color: CupertinoColors.white),
                       ),
                     ],
                   ),
@@ -135,7 +142,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
-                    color: CupertinoColors.label),
+                    color: CupertinoColors.white),
               ),
             ],
           ),

@@ -47,33 +47,15 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     setState(() {});
   }
 
-  final double iconSize = 30;
+  final double iconSize = 44;
 
   @override
   Widget build(BuildContext context) {
     bool loggedIn = widget.user != null;
-    return Scaffold(
-      appBar: CupertinoNavigationBar(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
         backgroundColor: CupertinoColors.secondarySystemBackground,
-        // middle: Image.asset(
-        //   'lib/assets/images/s_logo.png',
-        //   width: 36,
-        //   height: 36,
-        //   color: slottedOrange,
-        // ),
-        middle: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 333),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
-            child: _buildNavigationTitle(),
-          ),
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            return FadeTransition(
-              opacity: animation, // Apply fade transition
-              child: _buildNavigationTitle(),
-            );
-          },
-        ),
+        middle: _buildNavigationTitle(),
         leading: loggedIn
             ? CupertinoButton(
                 onPressed: () {},
@@ -93,50 +75,16 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
               : const Text('Sign In'),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          MyEventsPage(user: widget.user),
-          MyHomePage(user: widget.user),
-          ProfilePage(
-              user: widget.user,
-              authAction: (isLoggedIn) => _authAction(context, isLoggedIn)),
-        ],
-      ),
-      // floatingActionButton: FloatingActionButton(
-      //   backgroundColor: slottedOrange,
-      //   onPressed: loggedIn
-      //       ? () async {
-      //           await FirebaseAuthService().signOut();
-      //           setState(() {});
-      //         }
-      //       : () async {
-      //           await FirebaseAuthService().signIn('+1 914 582 2780', context);
-      //           setState(() {});
-      //         },
-      //   tooltip: loggedIn ? 'Sign Out' : 'Sign In',
-      //   child: loggedIn ? const Icon(Icons.logout) : const Icon(Icons.login),
-      // ),
-      bottomNavigationBar: Theme(
-        data: Theme.of(context).copyWith(
-          // Set splash color to Colors.transparent
-          splashColor: Colors.transparent,
-          // Set highlight color to Colors.transparent
-          highlightColor: Colors.transparent,
-        ),
-        child: BottomNavigationBar(
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
+      child: CupertinoTabScaffold(
+        tabBar: CupertinoTabBar(
+          height: 54,
           backgroundColor: CupertinoColors.secondarySystemBackground,
-          selectedItemColor: slottedOrange,
-          unselectedItemColor: CupertinoColors.label,
+          activeColor: slottedOrange,
           currentIndex: _tabController.index,
           onTap: (index) {
             _tabController.animateTo(index);
             setState(() {});
           },
-          unselectedFontSize: 14,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
           iconSize: iconSize,
           items: [
             const BottomNavigationBarItem(
@@ -149,8 +97,8 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(40),
                   border: Border.all(
                     color: _tabController.index == 1
-                        ? slottedOrange
-                        : CupertinoColors.label,
+                        ? slottedOrange.withOpacity(0.93)
+                        : CupertinoColors.systemGrey.withOpacity(0.7),
                     width: 3,
                   ),
                 ),
@@ -159,10 +107,9 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   width: iconSize,
                   height: iconSize,
                   color:
-                      _tabController.index == 1 ? null : CupertinoColors.label,
+                      _tabController.index == 1 ? slottedOrange.withOpacity(0.93) : CupertinoColors.systemGrey.withOpacity(0.7),
                 ),
               ),
-              label: '',
             ),
             const BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.person),
@@ -170,6 +117,25 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
             ),
           ],
         ),
+        tabBuilder: (context, index) {
+          late Widget tabView;
+          switch (index) {
+            case 0:
+              tabView = MyEventsPage(user: widget.user);
+              break;
+            case 1:
+              tabView = MyHomePage(user: widget.user);
+              break;
+            case 2:
+              tabView = ProfilePage(
+                  user: widget.user,
+                  authAction: (isLoggedIn) => _authAction(context, isLoggedIn));
+              break;
+            default:
+              tabView = MyHomePage(user: widget.user);
+          }
+          return CupertinoTabView(builder: (context) => tabView);
+        },
       ),
     );
   }
