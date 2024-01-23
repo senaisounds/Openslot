@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:slotted/common/colors.dart';
+import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/my_events.dart';
 import 'package:slotted/pages/my_home_page.dart';
 import 'package:slotted/pages/profile.dart';
@@ -19,6 +22,8 @@ class MainNav extends StatefulWidget {
 
 class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+
+  late final SlottedUser? slottedUser;
 
   @override
   void initState() {
@@ -42,10 +47,11 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     setState(() {});
   }
 
+  final double iconSize = 30;
+
   @override
   Widget build(BuildContext context) {
     bool loggedIn = widget.user != null;
-    const double iconSize = 30;
     return Scaffold(
       appBar: CupertinoNavigationBar(
         backgroundColor: CupertinoColors.secondarySystemBackground,
@@ -76,23 +82,25 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
               )
             : null,
 
-        trailing: loggedIn
-            ? CupertinoButton(
-                onPressed: () => _openSettings(context),
-                padding: EdgeInsets.zero,
-                child: const Icon(
+        trailing: CupertinoButton(
+          onPressed: () => _openSettings(context, loggedIn),
+          padding: EdgeInsets.zero,
+          child: loggedIn
+              ? const Icon(
                   CupertinoIcons.gear,
                   size: 30,
-                ),
-              )
-            : null,
+                )
+              : const Text('Sign In'),
+        ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
           MyEventsPage(user: widget.user),
           MyHomePage(user: widget.user),
-          ProfilePage(user: widget.user),
+          ProfilePage(
+              user: widget.user,
+              authAction: (isLoggedIn) => _authAction(context, isLoggedIn)),
         ],
       ),
       // floatingActionButton: FloatingActionButton(
@@ -166,8 +174,11 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     );
   }
 
-  void _openSettings(BuildContext context) {
-    bool loggedIn = widget.user != null;
+  void _openSettings(BuildContext context, bool loggedIn) {
+    if (!loggedIn) {
+      _authAction(context, loggedIn);
+      return;
+    }
     showCupertinoModalPopup(
       context: context,
       builder: (context) {
@@ -175,15 +186,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           title: const Text('Settings'),
           actions: [
             CupertinoActionSheetAction(
-              onPressed: loggedIn
-            ? () async {
-                await FirebaseAuthService().signOut();
-                setState(() {});
-              }
-            : () async {
-                await FirebaseAuthService().signIn('+1 914 582 2780', context);
-                setState(() {});
-              },
+              onPressed: () => _authAction(context, loggedIn),
               child: Text(loggedIn ? 'Sign Out' : 'Sign In'),
             ),
           ],
@@ -194,6 +197,17 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         );
       },
     );
+  }
+
+  Future<void> _authAction(BuildContext context, bool loggedIn) async {
+    if (loggedIn) {
+      await FirebaseAuthService().signOut();
+      Navigator.of(context).pop();
+    } else {
+      await FirebaseAuthService().signIn('+1 914 582 2780', context);
+    }
+
+    setState(() {});
   }
 
   Widget _buildNavigationTitle() {
