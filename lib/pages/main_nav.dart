@@ -119,7 +119,10 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           late Widget tabView;
           switch (index) {
             case 0:
-              tabView = MyEventsPage(user: widget.user);
+              tabView = MyEventsPage(
+                user: widget.user,
+                authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
+              );
               break;
             case 1:
               tabView = MyHomePage(user: widget.user);

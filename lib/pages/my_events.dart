@@ -8,16 +8,26 @@ import 'package:slotted/common/event_class.dart';
 import 'package:intl/intl.dart';
 
 class MyEventsPage extends StatelessWidget {
-  const MyEventsPage({super.key, required this.user});
+
+  const MyEventsPage({super.key, required this.user, required this.authAction});
 
   final User? user;
 
+  final Future<void> Function(bool) authAction;
+
   @override
   Widget build(BuildContext context) {
-    // final bool loggedIn = widget.user != null;
+    final bool loggedIn = user != null;
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.systemBackground,
-      child: Column(
+      child: user == null
+          ? Center(
+              child: CupertinoButton(
+                child: const Text('Sign In'),
+                onPressed: () => authAction(loggedIn),
+              ),
+            )
+          : Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           CupertinoSegmentedControl(
