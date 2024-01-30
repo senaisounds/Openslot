@@ -5,7 +5,8 @@ import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends StatelessWidget {
+
   const ProfilePage({super.key, required this.user, required this.authAction});
 
   final User? user;
@@ -13,32 +14,27 @@ class ProfilePage extends StatefulWidget {
   final Future<void> Function(bool) authAction;
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends State<ProfilePage> {
-  @override
   Widget build(BuildContext context) {
-    final bool loggedIn = widget.user != null;
+    final bool loggedIn = user != null;
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.systemBackground,
-      child: widget.user == null
+      child: user == null
           ? Center(
               child: CupertinoButton(
                 child: const Text('Sign In'),
-                onPressed: () => widget.authAction(loggedIn),
+                onPressed: () => authAction(loggedIn),
               ),
             )
           : StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
-                  .doc('users/${widget.user!.uid}')
+                  .doc('users/${user!.uid}')
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return Center(
                     child: CupertinoButton(
                       child: const Text('Sign In'),
-                      onPressed: () => widget.authAction(loggedIn),
+                      onPressed: () => authAction(loggedIn),
                     ),
                   );
                 }
@@ -54,7 +50,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     // Load profile image from firebase storage
                     FutureBuilder<String>(
                       future: FirebaseStorage.instance
-                          .ref('profileImgs/${widget.user!.uid}.png')
+                          .ref('profileImgs/${user!.uid}.png')
                           .getDownloadURL(),
                       builder: (context, snapshot) {
                         return CupertinoButton(

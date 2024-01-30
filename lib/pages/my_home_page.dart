@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
@@ -8,7 +7,7 @@ import 'package:slotted/common/date_components.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 
-class MyHomePage extends StatefulWidget {
+class MyHomePage extends StatelessWidget {
   const MyHomePage({
     super.key,
     required this.user,
@@ -16,11 +15,6 @@ class MyHomePage extends StatefulWidget {
 
   final User? user;
 
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     // final bool loggedIn = widget.user != null;
@@ -48,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
           } else if (snapshot.hasError) {
             return Text('Error: ${snapshot.error}');
           } else {
-            return const CircularProgressIndicator();
+            return const CupertinoActivityIndicator();
           }
         },
       ),

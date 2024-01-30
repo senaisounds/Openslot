@@ -2,7 +2,6 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:slotted/widgets/code_verification_page.dart';
 
 class FirebaseAuthService {
@@ -24,8 +23,14 @@ class FirebaseAuthService {
   // Getter to retrieve the current user.
   User? get currentUser => _firebaseAuth.currentUser;
 
+  // Method to format a phone number to E.164 format.
+  String formattedPhone(String phoneNumber) {
+    return '+1${phoneNumber.replaceAll(RegExp(r'[^0-9]'), '')}';
+  }
+
   // Method to sign in a user with email and password.
-  Future<void> signIn(String phoneNumber, BuildContext context) async {
+  Future<void> signIn(String rawPhoneNumber, BuildContext context) async {
+    final phoneNumber = formattedPhone(rawPhoneNumber);
     await _firebaseAuth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) async {
@@ -34,36 +39,36 @@ class FirebaseAuthService {
       },
       verificationFailed: (FirebaseAuthException e) {
         // Handle error
-        showDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('Error'),
-          content: Text(e.message ?? e.toString()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Error'),
+            content: Text(e.message ?? e.toString()),
+            actions: [
+              CupertinoButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       },
       codeSent: (String verificationId, int? resendToken) {
         // Code sent for manual entry
-        Navigator.of(context).push(MaterialPageRoute(
+        Navigator.of(context).push(CupertinoPageRoute(
           builder: (context) =>
               CodeVerificationPage(verificationId: verificationId),
         ));
       },
       codeAutoRetrievalTimeout: (String verificationId) {
         // Auto retrieval timeout
-        showDialog(
+        showCupertinoDialog(
           context: context,
           builder: (context) => CupertinoAlertDialog(
             title: const Text('Error'),
             content: const Text('Verifcation timed out.'),
             actions: [
-              TextButton(
+              CupertinoButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('OK'),
               ),

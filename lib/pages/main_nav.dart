@@ -2,7 +2,6 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/my_events.dart';
@@ -21,16 +20,15 @@ class MainNav extends StatefulWidget {
 }
 
 class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-
+  late final CupertinoTabController _tabController;
   late final SlottedUser? slottedUser;
+
+  String? phoneNumber;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: 3,
-      vsync: this,
+    _tabController = CupertinoTabController(
       initialIndex: 1,
     );
     _tabController.addListener(_handleTabSelection);
@@ -47,7 +45,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     setState(() {});
   }
 
-  final double iconSize = 24;
+  final double iconSize = 30;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +61,6 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                 child: const Icon(CupertinoIcons.bell, size: 30),
               )
             : null,
-
         trailing: CupertinoButton(
           onPressed: () => _openSettings(context, loggedIn),
           padding: EdgeInsets.zero,
@@ -82,14 +79,14 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           activeColor: slottedOrange,
           currentIndex: _tabController.index,
           onTap: (index) {
-            _tabController.animateTo(index);
+            _tabController.index = index;
             setState(() {});
           },
           iconSize: iconSize,
           items: [
             const BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.list_bullet),
-              label: 'My Events',
+              // label: 'My Events',
             ),
             BottomNavigationBarItem(
               icon: Container(
@@ -104,16 +101,17 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                 ),
                 child: Image.asset(
                   'lib/assets/images/s_logo.png',
-                  width: iconSize* 1.2,
+                  width: iconSize * 1.2,
                   height: iconSize * 1.2,
-                  color:
-                      _tabController.index == 1 ? slottedOrange.withOpacity(0.93) : CupertinoColors.systemGrey.withOpacity(0.7),
+                  color: _tabController.index == 1
+                      ? slottedOrange.withOpacity(0.93)
+                      : CupertinoColors.systemGrey.withOpacity(0.7),
                 ),
               ),
             ),
             const BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.person),
-              label: 'Profile',
+              // label: 'Profile',
             ),
           ],
         ),
@@ -128,13 +126,15 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
               break;
             case 2:
               tabView = ProfilePage(
-                  user: widget.user,
-                  authAction: (isLoggedIn) => _authAction(context, isLoggedIn));
+                user: widget.user,
+                authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
+              );
               break;
             default:
               tabView = MyHomePage(user: widget.user);
           }
-          return CupertinoTabView(builder: (context) => tabView);
+          // return CupertinoTabView(builder: (context) => tabView);
+          return tabView;
         },
       ),
     );
@@ -170,9 +170,46 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       await FirebaseAuthService().signOut();
       Navigator.of(context).pop();
     } else {
-      await FirebaseAuthService().signIn('+1 914 582 2780', context);
+      // Present sign in modal to collect phone number
+      await showCupertinoModalPopup(
+        context: context,
+        builder: (builder) {
+          return CupertinoAlertDialog(
+            title: const Text('Sign In'),
+            content: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+              child: CupertinoTextField(
+                placeholder: 'Phone Number',
+                keyboardType: TextInputType.phone,
+                onChanged: (value) => setState(() {
+                  phoneNumber = value;
+                }),
+              ),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () {
+                  setState(() {
+                    phoneNumber = null;
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Sign In'),
+              ),
+            ],
+          );
+        },
+      );
+      if (phoneNumber != null) {
+        await FirebaseAuthService().signIn(phoneNumber!, context);
+      }
     }
 
+    // Refresh the state of Profile and Events pages
     setState(() {});
   }
 

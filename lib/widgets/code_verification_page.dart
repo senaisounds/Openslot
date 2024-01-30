@@ -2,7 +2,7 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:slotted/common/colors.dart';
 
 class CodeVerificationPage extends StatefulWidget {
   final String verificationId;
@@ -18,21 +18,27 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
   bool _loading = false;
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Enter Verification Code'),
+    return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.systemBackground,
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Enter Verification Code'),
         leading: _loading ? const SizedBox() : null,
+        backgroundColor: CupertinoColors.secondarySystemBackground,
       ),
-      body: Padding(
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
+            CupertinoTextField(
+              padding: const EdgeInsets.all(12),
               controller: _codeController,
-              decoration: const InputDecoration(labelText: 'Verification Code'),
+              placeholder: 'Verification Code',
             ),
             const SizedBox(height: 16.0),
-            ElevatedButton(
+            CupertinoButton(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              borderRadius: BorderRadius.circular(12),
+              color: slottedOrange,
               onPressed: _loading
                   ? null
                   : () async {
@@ -43,8 +49,14 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
                       await _verifyCode(code, context);
                     },
               child: _loading
-                  ? const CircularProgressIndicator()
-                  : const Text('Verify'),
+                  ? const CupertinoActivityIndicator()
+                  : const Text(
+                      'Verify',
+                      style: TextStyle(
+                        color: CupertinoColors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ],
         ),
@@ -66,13 +78,13 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
     } catch (e) {
       FirebaseAuthException exception = e as FirebaseAuthException;
       // Handle error, show dialog, etc.
-      showDialog(
+      showCupertinoDialog(
         context: context,
         builder: (context) => CupertinoAlertDialog(
           title: const Text('Error'),
           content: Text(exception.message ?? e.toString()),
           actions: [
-            TextButton(
+            CupertinoButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('OK'),
             ),
