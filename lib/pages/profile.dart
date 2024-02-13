@@ -4,9 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfilePage extends StatelessWidget {
-
   const ProfilePage({super.key, required this.user, required this.authAction});
 
   final User? user;
@@ -102,21 +102,81 @@ class ProfilePage extends StatelessWidget {
                       slottedUser.username,
                       style: const TextStyle(
                         fontSize: 20,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         color: CupertinoColors.systemBackground,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 32),
                     Text(
                       slottedUser.bio,
                       style: const TextStyle(
-                        fontSize: 15,
+                        height: 0.7,
+                        fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: CupertinoColors.systemBackground,
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 48),
+                    // Insert twitter and instagram links
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (slottedUser.twitter != null)
+                          CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () async {
+                              // Open Twitter
+                              final url = Uri.parse(
+                                  'https://x.com/${slottedUser.twitter}');
+                              try {
+                                await launchUrl(url);
+                              } catch (e) {
+                                print(e);
+                              }
+                            },
+                            child: Image.asset(
+                              'lib/assets/images/twitter-white.png',
+                              width: 48,
+                              height: 48,
+                            ),
+                          ),
+                        const SizedBox(width: 16),
+                        if (slottedUser.instagram != null)
+                          CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () async {
+                              // Open Instagram
+                              final url = Uri.parse(
+                                  'https://instagram.com/${slottedUser.instagram}');
+                              try {
+                                await launchUrl(url);
+                              } catch (e) {
+                                print(e);
+                              }
+                            },
+                            child: Image.asset(
+                              'lib/assets/images/instagram-white.png',
+                              width: 48,
+                              height: 48,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    // CupertinoButton(
+                    //   padding: const EdgeInsets.all(16),
+                    //   color: slottedOrange,
+                    //   onPressed: () => _signIn(context),
+                    //   child: const Text(
+                    //     'Sign Out',
+                    //     style: TextStyle(
+                    //       color: CupertinoColors.white,
+                    //       fontWeight: FontWeight.bold,
+                    //     ),
+                    //   ),
+                    // ),
                   ],
                 );
               },

@@ -29,12 +29,27 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            const SizedBox(height: 8.0),
             CupertinoTextField(
+              keyboardType: TextInputType.number,
+              style: const TextStyle(
+                color: CupertinoColors.label,
+                fontWeight: FontWeight.w600,
+              ),
               padding: const EdgeInsets.all(12),
               controller: _codeController,
               placeholder: 'Verification Code',
+              autofocus: true,
+              decoration: BoxDecoration(
+                color: CupertinoColors.secondarySystemBackground,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: slottedOrange,
+                  width: 1,
+                ),
+              ),
             ),
-            const SizedBox(height: 16.0),
+            const SizedBox(height: 24.0),
             CupertinoButton(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               borderRadius: BorderRadius.circular(12),

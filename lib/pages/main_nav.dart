@@ -25,6 +25,8 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
 
   String? phoneNumber;
 
+  bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,96 +52,120 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     bool loggedIn = widget.user != null;
-    return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        backgroundColor: CupertinoColors.secondarySystemBackground,
-        middle: _buildNavigationTitle(),
-        leading: loggedIn
-            ? CupertinoButton(
-                onPressed: () {},
-                padding: EdgeInsets.zero,
-                child: const Icon(CupertinoIcons.bell, size: 30),
-              )
-            : null,
-        trailing: CupertinoButton(
-          onPressed: () => _openSettings(context, loggedIn),
-          padding: EdgeInsets.zero,
-          child: loggedIn
-              ? const Icon(
-                  CupertinoIcons.gear,
-                  size: 30,
-                )
-              : const Text('Sign In'),
-        ),
-      ),
-      child: CupertinoTabScaffold(
-        tabBar: CupertinoTabBar(
-          height: 56,
-          backgroundColor: CupertinoColors.secondarySystemBackground,
-          activeColor: slottedOrange,
-          currentIndex: _tabController.index,
-          onTap: (index) {
-            _tabController.index = index;
-            setState(() {});
-          },
-          iconSize: iconSize,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.list_bullet),
-              // label: 'My Events',
+    return Stack(
+      children: [
+        CupertinoPageScaffold(
+          navigationBar: CupertinoNavigationBar(
+            backgroundColor: CupertinoColors.secondarySystemBackground,
+            middle: _buildNavigationTitle(),
+            leading: loggedIn
+                ? CupertinoButton(
+                    onPressed: isLoading ? null : () {},
+                    padding: EdgeInsets.zero,
+                    child: const Icon(CupertinoIcons.bell, size: 30),
+                  )
+                : null,
+            trailing: CupertinoButton(
+              onPressed:
+                  isLoading ? null : () => _openSettings(context, loggedIn),
+              padding: EdgeInsets.zero,
+              child: loggedIn
+                  ? const Icon(
+                      CupertinoIcons.gear,
+                      size: 30,
+                    )
+                  : const Text(
+                      'Sign In',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
             ),
-            BottomNavigationBarItem(
-              icon: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(40),
-                  border: Border.all(
-                    color: _tabController.index == 1
-                        ? slottedOrange.withOpacity(0.93)
-                        : CupertinoColors.systemGrey.withOpacity(0.7),
-                    width: 3,
+          ),
+          child: CupertinoTabScaffold(
+            tabBar: CupertinoTabBar(
+              height: 56,
+              backgroundColor: CupertinoColors.secondarySystemBackground,
+              activeColor: slottedOrange,
+              currentIndex: _tabController.index,
+              onTap: (index) {
+                _tabController.index = index;
+                setState(() {});
+              },
+              iconSize: iconSize,
+              items: [
+                const BottomNavigationBarItem(
+                  icon: Icon(CupertinoIcons.list_bullet),
+                  // label: 'My Events',
+                ),
+                BottomNavigationBarItem(
+                  icon: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(40),
+                      border: Border.all(
+                        color: _tabController.index == 1
+                            ? slottedOrange.withOpacity(0.93)
+                            : CupertinoColors.systemGrey.withOpacity(0.7),
+                        width: 3,
+                      ),
+                    ),
+                    child: Image.asset(
+                      'lib/assets/images/s_logo.png',
+                      width: iconSize * 1.2,
+                      height: iconSize * 1.2,
+                      color: _tabController.index == 1
+                          ? slottedOrange.withOpacity(0.93)
+                          : CupertinoColors.systemGrey.withOpacity(0.7),
+                    ),
                   ),
                 ),
-                child: Image.asset(
-                  'lib/assets/images/s_logo.png',
-                  width: iconSize * 1.2,
-                  height: iconSize * 1.2,
-                  color: _tabController.index == 1
-                      ? slottedOrange.withOpacity(0.93)
-                      : CupertinoColors.systemGrey.withOpacity(0.7),
+                const BottomNavigationBarItem(
+                  icon: Icon(CupertinoIcons.person),
+                  // label: 'Profile',
                 ),
-              ),
+              ],
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.person),
-              // label: 'Profile',
-            ),
-          ],
+            tabBuilder: (context, index) {
+              late Widget tabView;
+              switch (index) {
+                case 0:
+                  tabView = MyEventsPage(
+                    user: widget.user,
+                    authAction: (isLoggedIn) =>
+                        _authAction(context, isLoggedIn),
+                  );
+                  break;
+                case 1:
+                  tabView = MyHomePage(user: widget.user);
+                  break;
+                case 2:
+                  tabView = ProfilePage(
+                    user: widget.user,
+                    authAction: (isLoggedIn) =>
+                        _authAction(context, isLoggedIn),
+                  );
+                  break;
+                default:
+                  tabView = MyHomePage(user: widget.user);
+              }
+              // return CupertinoTabView(builder: (context) => tabView);
+              return tabView;
+            },
+          ),
         ),
-        tabBuilder: (context, index) {
-          late Widget tabView;
-          switch (index) {
-            case 0:
-              tabView = MyEventsPage(
-                user: widget.user,
-                authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
-              );
-              break;
-            case 1:
-              tabView = MyHomePage(user: widget.user);
-              break;
-            case 2:
-              tabView = ProfilePage(
-                user: widget.user,
-                authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
-              );
-              break;
-            default:
-              tabView = MyHomePage(user: widget.user);
-          }
-          // return CupertinoTabView(builder: (context) => tabView);
-          return tabView;
-        },
-      ),
+        if (isLoading)
+          const Opacity(
+            opacity: 0.5,
+            child: ModalBarrier(
+              color: CupertinoColors.black,
+              dismissible: false,
+            ),
+          ),
+        if (isLoading)
+          const Center(
+            child: CupertinoActivityIndicator(),
+          ),
+      ],
     );
   }
 
@@ -156,7 +182,12 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           actions: [
             CupertinoActionSheetAction(
               onPressed: () => _authAction(context, loggedIn),
-              child: Text(loggedIn ? 'Sign Out' : 'Sign In'),
+              child: Text(
+                loggedIn ? 'Sign Out' : 'Sign In',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ],
           cancelButton: CupertinoActionSheetAction(
@@ -169,51 +200,87 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   }
 
   Future<void> _authAction(BuildContext context, bool loggedIn) async {
-    if (loggedIn) {
-      await FirebaseAuthService().signOut();
-      Navigator.of(context).pop();
-    } else {
-      // Present sign in modal to collect phone number
-      await showCupertinoModalPopup(
-        context: context,
-        builder: (builder) {
-          return CupertinoAlertDialog(
-            title: const Text('Sign In'),
-            content: Padding(
-              padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-              child: CupertinoTextField(
-                placeholder: 'Phone Number',
-                keyboardType: TextInputType.phone,
-                onChanged: (value) => setState(() {
-                  phoneNumber = value;
-                }),
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      if (loggedIn) {
+        await FirebaseAuthService().signOut();
+        setState(() {
+          isLoading = false;
+        });
+        Navigator.of(context).pop();
+      } else {
+        // Present sign in modal to collect phone number
+        await showCupertinoModalPopup(
+          context: context,
+          builder: (builder) {
+            return CupertinoAlertDialog(
+              title: const Text(
+                'Sign In',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () {
-                  setState(() {
-                    phoneNumber = null;
-                  });
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Cancel'),
+              content: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+                child: CupertinoTextField(
+                  autofocus: true,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  placeholder: 'Phone Number',
+                  keyboardType: TextInputType.phone,
+                  onChanged: (value) {
+                    setState(() {
+                      phoneNumber = value;
+                    });
+                  },
+                ),
               ),
-              CupertinoDialogAction(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Sign In'),
-              ),
-            ],
-          );
-        },
-      );
-      if (phoneNumber != null) {
-        await FirebaseAuthService().signIn(phoneNumber!, context);
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () {
+                    setState(() {
+                      phoneNumber = null;
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                CupertinoDialogAction(
+                  onPressed: () {
+                    if (phoneNumber == null || phoneNumber!.isEmpty) {
+                      return;
+                    }
+                    Navigator.of(context).pop(phoneNumber);
+                  },
+                  child: const Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+        if (phoneNumber != null) {
+          await FirebaseAuthService().signIn(phoneNumber!, context);
+        }
+        setState(() {
+          isLoading = false;
+        });
       }
+    } catch (e) {
+      print(e);
+      setState(() {
+        isLoading = false;
+      });
+      rethrow;
     }
-
-    // Refresh the state of Profile and Events pages
-    setState(() {});
   }
 
   Widget _buildNavigationTitle() {

@@ -6,9 +6,9 @@ import 'package:slotted/common/date_components.dart';
 import 'package:slotted/common/event_class.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
+import 'package:slotted/pages/event_details.dart';
 
-class MyEventsPage extends StatelessWidget {
-
+class MyEventsPage extends StatefulWidget {
   const MyEventsPage({super.key, required this.user, required this.authAction});
 
   final User? user;
@@ -16,66 +16,104 @@ class MyEventsPage extends StatelessWidget {
   final Future<void> Function(bool) authAction;
 
   @override
+  MyEventsPageState createState() => MyEventsPageState();
+}
+
+class MyEventsPageState extends State<MyEventsPage> {
+  int eventMode = 0;
+
+  @override
   Widget build(BuildContext context) {
-    final bool loggedIn = user != null;
+    final bool loggedIn = widget.user != null;
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.systemBackground,
-      child: user == null
-          ? Center(
-              child: CupertinoButton(
+      child: Center(
+        child: widget.user == null
+            ? CupertinoButton(
                 child: const Text('Sign In'),
-                onPressed: () => authAction(loggedIn),
+                onPressed: () => widget.authAction(loggedIn),
+              )
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    CupertinoSegmentedControl(
+                      children: {
+                        0: Text(
+                          'Attending',
+                          style: TextStyle(
+                              color: CupertinoColors.label,
+                              fontWeight: eventMode == 0
+                                  ? FontWeight.w600
+                                  : FontWeight.w400),
+                          textAlign: TextAlign.center,
+                        ),
+                        1: Text(
+                          'Hosting',
+                          style: TextStyle(
+                              color: CupertinoColors.label,
+                              fontWeight: eventMode == 1
+                                  ? FontWeight.w600
+                                  : FontWeight.w400),
+                          textAlign: TextAlign.center,
+                        ),
+                      },
+                      onValueChanged: (value) {
+                        setState(() {
+                          eventMode = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Text(eventMode == 0 ? 'Attending' : 'Hosting'),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: eventMode == 0 ? FirebaseFirestore.instance
+                            .collection('default')
+                            .where('attendees',
+                                arrayContains: widget.user!.uid)
+                            .snapshots() : FirebaseFirestore.instance
+                            .collection('default')
+                            .where('host',
+                                isEqualTo: widget.user!.uid)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            final events =
+                                _convertQuerySnapshotToEvents(snapshot.data!)
+                                  ..sort((event_0, event_1) {
+                                    if (event_0.ended != event_1.ended) {
+                                      return event_1.ended ? -1 : 1;
+                                    } else if (event_0.dateTime ==
+                                        event_1.dateTime) {
+                                      return event_1.venueName
+                                          .compareTo(event_0.venueName);
+                                    }
+                                    return event_1.dateTime
+                                        .compareTo(event_0.dateTime);
+                                  });
+                            if (events.isEmpty) {
+                              return const Text('No events found');
+                            }
+                            return ListView.builder(
+                              padding: const EdgeInsets.only(top: 4),
+                              itemCount: events.length,
+                              itemBuilder: (context, index) =>
+                                  _buildListItem(context, events[index]),
+                            );
+                          } else if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          } else {
+                            return const CupertinoActivityIndicator();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )
-          : Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CupertinoSegmentedControl(
-            children: const {
-              0: Text(
-                'Attending',
-                style: TextStyle(color: CupertinoColors.label),
-              ),
-              1: Text(
-                'Hosting',
-                style: TextStyle(color: CupertinoColors.label),
-              ),
-            },
-            onValueChanged: (value) {
-              print(value);
-            },
-          ),
-          const SizedBox(height: 12),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('default')
-                .where('attendees', arrayContains: user?.uid)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                final events = _convertQuerySnapshotToEvents(snapshot.data!)
-                  ..sort((event_0, event_1) {
-                    if (event_0.ended != event_1.ended) {
-                      return event_1.ended ? -1 : 1;
-                    } else if (event_0.dateTime == event_1.dateTime) {
-                      return event_1.venueName.compareTo(event_0.venueName);
-                    }
-                    return event_1.dateTime.compareTo(event_0.dateTime);
-                  });
-                return ListView.builder(
-                  padding: const EdgeInsets.only(top: 4),
-                  itemCount: events.length,
-                  itemBuilder: (context, index) =>
-                      _buildListItem(context, events[index]),
-                );
-              } else if (snapshot.hasError) {
-                return Text('Error: ${snapshot.error}');
-              } else {
-                return const CupertinoActivityIndicator();
-              }
-            },
-          ),
-        ],
       ),
     );
   }
@@ -88,7 +126,11 @@ class MyEventsPage extends StatelessWidget {
       child: CupertinoButton(
         borderRadius: BorderRadius.circular(12),
         padding: const EdgeInsets.all(0),
-        onPressed: () => _tappedEvent(event),
+        onPressed: () => Navigator.of(context).push(
+          CupertinoPageRoute(
+            builder: (context) => EventDetailsPage(user: widget.user, event: event),
+          ),
+        ),
         color: CupertinoColors.systemBackground,
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -176,7 +218,7 @@ class MyEventsPage extends StatelessWidget {
     );
   }
 
-  void _tappedEvent(Event event) {
+  void _editEvent(Event event) {
     print(event.venueName);
   }
 

@@ -6,6 +6,7 @@ import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/date_components.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
+import 'package:slotted/pages/event_details.dart';
 
 class MyHomePage extends StatelessWidget {
   const MyHomePage({
@@ -57,7 +58,11 @@ class MyHomePage extends StatelessWidget {
       child: CupertinoButton(
         borderRadius: BorderRadius.circular(12),
         padding: const EdgeInsets.all(0),
-        onPressed: () => _tappedEvent(event),
+        onPressed: () => Navigator.of(context).push(
+          CupertinoPageRoute(
+            builder: (context) => EventDetailsPage(user: user, event: event),
+          ),
+        ),
         color: CupertinoColors.systemBackground,
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -143,10 +148,6 @@ class MyHomePage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _tappedEvent(Event event) {
-    print(event.venueName);
   }
 
   DateComponents _convertDateTimeToStringComponents(double dateTime) {
