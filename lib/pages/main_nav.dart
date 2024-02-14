@@ -8,6 +8,7 @@ import 'package:slotted/pages/my_events.dart';
 import 'package:slotted/pages/my_home_page.dart';
 import 'package:slotted/pages/profile.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
+import 'package:slotted/widgets/code_verification_page.dart';
 
 // Create class MainNav that manages a tab controller screen with 5 routes. The middle route must point to MyHomePage.
 class MainNav extends StatefulWidget {
@@ -27,27 +28,47 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
 
   bool isLoading = false;
 
+  final double iconSize = 30;
+
+  String titleString = 'Slotted';
+
+  late final List<Widget> tabViews;
+
   @override
   void initState() {
     super.initState();
     _tabController = CupertinoTabController(
       initialIndex: 1,
     );
-    _tabController.addListener(_handleTabSelection);
+    tabViews = [
+      StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) => MyEventsPage(
+          user: snapshot.data,
+          authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
+        ),
+      ),
+      StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) => MyHomePage(
+          user: snapshot.data,
+        ),
+      ),
+      StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) => ProfilePage(
+          user: snapshot.data,
+          authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
+        ),
+      ),
+    ];
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
     super.dispose();
   }
-
-  void _handleTabSelection() {
-    setState(() {});
-  }
-
-  final double iconSize = 30;
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +111,18 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
               currentIndex: _tabController.index,
               onTap: (index) {
                 _tabController.index = index;
-                setState(() {});
+                setState(() {
+                  switch (_tabController.index) {
+                    case 0:
+                      titleString = 'My Events';
+                    case 1:
+                      titleString = 'Slotted';
+                    case 2:
+                      titleString = 'Profile';
+                    default:
+                      titleString = 'Slotted';
+                  }
+                });
               },
               iconSize: iconSize,
               items: [
@@ -126,30 +158,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
               ],
             ),
             tabBuilder: (context, index) {
-              late Widget tabView;
-              switch (index) {
-                case 0:
-                  tabView = MyEventsPage(
-                    user: widget.user,
-                    authAction: (isLoggedIn) =>
-                        _authAction(context, isLoggedIn),
-                  );
-                  break;
-                case 1:
-                  tabView = MyHomePage(user: widget.user);
-                  break;
-                case 2:
-                  tabView = ProfilePage(
-                    user: widget.user,
-                    authAction: (isLoggedIn) =>
-                        _authAction(context, isLoggedIn),
-                  );
-                  break;
-                default:
-                  tabView = MyHomePage(user: widget.user);
-              }
-              // return CupertinoTabView(builder: (context) => tabView);
-              return tabView;
+              return tabViews[index];
             },
           ),
         ),
@@ -244,16 +253,85 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   onPressed: () {
                     setState(() {
                       phoneNumber = null;
+                      isLoading = false;
                     });
                     Navigator.of(context).pop();
                   },
                   child: const Text('Cancel'),
                 ),
                 CupertinoDialogAction(
-                  onPressed: () {
+                  onPressed: () async {
                     if (phoneNumber == null || phoneNumber!.isEmpty) {
                       return;
                     }
+                    final formattedNumber =
+                        '+1${phoneNumber!.replaceAll(RegExp(r'[^0-9]'), '')}';
+                    await FirebaseAuthService().firebaseAuth.verifyPhoneNumber(
+                          phoneNumber: formattedNumber,
+                          verificationCompleted:
+                              (PhoneAuthCredential credential) async {
+                            // Auto-retrieval or instant verification completed
+                            await FirebaseAuthService()
+                                .firebaseAuth
+                                .signInWithCredential(credential);
+                            setState(() {
+                              isLoading = false;
+                            });
+                          },
+                          verificationFailed: (FirebaseAuthException e) {
+                            // Handle error
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => CupertinoAlertDialog(
+                                title: const Text('Error'),
+                                content: Text(e.message ?? e.toString()),
+                                actions: [
+                                  CupertinoButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            setState(() {
+                              isLoading = false;
+                            });
+                          },
+                          codeSent: (String verificationId, int? resendToken) {
+                            // Code sent for manual entry
+                            Navigator.of(context)
+                                .push(CupertinoPageRoute(
+                              builder: (context) => CodeVerificationPage(
+                                  verificationId: verificationId),
+                            ))
+                                .then((value) {
+                              setState(() {
+                                isLoading = false;
+                              });
+                            });
+                          },
+                          codeAutoRetrievalTimeout: (String verificationId) {
+                            // Auto retrieval timeout
+                            showCupertinoDialog(
+                              context: context,
+                              builder: (context) => CupertinoAlertDialog(
+                                title: const Text('Error'),
+                                content: const Text('Verifcation timed out.'),
+                                actions: [
+                                  CupertinoButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            setState(() {
+                              isLoading = false;
+                            });
+                          },
+                        );
                     Navigator.of(context).pop(phoneNumber);
                   },
                   child: const Text(
@@ -267,12 +345,12 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
             );
           },
         );
-        if (phoneNumber != null) {
-          await FirebaseAuthService().signIn(phoneNumber!, context);
+
+        if (phoneNumber == null) {
+          setState(() {
+            isLoading = false;
+          });
         }
-        setState(() {
-          isLoading = false;
-        });
       }
     } catch (e) {
       print(e);
@@ -289,19 +367,6 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       fontWeight: FontWeight.w700,
       fontSize: 30,
     );
-
-    var titleString = 'Slotted';
-
-    switch (_tabController.index) {
-      case 0:
-        titleString = 'My Events';
-      case 1:
-        titleString = 'Slotted';
-      case 2:
-        titleString = 'Profile';
-      default:
-        titleString = 'Slotted';
-    }
 
     return Text(
       titleString,

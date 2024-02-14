@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -6,7 +7,7 @@ import 'package:slotted/common/slotted_user.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, required this.user, required this.authAction});
 
   final User? user;
@@ -14,27 +15,46 @@ class ProfilePage extends StatelessWidget {
   final Future<void> Function(bool) authAction;
 
   @override
+  ProfilePageState createState() => ProfilePageState();
+}
+
+class ProfilePageState extends State<ProfilePage> {
+  final bioController = TextEditingController();
+
+  Future<String> _fetchProfileImageUrl() async {
+    try {
+      return await FirebaseStorage.instance
+          .ref('profileImgs/${widget.user!.uid}.png')
+          .getDownloadURL();
+    } catch (e) {
+      // Handle error
+      print(e);
+      return '';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final bool loggedIn = user != null;
+    final bool loggedIn = widget.user != null;
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.systemBackground,
-      child: user == null
+      child: widget.user == null
           ? Center(
               child: CupertinoButton(
                 child: const Text('Sign In'),
-                onPressed: () => authAction(loggedIn),
+                onPressed: () => widget.authAction(loggedIn),
               ),
             )
           : StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
-                  .doc('users/${user!.uid}')
+                  .doc('users/${widget.user!.uid}')
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return Center(
                     child: CupertinoButton(
                       child: const Text('Sign In'),
-                      onPressed: () => authAction(loggedIn),
+                      onPressed: () => widget.authAction(loggedIn),
                     ),
                   );
                 }
@@ -43,15 +63,15 @@ class ProfilePage extends StatelessWidget {
 
                 const double pictureSize = 120.0;
 
+                bioController.text = slottedUser.bio;
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 24),
                     // Load profile image from firebase storage
                     FutureBuilder<String>(
-                      future: FirebaseStorage.instance
-                          .ref('profileImgs/${user!.uid}.png')
-                          .getDownloadURL(),
+                      future: _fetchProfileImageUrl(),
                       builder: (context, snapshot) {
                         return CupertinoButton(
                           padding: EdgeInsets.zero,
@@ -69,17 +89,20 @@ class ProfilePage extends StatelessWidget {
                                   width: 2,
                                 ),
                               ),
-                              child: snapshot.hasData
+                              child: snapshot.hasData &&
+                                      (snapshot.data?.isNotEmpty ?? true)
                                   ? Padding(
                                       padding: const EdgeInsets.all(0),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(
                                             pictureSize / 2),
-                                        child: Image.network(
-                                          snapshot.data!,
+                                        child: CachedNetworkImage(
+                                          imageUrl: snapshot.data!,
                                           width: pictureSize,
                                           height: pictureSize,
                                           fit: BoxFit.cover,
+                                          useOldImageOnUrlChange: true,
+                                          fadeInDuration: Duration.zero,
                                         ),
                                       ),
                                     )
@@ -108,13 +131,15 @@ class ProfilePage extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
-                    Text(
-                      slottedUser.bio,
+                    CupertinoTextField(
+                      controller: bioController,
+                      // expands: true,
+                      maxLines: 4,
                       style: const TextStyle(
-                        height: 0.7,
+                        // height: 0.7,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: CupertinoColors.systemBackground,
+                        color: CupertinoColors.label,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -123,7 +148,7 @@ class ProfilePage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (slottedUser.twitter != null)
+                        if (slottedUser.twitter != '')
                           CupertinoButton(
                             padding: EdgeInsets.zero,
                             onPressed: () async {
@@ -131,7 +156,8 @@ class ProfilePage extends StatelessWidget {
                               final url = Uri.parse(
                                   'https://x.com/${slottedUser.twitter}');
                               try {
-                                await launchUrl(url);
+                                await launchUrl(url,
+                                    mode: LaunchMode.inAppBrowserView);
                               } catch (e) {
                                 print(e);
                               }
@@ -143,7 +169,7 @@ class ProfilePage extends StatelessWidget {
                             ),
                           ),
                         const SizedBox(width: 16),
-                        if (slottedUser.instagram != null)
+                        if (slottedUser.instagram != '')
                           CupertinoButton(
                             padding: EdgeInsets.zero,
                             onPressed: () async {
@@ -151,7 +177,8 @@ class ProfilePage extends StatelessWidget {
                               final url = Uri.parse(
                                   'https://instagram.com/${slottedUser.instagram}');
                               try {
-                                await launchUrl(url);
+                                await launchUrl(url,
+                                    mode: LaunchMode.inAppBrowserView);
                               } catch (e) {
                                 print(e);
                               }

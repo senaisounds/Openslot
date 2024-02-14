@@ -7,7 +7,8 @@ import 'package:slotted/common/colors.dart';
 class CodeVerificationPage extends StatefulWidget {
   final String verificationId;
 
-  const CodeVerificationPage({super.key, required this.verificationId});
+  const CodeVerificationPage(
+      {super.key, required this.verificationId});
 
   @override
   CodeVerificationPageState createState() => CodeVerificationPageState();
@@ -16,6 +17,7 @@ class CodeVerificationPage extends StatefulWidget {
 class CodeVerificationPageState extends State<CodeVerificationPage> {
   final TextEditingController _codeController = TextEditingController();
   bool _loading = false;
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -87,7 +89,6 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
       );
 
       await FirebaseAuth.instance.signInWithCredential(credential);
-
       // Navigate to your desired page after successful login
       Navigator.of(context).pop();
     } catch (e) {
