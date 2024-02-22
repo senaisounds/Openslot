@@ -106,6 +106,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
             ),
           ),
           child: CupertinoTabScaffold(
+            resizeToAvoidBottomInset: false,
             tabBar: CupertinoTabBar(
               height: 56,
               backgroundColor: CupertinoColors.secondarySystemBackground,

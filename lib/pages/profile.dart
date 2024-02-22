@@ -25,22 +25,10 @@ class ProfilePageState extends State<ProfilePage> {
   final bioController = TextEditingController();
   final FocusNode bioFocus = FocusNode();
 
-  Future<String> _fetchProfileImageUrl() async {
-    try {
-      return await FirebaseStorage.instance
-          .ref('profileImgs/${widget.user!.uid}.png')
-          .getDownloadURL();
-    } catch (e) {
-      // Handle error
-      print(e);
-      return '';
-    }
-  }
-
   KeyboardActionsConfig _buildConfig(BuildContext context) {
     return KeyboardActionsConfig(
       keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
-      keyboardBarColor: CupertinoColors.secondaryLabel,
+      keyboardBarColor: CupertinoColors.secondaryLabel.withOpacity(1),
       nextFocus: false,
       actions: [
         KeyboardActionsItem(focusNode: bioFocus, toolbarButtons: [
@@ -52,7 +40,7 @@ class ProfilePageState extends State<ProfilePage> {
                 'Done',
                 style: TextStyle(
                   color: slottedOrange,
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -67,8 +55,10 @@ class ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final bool loggedIn = widget.user != null;
     return KeyboardActions(
+      isDialog: true,
       config: _buildConfig(context),
       child: CupertinoPageScaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: CupertinoColors.systemBackground,
         child: !loggedIn
             ? Center(
@@ -102,63 +92,57 @@ class ProfilePageState extends State<ProfilePage> {
                     children: [
                       const SizedBox(height: 24),
                       // Load profile image from firebase storage
-                      FutureBuilder<String>(
-                        future: _fetchProfileImageUrl(),
-                        builder: (context, snapshot) {
-                          return CupertinoButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: () => _profilePictureAction(context),
-                            child: Center(
-                              child: Container(
-                                width: pictureSize,
-                                height: pictureSize,
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(pictureSize / 2),
-                                  // color: slottedOrange,
-                                  border: Border.all(
-                                    color: slottedOrange,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: snapshot.hasData &&
-                                        (snapshot.data?.isNotEmpty ?? true)
-                                    ? Padding(
-                                        padding: const EdgeInsets.all(0),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                              pictureSize / 2),
-                                          child: CachedNetworkImage(
-                                            imageUrl: snapshot.data!,
-                                            width: pictureSize,
-                                            height: pictureSize,
-                                            fit: BoxFit.cover,
-                                            useOldImageOnUrlChange: true,
-                                            fadeInDuration: Duration.zero,
-                                          ),
-                                        ),
-                                      )
-                                    : Text(
-                                        slottedUser.username.characters.first,
-                                        style: const TextStyle(
-                                          fontSize: pictureSize * 0.78,
-                                          fontWeight: FontWeight.bold,
-                                          color: slottedOrange,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () => _profilePictureAction(context),
+                        child: Center(
+                          child: Container(
+                            width: pictureSize,
+                            height: pictureSize,
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  BorderRadius.circular(pictureSize / 2),
+                              // color: slottedOrange,
+                              border: Border.all(
+                                color: slottedOrange,
+                                width: 2,
                               ),
                             ),
-                          );
-                        },
+                            child: slottedUser.photoUrl.isNotEmpty
+                                ? Padding(
+                                    padding: const EdgeInsets.all(0),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(
+                                          pictureSize / 2),
+                                      child: CachedNetworkImage(
+                                        imageUrl: slottedUser.photoUrl,
+                                        width: pictureSize,
+                                        height: pictureSize,
+                                        fit: BoxFit.cover,
+                                        useOldImageOnUrlChange: true,
+                                        fadeInDuration: Duration.zero,
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    slottedUser.username.characters.first,
+                                    style: const TextStyle(
+                                      fontSize: pictureSize * 0.78,
+                                      fontWeight: FontWeight.bold,
+                                      color: slottedOrange,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 32),
                       Text(
                         slottedUser.username,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 24,
                           fontWeight: FontWeight.w700,
-                          color: CupertinoColors.label,
+                          color: CupertinoColors.systemBackground,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -167,16 +151,17 @@ class ProfilePageState extends State<ProfilePage> {
                         keyboardType: TextInputType.multiline,
                         focusNode: bioFocus,
                         placeholder: 'Bio',
+                        cursorColor: slottedOrange,
                         placeholderStyle: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w500,
-                          color: CupertinoColors.placeholderText,
+                          color: CupertinoColors.systemGrey,
                         ),
                         controller: bioController,
                         maxLines: 6,
                         style: const TextStyle(
                           // height: 0.7,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w500,
                           color: CupertinoColors.label,
                         ),
@@ -196,7 +181,7 @@ class ProfilePageState extends State<ProfilePage> {
                                     'https://x.com/${slottedUser.twitter}');
                                 try {
                                   await launchUrl(url,
-                                      mode: LaunchMode.inAppBrowserView);
+                                      mode: LaunchMode.inAppWebView);
                                 } catch (e) {
                                   print(e);
                                 }
@@ -231,7 +216,7 @@ class ProfilePageState extends State<ProfilePage> {
                                     'https://instagram.com/${slottedUser.instagram}');
                                 try {
                                   await launchUrl(url,
-                                      mode: LaunchMode.inAppBrowserView);
+                                      mode: LaunchMode.inAppWebView);
                                 } catch (e) {
                                   print(e);
                                 }

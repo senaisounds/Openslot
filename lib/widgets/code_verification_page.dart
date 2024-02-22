@@ -21,6 +21,7 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: CupertinoColors.systemBackground,
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Enter Verification Code'),

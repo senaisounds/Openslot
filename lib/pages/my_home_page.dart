@@ -29,7 +29,7 @@ class _MyHomePageState extends State<MyHomePage> {
   KeyboardActionsConfig _buildConfig(BuildContext context) {
     return KeyboardActionsConfig(
       keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
-      keyboardBarColor: CupertinoColors.secondarySystemBackground,
+      keyboardBarColor: CupertinoColors.secondaryLabel.withOpacity(1),
       nextFocus: false,
       actions: [
         KeyboardActionsItem(focusNode: searchFocus, toolbarButtons: [
@@ -44,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 'Done',
                 style: TextStyle(
                   color: slottedOrange,
-                  fontSize: 17,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -62,6 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
       config: _buildConfig(context),
       disableScroll: true,
       child: CupertinoPageScaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: CupertinoColors.systemBackground,
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('events').snapshots(),
@@ -88,29 +89,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             .contains(query.toLowerCase()))
                     .toList()
                 : [];
-            if (snapshot.hasError) {
-              return Center(
-                child: Text('Error: ${snapshot.error}'),
-              );
-            }
-            if (!snapshot.hasData) {
-              return const Center(
-                  child: CupertinoActivityIndicator(
-                color: slottedOrange,
-                radius: 16,
-              ));
-            }
-            if (events.isEmpty) {
-              return const Text(
-                'No events found',
-                style: TextStyle(
-                  color: slottedOrange,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              );
-            }
             return Column(
               children: [
                 Padding(
@@ -154,10 +132,39 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: events.length,
-                    itemBuilder: (context, index) =>
-                        _buildListItem(context, events[index]),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 222),
+                    child: snapshot.hasError
+                        ? Center(
+                            child: Text('Error: ${snapshot.error}'),
+                          )
+                        : !snapshot.hasData
+                            ? const Center(
+                                child: CupertinoActivityIndicator(
+                                color: slottedOrange,
+                                radius: 16,
+                              ))
+                            : events.isEmpty
+                                ? const Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'No events found',
+                                        style: TextStyle(
+                                          color: slottedOrange,
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : ListView.builder(
+                                    itemCount: events.length,
+                                    itemBuilder: (context, index) =>
+                                        _buildListItem(context, events[index]),
+                                  ),
                   ),
                 ),
               ],
@@ -182,17 +189,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 EventDetailsPage(user: widget.user, event: event),
           ),
         ),
-        // color: CupertinoColors.secondaryLabel,
+        color: CupertinoColors.systemBackground,
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: slottedOrange,
+            color: CupertinoColors.systemBackground,
             boxShadow: const [
               BoxShadow(
-                color: CupertinoColors.systemGrey3,
+                color: slottedOrange,
                 spreadRadius: 3,
-                blurRadius: 3,
+                blurRadius: 9,
               ),
             ],
           ),

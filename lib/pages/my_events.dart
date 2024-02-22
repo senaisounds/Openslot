@@ -26,6 +26,7 @@ class MyEventsPageState extends State<MyEventsPage> {
   Widget build(BuildContext context) {
     final bool loggedIn = widget.user != null;
     return CupertinoPageScaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: CupertinoColors.systemBackground,
       child: Center(
         child: widget.user == null
@@ -40,23 +41,35 @@ class MyEventsPageState extends State<MyEventsPage> {
                   children: [
                     CupertinoSegmentedControl(
                       children: {
-                        0: Text(
-                          'Attending',
-                          style: TextStyle(
-                              color: CupertinoColors.label,
-                              fontWeight: eventMode == 0
-                                  ? FontWeight.w600
-                                  : FontWeight.w400),
-                          textAlign: TextAlign.center,
+                        0: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Text(
+                            'Attending',
+                            style: TextStyle(
+                                color: CupertinoColors.label,
+                                fontWeight: eventMode == 0
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                    fontSize: eventMode == 0
+                                    ? 18
+                                    : 17),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                        1: Text(
-                          'Hosting',
-                          style: TextStyle(
-                              color: CupertinoColors.label,
-                              fontWeight: eventMode == 1
-                                  ? FontWeight.w600
-                                  : FontWeight.w400),
-                          textAlign: TextAlign.center,
+                        1: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Text(
+                            'Hosting',
+                            style: TextStyle(
+                                color: CupertinoColors.label,
+                                fontWeight: eventMode == 1
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                    fontSize: eventMode == 1
+                                    ? 18
+                                    : 17),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       },
                       onValueChanged: (value) {
@@ -65,8 +78,6 @@ class MyEventsPageState extends State<MyEventsPage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 12),
-                    Text(eventMode == 0 ? 'Attending' : 'Hosting'),
                     const SizedBox(height: 12),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
@@ -141,7 +152,7 @@ class MyEventsPageState extends State<MyEventsPage> {
               BoxShadow(
                 color: slottedOrange,
                 spreadRadius: 3,
-                blurRadius: 12,
+                blurRadius: 9,
               ),
             ],
           ),

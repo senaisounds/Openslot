@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class SlottedUser {
   String bio = '';
   String customerID = '';
-  bool hasPicture = false;
+  String photoUrl = '';
   String instagram = '';
   bool isHost = false;
   List<String> openMics = [];
@@ -20,7 +20,7 @@ class SlottedUser {
     final slottedUser = SlottedUser();
     slottedUser.bio = docData['bio'] ?? '';
     slottedUser.customerID = docData['customerID'] ?? '';
-    slottedUser.hasPicture = docData['hasPicture'] ?? false;
+    slottedUser.photoUrl = docData['photoUrl'] ?? '';
     slottedUser.instagram = docData['instagram'] ?? '';
     slottedUser.isHost = docData['isHost'] ?? false;
     slottedUser.openMics = (docData['openMics'] ?? []).cast<String>();

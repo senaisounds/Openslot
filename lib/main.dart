@@ -35,9 +35,6 @@ class MyApp extends StatelessWidget {
       ],
       theme: const CupertinoThemeData(
         primaryColor: slottedOrange,
-        barBackgroundColor: slottedOrange,
-        primaryContrastingColor: slottedOrange,
-        scaffoldBackgroundColor: slottedOrange,
       ),
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),

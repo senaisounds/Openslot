@@ -33,10 +33,14 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
+      resizeToAvoidBottomInset: false,
       navigationBar: CupertinoNavigationBar(
         border: null,
-        backgroundColor: CupertinoColors.secondarySystemBackground,
-        middle: Text(widget.event.name),
+        backgroundColor: CupertinoColors.systemBackground,
+        middle: Text(widget.event.name, style: const TextStyle(
+          color: CupertinoColors.label,
+          fontWeight: FontWeight.w800,
+        ),),
         trailing: widget.user != null
             ? Padding(
                 padding: const EdgeInsets.fromLTRB(0, 6, 0, 6),
@@ -92,8 +96,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text('Host'),
-            Text(widget.event.hostName),
+            Text('Hosted by ${widget.event.hostName}'),
             const SizedBox(height: 8),
             const Text('Rules'),
             Text(
