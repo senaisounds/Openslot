@@ -76,8 +76,10 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     return Stack(
       children: [
         CupertinoPageScaffold(
+          resizeToAvoidBottomInset: false,
           navigationBar: CupertinoNavigationBar(
-            backgroundColor: CupertinoColors.secondarySystemBackground,
+            border: null,
+            backgroundColor: CupertinoColors.systemBackground,
             middle: _buildNavigationTitle(),
             leading: loggedIn
                 ? CupertinoButton(
@@ -240,7 +242,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                     fontWeight: FontWeight.bold,
                   ),
                   placeholder: 'Phone Number',
-                  keyboardType: TextInputType.phone,
+                  keyboardType: TextInputType.number,
                   onChanged: (value) {
                     setState(() {
                       phoneNumber = value;

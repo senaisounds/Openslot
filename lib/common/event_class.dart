@@ -8,28 +8,28 @@ enum EventType {
 }
 
 class Event {
-  double dateTime = 0;
-  String venueName = '';
   String address = '';
-  int totalSpots = 0;
   List<String> attendees = [];
-  List<String> waitlist = [];
-  Map<String, double> reserveTimes = {};
+  DateTime date = DateTime.fromMillisecondsSinceEpoch(0);
+  bool ended = false;
   String host = '';
   String hostName = '';
   String id = '';
-  EventType type = EventType.mic;
-  bool requiresPhysicalSignup = false;
-  int timeLimit = 0;
-  String performer = '';
-  double performerStart = 0;
-  String rules = '';
   bool live = false;
-  bool ended = false;
+  String name = '';
+  String performer = '';
+  DateTime? performerStart;
   double price = 0;
+  Map<String, DateTime> reservationTimestamps = {};
+  String rules = '';
+  bool signupOnLocation = false;
+  int spots = 0;
+  int timeLimit = 0;
+  EventType type = EventType.mic;
+  List<String> waitlist = [];
 
   int get openSpots {
-    return max(0, totalSpots - attendees.length);
+    return max(0, spots - attendees.length);
   }
 
   static Event fromDocument(QueryDocumentSnapshot document) {
@@ -39,62 +39,42 @@ class Event {
     final docData = document.data()! as Map<String, dynamic>;
 
     final event = Event();
-    event.dateTime = (docData['dateTime'] ?? 0.0) is int
-        ? (docData['dateTime'] ?? 0.0).toDouble()
-        : (docData['dateTime'] ?? 0.0);
-    event.venueName = docData['venueName'] ?? '';
-    event.address = docData['address'] ?? '';
-    event.totalSpots = docData['totalSpots'] ?? 0;
-    event.reserveTimes = (docData['reserveTimes'] ?? {}).cast<String, double>();
-    event.attendees = (docData['attendees'] ?? []).sort((p0, p1) {
-          if (event.reserveTimes[p0] == null) {
-            return -1;
-          } else if (event.reserveTimes[p1] == null) {
-            return 1;
-          } else {
-            final reserve0 = event.reserveTimes[p0]! is int
-                ? event.reserveTimes[p0]!.toDouble()
-                : event.reserveTimes[p0]!;
-            final reserve1 = event.reserveTimes[p1]! is int
-                ? event.reserveTimes[p1]!.toDouble()
-                : event.reserveTimes[p1]!;
-            return reserve0.compareTo(reserve1);
-          }
-        }) ??
-        [];
-    event.waitlist = (docData['waitlist'] ?? []).sort((p0, p1) {
-          if (event.reserveTimes[p0] == null) {
-            return -1;
-          } else if (event.reserveTimes[p1] == null) {
-            return 1;
-          } else {
-            final reserve0 = event.reserveTimes[p0]! is int
-                ? event.reserveTimes[p0]!.toDouble()
-                : event.reserveTimes[p0]!;
-            final reserve1 = event.reserveTimes[p1]! is int
-                ? event.reserveTimes[p1]!.toDouble()
-                : event.reserveTimes[p1]!;
-            return reserve0.compareTo(reserve1);
-          }
-        }) ??
-        [];
-    event.host = docData['host'] ?? '';
-    event.hostName = docData['hostName'] ?? '';
-    event.id = docData['id'] ?? '';
-    event.type =
-        (docData['type'] ?? 'MIC') == 'DECK' ? EventType.deck : EventType.mic;
-    event.requiresPhysicalSignup = docData['requiresPhysicalSignup'] ?? false;
-    event.timeLimit = docData['timeLimit'] ?? 0;
-    event.performer = docData['performer'] ?? '';
-    event.performerStart = (docData['performerStart'] ?? 0.0) is int
-        ? (docData['performerStart'] ?? 0.0).toDouble()
-        : (docData['performerStart'] ?? 0.0);
-    event.rules = docData['rules'] ?? '';
-    event.live = docData['live'] ?? false;
-    event.ended = docData['ended'] ?? false;
-    event.price = (docData['price'] ?? 0.0) is int
-        ? (docData['price'] ?? 0.0).toDouble()
-        : (docData['price'] ?? 0.0);
+    if (docData['address'] != null) event.address = docData['address'];
+    if (docData['attendees'] != null)
+      event.attendees = List<String>.from(docData['attendees']);
+    if (docData['date'] != null)
+      event.date = (docData['date'] as Timestamp).toDate();
+    if (docData['ended'] != null) event.ended = docData['ended'];
+    if (docData['host'] != null) event.host = docData['host'];
+    if (docData['hostName'] != null) event.hostName = docData['hostName'];
+    event.id = document.id;
+    if (docData['live'] != null) event.live = docData['live'];
+    if (docData['name'] != null) event.name = docData['name'];
+    if (docData['performer'] != null) event.performer = docData['performer'];
+    if (docData['performerStart'] != null) {
+      event.performerStart = (docData['performerStart'] as Timestamp).toDate();
+    }
+    if (docData['price'] != null) event.price = docData['price'] * 1.0;
+    if (docData['reservationTimestamps'] != null) {
+      Map<String, Timestamp> reservationTimestamps =
+          Map<String, Timestamp>.from(docData['reservationTimestamps']);
+
+      event.reservationTimestamps = reservationTimestamps.map((key, value) {
+        return MapEntry(key, value.toDate());
+      });
+    }
+    if (docData['rules'] != null) event.rules = docData['rules'];
+    if (docData['signupOnLocation'] != null) {
+      event.signupOnLocation = docData['signupOnLocation'];
+    }
+    if (docData['spots'] != null) event.spots = docData['spots'];
+    if (docData['timeLimit'] != null) event.timeLimit = docData['timeLimit'];
+    if (docData['type'] != null) {
+      event.type = docData['type'] == 'DECK' ? EventType.deck : EventType.mic;
+    }
+    if (docData['waitlist'] != null) {
+      event.waitlist = List<String>.from(docData['waitlist']);
+    }
 
     return event;
   }

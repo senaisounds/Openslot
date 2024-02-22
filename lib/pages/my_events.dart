@@ -70,15 +70,16 @@ class MyEventsPageState extends State<MyEventsPage> {
                     const SizedBox(height: 12),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: eventMode == 0 ? FirebaseFirestore.instance
-                            .collection('default')
-                            .where('attendees',
-                                arrayContains: widget.user!.uid)
-                            .snapshots() : FirebaseFirestore.instance
-                            .collection('default')
-                            .where('host',
-                                isEqualTo: widget.user!.uid)
-                            .snapshots(),
+                        stream: eventMode == 0
+                            ? FirebaseFirestore.instance
+                                .collection('events')
+                                .where('attendees',
+                                    arrayContains: widget.user!.uid)
+                                .snapshots()
+                            : FirebaseFirestore.instance
+                                .collection('events')
+                                .where('host', isEqualTo: widget.user!.uid)
+                                .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.hasData) {
                             final events =
@@ -86,13 +87,11 @@ class MyEventsPageState extends State<MyEventsPage> {
                                   ..sort((event_0, event_1) {
                                     if (event_0.ended != event_1.ended) {
                                       return event_1.ended ? -1 : 1;
-                                    } else if (event_0.dateTime ==
-                                        event_1.dateTime) {
-                                      return event_1.venueName
-                                          .compareTo(event_0.venueName);
+                                    } else if (event_0.date == event_1.date) {
+                                      return event_1.name
+                                          .compareTo(event_0.name);
                                     }
-                                    return event_1.dateTime
-                                        .compareTo(event_0.dateTime);
+                                    return event_1.date.compareTo(event_0.date);
                                   });
                             if (events.isEmpty) {
                               return const Text('No events found');
@@ -119,7 +118,7 @@ class MyEventsPageState extends State<MyEventsPage> {
   }
 
   Widget _buildListItem(BuildContext context, Event event) {
-    final dateComponents = _convertDateTimeToStringComponents(event.dateTime);
+    final dateComponents = _convertDateTimeToStringComponents(event.date);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -128,7 +127,8 @@ class MyEventsPageState extends State<MyEventsPage> {
         padding: const EdgeInsets.all(0),
         onPressed: () => Navigator.of(context).push(
           CupertinoPageRoute(
-            builder: (context) => EventDetailsPage(user: widget.user, event: event),
+            builder: (context) =>
+                EventDetailsPage(user: widget.user, event: event),
           ),
         ),
         color: CupertinoColors.systemBackground,
@@ -158,7 +158,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          event.venueName, // Display title
+                          event.name, // Display title
                           style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 17,
@@ -219,11 +219,10 @@ class MyEventsPageState extends State<MyEventsPage> {
   }
 
   void _editEvent(Event event) {
-    print(event.venueName);
+    print(event.name);
   }
 
-  DateComponents _convertDateTimeToStringComponents(double dateTime) {
-    final date = DateTime.fromMillisecondsSinceEpoch((dateTime * 1000).toInt());
+  DateComponents _convertDateTimeToStringComponents(DateTime date) {
     final monthFull = DateFormat.LLLL().format(date).toString();
     final monthShort = DateFormat.LLL().format(date).toString();
     final dayFull = DateFormat.EEEE().format(date).toString();

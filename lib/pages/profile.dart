@@ -2,6 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -20,6 +23,7 @@ class ProfilePage extends StatefulWidget {
 
 class ProfilePageState extends State<ProfilePage> {
   final bioController = TextEditingController();
+  final FocusNode bioFocus = FocusNode();
 
   Future<String> _fetchProfileImageUrl() async {
     try {
@@ -33,181 +37,245 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  KeyboardActionsConfig _buildConfig(BuildContext context) {
+    return KeyboardActionsConfig(
+      keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
+      keyboardBarColor: CupertinoColors.secondaryLabel,
+      nextFocus: false,
+      actions: [
+        KeyboardActionsItem(focusNode: bioFocus, toolbarButtons: [
+          (node) {
+            return CupertinoButton(
+              padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
+              onPressed: () => node.unfocus(),
+              child: const Text(
+                'Done',
+                style: TextStyle(
+                  color: slottedOrange,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          }
+        ]),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool loggedIn = widget.user != null;
-    return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.systemBackground,
-      child: widget.user == null
-          ? Center(
-              child: CupertinoButton(
-                child: const Text('Sign In'),
-                onPressed: () => widget.authAction(loggedIn),
-              ),
-            )
-          : StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance
-                  .doc('users/${widget.user!.uid}')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Center(
-                    child: CupertinoButton(
-                      child: const Text('Sign In'),
-                      onPressed: () => widget.authAction(loggedIn),
-                    ),
-                  );
-                }
+    return KeyboardActions(
+      config: _buildConfig(context),
+      child: CupertinoPageScaffold(
+        backgroundColor: CupertinoColors.systemBackground,
+        child: !loggedIn
+            ? Center(
+                child: CupertinoButton(
+                  child: const Text('Sign In'),
+                  onPressed: () => widget.authAction(loggedIn),
+                ),
+              )
+            : StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .doc('users/${widget.user!.uid}')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(
+                      child: CupertinoButton(
+                        child: const Text('Sign In'),
+                        onPressed: () => widget.authAction(loggedIn),
+                      ),
+                    );
+                  }
 
-                final slottedUser = SlottedUser.fromDocument(snapshot.data!);
+                  final slottedUser = SlottedUser.fromDocument(snapshot.data!);
 
-                const double pictureSize = 120.0;
+                  const double pictureSize = 120.0;
 
-                bioController.text = slottedUser.bio;
+                  bioController.text = slottedUser.bio;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 24),
-                    // Load profile image from firebase storage
-                    FutureBuilder<String>(
-                      future: _fetchProfileImageUrl(),
-                      builder: (context, snapshot) {
-                        return CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: () => _profilePictureAction(context),
-                          child: Center(
-                            child: Container(
-                              width: pictureSize,
-                              height: pictureSize,
-                              decoration: BoxDecoration(
-                                borderRadius:
-                                    BorderRadius.circular(pictureSize / 2),
-                                // color: slottedOrange,
-                                border: Border.all(
-                                  color: slottedOrange,
-                                  width: 2,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 24),
+                      // Load profile image from firebase storage
+                      FutureBuilder<String>(
+                        future: _fetchProfileImageUrl(),
+                        builder: (context, snapshot) {
+                          return CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () => _profilePictureAction(context),
+                            child: Center(
+                              child: Container(
+                                width: pictureSize,
+                                height: pictureSize,
+                                decoration: BoxDecoration(
+                                  borderRadius:
+                                      BorderRadius.circular(pictureSize / 2),
+                                  // color: slottedOrange,
+                                  border: Border.all(
+                                    color: slottedOrange,
+                                    width: 2,
+                                  ),
                                 ),
-                              ),
-                              child: snapshot.hasData &&
-                                      (snapshot.data?.isNotEmpty ?? true)
-                                  ? Padding(
-                                      padding: const EdgeInsets.all(0),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(
-                                            pictureSize / 2),
-                                        child: CachedNetworkImage(
-                                          imageUrl: snapshot.data!,
-                                          width: pictureSize,
-                                          height: pictureSize,
-                                          fit: BoxFit.cover,
-                                          useOldImageOnUrlChange: true,
-                                          fadeInDuration: Duration.zero,
+                                child: snapshot.hasData &&
+                                        (snapshot.data?.isNotEmpty ?? true)
+                                    ? Padding(
+                                        padding: const EdgeInsets.all(0),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                              pictureSize / 2),
+                                          child: CachedNetworkImage(
+                                            imageUrl: snapshot.data!,
+                                            width: pictureSize,
+                                            height: pictureSize,
+                                            fit: BoxFit.cover,
+                                            useOldImageOnUrlChange: true,
+                                            fadeInDuration: Duration.zero,
+                                          ),
                                         ),
+                                      )
+                                    : Text(
+                                        slottedUser.username.characters.first,
+                                        style: const TextStyle(
+                                          fontSize: pictureSize * 0.78,
+                                          fontWeight: FontWeight.bold,
+                                          color: slottedOrange,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                    )
-                                  : Text(
-                                      slottedUser.username.characters.first,
-                                      style: const TextStyle(
-                                        fontSize: pictureSize * 0.78,
-                                        fontWeight: FontWeight.bold,
-                                        color: slottedOrange,
-                                      ),
-                                      textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        slottedUser.username,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: CupertinoColors.label,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
+                      CupertinoTextField(
+                        keyboardType: TextInputType.multiline,
+                        focusNode: bioFocus,
+                        placeholder: 'Bio',
+                        placeholderStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: CupertinoColors.placeholderText,
+                        ),
+                        controller: bioController,
+                        maxLines: 6,
+                        style: const TextStyle(
+                          // height: 0.7,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: CupertinoColors.label,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 48),
+                      // Insert twitter and instagram links
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (slottedUser.twitter != '')
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () async {
+                                // Open Twitter
+                                final url = Uri.parse(
+                                    'https://x.com/${slottedUser.twitter}');
+                                try {
+                                  await launchUrl(url,
+                                      mode: LaunchMode.inAppBrowserView);
+                                } catch (e) {
+                                  print(e);
+                                }
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    'lib/assets/images/twitter-white.png',
+                                    width: 48,
+                                    height: 48,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Text(
+                                    '@${slottedUser.twitter}',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: CupertinoColors.systemBackground,
                                     ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      slottedUser.username,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: CupertinoColors.systemBackground,
+                          const SizedBox(height: 24),
+                          if (slottedUser.instagram != '')
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () async {
+                                // Open Instagram
+                                final url = Uri.parse(
+                                    'https://instagram.com/${slottedUser.instagram}');
+                                try {
+                                  await launchUrl(url,
+                                      mode: LaunchMode.inAppBrowserView);
+                                } catch (e) {
+                                  print(e);
+                                }
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    'lib/assets/images/instagram-white.png',
+                                    width: 48,
+                                    height: 48,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Text(
+                                    '@${slottedUser.instagram}',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: CupertinoColors.systemBackground,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 32),
-                    CupertinoTextField(
-                      controller: bioController,
-                      // expands: true,
-                      maxLines: 4,
-                      style: const TextStyle(
-                        // height: 0.7,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: CupertinoColors.label,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 48),
-                    // Insert twitter and instagram links
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (slottedUser.twitter != '')
-                          CupertinoButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: () async {
-                              // Open Twitter
-                              final url = Uri.parse(
-                                  'https://x.com/${slottedUser.twitter}');
-                              try {
-                                await launchUrl(url,
-                                    mode: LaunchMode.inAppBrowserView);
-                              } catch (e) {
-                                print(e);
-                              }
-                            },
-                            child: Image.asset(
-                              'lib/assets/images/twitter-white.png',
-                              width: 48,
-                              height: 48,
-                            ),
-                          ),
-                        const SizedBox(width: 16),
-                        if (slottedUser.instagram != '')
-                          CupertinoButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: () async {
-                              // Open Instagram
-                              final url = Uri.parse(
-                                  'https://instagram.com/${slottedUser.instagram}');
-                              try {
-                                await launchUrl(url,
-                                    mode: LaunchMode.inAppBrowserView);
-                              } catch (e) {
-                                print(e);
-                              }
-                            },
-                            child: Image.asset(
-                              'lib/assets/images/instagram-white.png',
-                              width: 48,
-                              height: 48,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    // CupertinoButton(
-                    //   padding: const EdgeInsets.all(16),
-                    //   color: slottedOrange,
-                    //   onPressed: () => _signIn(context),
-                    //   child: const Text(
-                    //     'Sign Out',
-                    //     style: TextStyle(
-                    //       color: CupertinoColors.white,
-                    //       fontWeight: FontWeight.bold,
-                    //     ),
-                    //   ),
-                    // ),
-                  ],
-                );
-              },
-            ),
+                      const SizedBox(height: 32),
+                      // CupertinoButton(
+                      //   padding: const EdgeInsets.all(16),
+                      //   color: slottedOrange,
+                      //   onPressed: () => _signIn(context),
+                      //   child: const Text(
+                      //     'Sign Out',
+                      //     style: TextStyle(
+                      //       color: CupertinoColors.white,
+                      //       fontWeight: FontWeight.bold,
+                      //     ),
+                      //   ),
+                      // ),
+                    ],
+                  );
+                },
+              ),
+      ),
     );
   }
 
