@@ -186,7 +186,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () => Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (context) =>
-                EventDetailsPage(user: widget.user, event: event),
+                EventDetailsPage(user: widget.user, initialEvent: event),
           ),
         ),
         color: CupertinoColors.systemBackground,

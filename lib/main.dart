@@ -34,6 +34,7 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: const CupertinoThemeData(
+        brightness: Brightness.dark,
         primaryColor: slottedOrange,
       ),
       home: StreamBuilder<User?>(

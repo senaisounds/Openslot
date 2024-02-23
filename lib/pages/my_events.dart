@@ -46,13 +46,11 @@ class MyEventsPageState extends State<MyEventsPage> {
                           child: Text(
                             'Attending',
                             style: TextStyle(
-                                color: CupertinoColors.label,
+                                color: CupertinoColors.systemBackground,
                                 fontWeight: eventMode == 0
                                     ? FontWeight.w700
                                     : FontWeight.w400,
-                                    fontSize: eventMode == 0
-                                    ? 18
-                                    : 17),
+                                fontSize: eventMode == 0 ? 18 : 17),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -61,13 +59,11 @@ class MyEventsPageState extends State<MyEventsPage> {
                           child: Text(
                             'Hosting',
                             style: TextStyle(
-                                color: CupertinoColors.label,
+                                color: CupertinoColors.systemBackground,
                                 fontWeight: eventMode == 1
                                     ? FontWeight.w700
                                     : FontWeight.w400,
-                                    fontSize: eventMode == 1
-                                    ? 18
-                                    : 17),
+                                fontSize: eventMode == 1 ? 18 : 17),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -139,7 +135,7 @@ class MyEventsPageState extends State<MyEventsPage> {
         onPressed: () => Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (context) =>
-                EventDetailsPage(user: widget.user, event: event),
+                EventDetailsPage(user: widget.user, initialEvent: event),
           ),
         ),
         color: CupertinoColors.systemBackground,
@@ -164,27 +160,25 @@ class MyEventsPageState extends State<MyEventsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          event.name, // Display title
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 17,
-                              color: CupertinoColors.label),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          event.hostName, // Display hostname
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 16,
-                              color: CupertinoColors.label),
-                        ),
-                      ],
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.name, // Display title
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 17,
+                            color: CupertinoColors.label),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        event.hostName, // Display hostname
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            color: CupertinoColors.label),
+                      ),
+                    ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -228,6 +222,107 @@ class MyEventsPageState extends State<MyEventsPage> {
       ),
     );
   }
+
+  // Widget _buildListItem(BuildContext context, Event event) {
+  //   final dateComponents = _convertDateTimeToStringComponents(event.date);
+
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+  //     child: CupertinoButton(
+  //       borderRadius: BorderRadius.circular(12),
+  //       padding: const EdgeInsets.all(0),
+  //       onPressed: () => Navigator.of(context).push(
+  //         CupertinoPageRoute(
+  //           builder: (context) =>
+  //               EventDetailsPage(user: widget.user, initialEvent: event),
+  //         ),
+  //       ),
+  //       color: CupertinoColors.systemBackground,
+  //       child: Container(
+  //         padding: const EdgeInsets.all(12),
+  //         decoration: BoxDecoration(
+  //           borderRadius: BorderRadius.circular(12),
+  //           color: CupertinoColors.systemBackground,
+  //           boxShadow: const [
+  //             BoxShadow(
+  //               color: slottedOrange,
+  //               spreadRadius: 3,
+  //               blurRadius: 9,
+  //             ),
+  //           ],
+  //         ),
+  //         child: Column(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //           children: [
+  //             Row(
+  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 Expanded(
+  //                   child: Column(
+  //                     crossAxisAlignment: CrossAxisAlignment.start,
+  //                     children: [
+  //                       Text(
+  //                         event.name, // Display title
+  //                         style: const TextStyle(
+  //                             fontWeight: FontWeight.w600,
+  //                             fontSize: 17,
+  //                             color: CupertinoColors.label),
+  //                       ),
+  //                       const SizedBox(height: 4),
+  //                       Text(
+  //                         event.hostName, // Display hostname
+  //                         style: const TextStyle(
+  //                             fontWeight: FontWeight.w500,
+  //                             fontSize: 16,
+  //                             color: CupertinoColors.label),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //                 Column(
+  //                   crossAxisAlignment: CrossAxisAlignment.center,
+  //                   children: [
+  //                     Text(
+  //                       '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
+  //                       style: const TextStyle(
+  //                           fontWeight: FontWeight.w600,
+  //                           fontSize: 16,
+  //                           color: CupertinoColors.label),
+  //                     ),
+  //                     Text(
+  //                       dateComponents.dayFull, // Display date and time
+  //                       style: const TextStyle(
+  //                           fontWeight: FontWeight.w500,
+  //                           fontSize: 15,
+  //                           color: CupertinoColors.label),
+  //                     ),
+  //                     Text(
+  //                       dateComponents.time, // Display date and time
+  //                       style: const TextStyle(
+  //                           fontWeight: FontWeight.w500,
+  //                           fontSize: 15,
+  //                           color: CupertinoColors.label),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ],
+  //             ),
+  //             const SizedBox(height: 36),
+  //             Text(
+  //               event.address, // Display address
+  //               style: const TextStyle(
+  //                   fontWeight: FontWeight.w600,
+  //                   fontSize: 12,
+  //                   color: CupertinoColors.label),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   void _editEvent(Event event) {
     print(event.name);
