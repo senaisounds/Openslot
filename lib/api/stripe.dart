@@ -7,10 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:slotted/common/event_class.dart';
 
 class StripeApi {
-  // static String stripeKey =
-  //     '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';
   static String stripeKey =
-      'sk_test_51NN216JiJ5SaqolZXlaFyh9KcnpEfJe88w8wJ51qpmk8TGZu3JiZrx1ZmSiWpBboo22bYZgcKEl6WSZkCVq8KAyU00f3XKNSLO';
+      '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';
+  // static String stripeKey =
+  // 'sk_test_51NN216JiJ5SaqolZXlaFyh9KcnpEfJe88w8wJ51qpmk8TGZu3JiZrx1ZmSiWpBboo22bYZgcKEl6WSZkCVq8KAyU00f3XKNSLO';
 
   static Future<String> createCustomer([String? cid]) async {
     if (cid != null) return cid;
