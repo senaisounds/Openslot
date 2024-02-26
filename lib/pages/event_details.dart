@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:latlong2/latlong.dart';
@@ -81,14 +82,22 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
         await reserveAction(paymentIntent, event, slottedUser);
       } catch (e) {
+        String errorMessage =
+            'There was an error processing your payment. Please try again.\n$e';
+        if (e is PlatformException) {
+          errorMessage = e.message ?? errorMessage;
+        } else if (e is StripeException) {
+          errorMessage = e.error.message ?? errorMessage;
+        } else if (e is StripeError) {
+          errorMessage = e.message;
+        }
+        // ignore: use_build_context_synchronously
         showCupertinoDialog(
           context: context,
           builder: (context) {
             return CupertinoAlertDialog(
               title: const Text('Error'),
-              content: Text((e as StripeException).error.message ??
-                  (e as StripeError)?.message ??
-                  'There was an error processing your payment. Please try again.'),
+              content: Text(errorMessage),
               actions: [
                 CupertinoDialogAction(
                   child: const Text('OK'),
