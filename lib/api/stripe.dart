@@ -46,9 +46,10 @@ class StripeApi {
     required Event event,
   }) async {
     Stripe.merchantIdentifier = 'merchant.slotted';
+    // Stripe.publishableKey =
+    //     'pk_test_51NN216JiJ5SaqolZZSpfh1JgsVWZdWgJ5vzAwiqqPyXLNE5XdTHjrcyWFtX0ueyzBFWmIe6IBcRKtRXFmAyvVd1i00RXcYBy6R';
     Stripe.publishableKey =
-        'pk_test_51NN216JiJ5SaqolZZSpfh1JgsVWZdWgJ5vzAwiqqPyXLNE5XdTHjrcyWFtX0ueyzBFWmIe6IBcRKtRXFmAyvVd1i00RXcYBy6R';
-    // Stripe.publishableKey = 'pk_live_51NN216JiJ5SaqolZOcy7QUss4OoGRjpe4vwh2hhnId6dQSEl0QT16cOPUW2pMgcu316JtgU2Ia91pZbfHjGutGro00srzU7thB';
+        'pk_live_51NN216JiJ5SaqolZOcy7QUss4OoGRjpe4vwh2hhnId6dQSEl0QT16cOPUW2pMgcu316JtgU2Ia91pZbfHjGutGro00srzU7thB';
     await Stripe.instance.initPaymentSheet(
       paymentSheetParameters: SetupPaymentSheetParameters(
         paymentIntentClientSecret: paymentIntent['client_secret'],
@@ -87,7 +88,7 @@ class StripeApi {
         customerId = await createCustomer();
         FirebaseFirestore.instance.doc('users/$userId').set({
           'customerID': customerId,
-        });
+        }, SetOptions(merge: true));
       }
 
       //Request body
