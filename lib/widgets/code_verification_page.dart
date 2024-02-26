@@ -7,8 +7,7 @@ import 'package:slotted/common/colors.dart';
 class CodeVerificationPage extends StatefulWidget {
   final String verificationId;
 
-  const CodeVerificationPage(
-      {super.key, required this.verificationId});
+  const CodeVerificationPage({super.key, required this.verificationId});
 
   @override
   CodeVerificationPageState createState() => CodeVerificationPageState();
@@ -67,7 +66,10 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
                       await _verifyCode(code, context);
                     },
               child: _loading
-                  ? const CupertinoActivityIndicator()
+                  ? const CupertinoActivityIndicator(
+                      radius: 20,
+                      color: slottedOrange,
+                    )
                   : const Text(
                       'Verify',
                       style: TextStyle(

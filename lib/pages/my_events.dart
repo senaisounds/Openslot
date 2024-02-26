@@ -112,7 +112,10 @@ class MyEventsPageState extends State<MyEventsPage> {
                           } else if (snapshot.hasError) {
                             return Text('Error: ${snapshot.error}');
                           } else {
-                            return const CupertinoActivityIndicator();
+                            return const CupertinoActivityIndicator(
+                              radius: 20,
+                              color: slottedOrange,
+                            );
                           }
                         },
                       ),

@@ -69,6 +69,14 @@ class ProfilePageState extends State<ProfilePage> {
                     .doc('users/${widget.user!.uid}')
                     .snapshots(),
                 builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CupertinoActivityIndicator(
+                        radius: 16,
+                        color: slottedOrange,
+                      ),
+                    );
+                  }
                   if (!snapshot.hasData) {
                     return Center(
                       child: CupertinoButton(

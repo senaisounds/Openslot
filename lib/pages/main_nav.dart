@@ -175,7 +175,10 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           ),
         if (isLoading)
           const Center(
-            child: CupertinoActivityIndicator(),
+            child: CupertinoActivityIndicator(
+              radius: 20,
+              color: slottedOrange,
+            ),
           ),
       ],
     );
