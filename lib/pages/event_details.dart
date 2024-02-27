@@ -75,18 +75,22 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   'Are you sure you want to give up your slot for this event?${isPaid ? ' You will be refunded after your reservation is cancelled.' : ''}'),
               actions: [
                 CupertinoDialogAction(
-                  child: const Text(
-                    'Back',
-                    style: TextStyle(
-                      color: slottedOrange,
+                    child: const Text(
+                      'Back',
+                      style: TextStyle(
+                        color: slottedOrange,
+                      ),
                     ),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      setState(() {
+                        actionPending = false;
+                      });
+                    }),
                 CupertinoDialogAction(
-                  child: Text(
-                    isPaid ? 'Refund' : 'Cancel',
-                    style: const TextStyle(
+                  child: const Text(
+                    'Unreserve',
+                    style: TextStyle(
                         color: CupertinoColors.systemRed,
                         fontWeight: FontWeight.w600),
                   ),
@@ -142,12 +146,14 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
             userId: widget.user!.uid,
             amount: event.price,
             currency: 'USD',
-            customerId: widget.debug ? slottedUser.testCustomerID : slottedUser.customerID,
+            customerId: widget.debug
+                ? slottedUser.testCustomerID
+                : slottedUser.customerID,
             debug: widget.debug,
           );
           final stripeCustomerId = paymentIntent['customer'];
-          final ephemeralKey =
-              await StripeApi.getEphemeralKey(stripeCustomerId, debug: widget.debug);
+          final ephemeralKey = await StripeApi.getEphemeralKey(stripeCustomerId,
+              debug: widget.debug);
 
           await StripeApi.pay(
               paymentIntent: paymentIntent,
