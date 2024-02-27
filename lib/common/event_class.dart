@@ -18,20 +18,20 @@ class Event {
   String id = '';
   bool live = false;
   String name = '';
-  String performer = '';
+  String? performer;
   DateTime? performerStart;
   double price = 0;
   Map<String, DateTime> reservationTimestamps = {};
   String rules = '';
   bool signupOnLocation = false;
-  int spots = 0;
+  int slots = 0;
   int timeLimit = 0;
   EventType type = EventType.mic;
   List<String> waitlist = [];
   LatLng location = const LatLng(0, 0);
 
-  int get openSpots {
-    return max(0, spots - attendees.length);
+  int get openSlots {
+    return max(0, slots - attendees.length);
   }
 
   static Event fromDocument(DocumentSnapshot document) {
@@ -59,9 +59,13 @@ class Event {
     if (docData['hostName'] != null) {
       event.hostName = docData['hostName'];
     }
-    event.id = document.id;
+    event.id = docData['id'] ?? document.id;
     if (docData['live'] != null) {
       event.live = docData['live'];
+    }
+    if (docData['location'] != null) {
+      final location = docData['location'] as GeoPoint;
+      event.location = LatLng(location.latitude, location.longitude);
     }
     if (docData['name'] != null) {
       event.name = docData['name'];
@@ -89,8 +93,8 @@ class Event {
     if (docData['signupOnLocation'] != null) {
       event.signupOnLocation = docData['signupOnLocation'];
     }
-    if (docData['spots'] != null) {
-      event.spots = docData['spots'];
+    if (docData['slots'] != null) {
+      event.slots = docData['slots'];
     }
     if (docData['timeLimit'] != null) {
       event.timeLimit = docData['timeLimit'];
@@ -101,86 +105,7 @@ class Event {
     if (docData['waitlist'] != null) {
       event.waitlist = List<String>.from(docData['waitlist']);
     }
-    if (docData['location'] != null) {
-      final location = docData['location'] as GeoPoint;
-      event.location = LatLng(location.latitude, location.longitude);
-    }
 
     return event;
   }
-
-  // static Event fromDocument(QueryDocumentSnapshot document) {
-  //   if (document.data() == null) {
-  //     return Event();
-  //   }
-  //   final docData = document.data()! as Map<String, dynamic>;
-
-  //   final event = Event();
-  //   if (docData['address'] != null) {
-  //     event.address = docData['address'];
-  //   }
-  //   if (docData['attendees'] != null) {
-  //     event.attendees = List<String>.from(docData['attendees']);
-  //   }
-  //   if (docData['date'] != null) {
-  //     event.date = (docData['date'] as Timestamp).toDate();
-  //   }
-  //   if (docData['ended'] != null) {
-  //     event.ended = docData['ended'];
-  //   }
-  //   if (docData['host'] != null) {
-  //     event.host = docData['host'];
-  //   }
-  //   if (docData['hostName'] != null) {
-  //     event.hostName = docData['hostName'];
-  //   }
-  //   event.id = document.id;
-  //   if (docData['live'] != null) {
-  //     event.live = docData['live'];
-  //   }
-  //   if (docData['name'] != null) {
-  //     event.name = docData['name'];
-  //   }
-  //   if (docData['performer'] != null) {
-  //     event.performer = docData['performer'];
-  //   }
-  //   if (docData['performerStart'] != null) {
-  //     event.performerStart = (docData['performerStart'] as Timestamp).toDate();
-  //   }
-  //   if (docData['price'] != null) {
-  //     event.price = docData['price'] * 1.0;
-  //   }
-  //   if (docData['reservationTimestamps'] != null) {
-  //     Map<String, Timestamp> reservationTimestamps =
-  //         Map<String, Timestamp>.from(docData['reservationTimestamps']);
-
-  //     event.reservationTimestamps = reservationTimestamps.map((key, value) {
-  //       return MapEntry(key, value.toDate());
-  //     });
-  //   }
-  //   if (docData['rules'] != null) {
-  //     event.rules = docData['rules'];
-  //   }
-  //   if (docData['signupOnLocation'] != null) {
-  //     event.signupOnLocation = docData['signupOnLocation'];
-  //   }
-  //   if (docData['spots'] != null) {
-  //     event.spots = docData['spots'];
-  //   }
-  //   if (docData['timeLimit'] != null) {
-  //     event.timeLimit = docData['timeLimit'];
-  //   }
-  //   if (docData['type'] != null) {
-  //     event.type = docData['type'] == 'DECK' ? EventType.deck : EventType.mic;
-  //   }
-  //   if (docData['waitlist'] != null) {
-  //     event.waitlist = List<String>.from(docData['waitlist']);
-  //   }
-  //   if (docData['location'] != null) {
-  //     final location = docData['location'] as GeoPoint;
-  //     event.location = LatLng(location.latitude, location.longitude);
-  //   }
-
-  //   return event;
-  // }
 }

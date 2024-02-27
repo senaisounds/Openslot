@@ -8,11 +8,17 @@ import 'package:slotted/common/slotted_user.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, required this.user, required this.authAction});
+  const ProfilePage(
+      {super.key,
+      required this.user,
+      required this.authAction,
+      this.debug = false});
 
   final User? user;
 
   final Future<void> Function(bool) authAction;
+
+  final bool debug;
 
   @override
   ProfilePageState createState() => ProfilePageState();

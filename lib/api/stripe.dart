@@ -1,31 +1,35 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
+import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
 
 class StripeApi {
   static String stripeKey =
       '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';
-  // static String stripeKey =
-  // 'sk_test_51NN216JiJ5SaqolZXlaFyh9KcnpEfJe88w8wJ51qpmk8TGZu3JiZrx1ZmSiWpBboo22bYZgcKEl6WSZkCVq8KAyU00f3XKNSLO';
+  static String stripeDebugKey =
+      'sk_test_51NN216JiJ5SaqolZXlaFyh9KcnpEfJe88w8wJ51qpmk8TGZu3JiZrx1ZmSiWpBboo22bYZgcKEl6WSZkCVq8KAyU00f3XKNSLO';
 
-  static Future<String> createCustomer([String? cid]) async {
+  static Future<String> createCustomer(
+      {String? cid, bool debug = false}) async {
     if (cid != null) return cid;
 
     var response = await http.post(
       Uri.parse('https://api.stripe.com/v1/customers'),
       headers: {
-        'Authorization': 'Bearer $stripeKey',
+        'Authorization': 'Bearer ${debug ? stripeDebugKey : stripeKey}',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     );
     return json.decode(response.body)['id'];
   }
 
-  static Future<String> getEphemeralKey(String customerId) async {
+  static Future<String> getEphemeralKey(String customerId,
+      {bool debug = false}) async {
     var response = await http.post(
       Uri.parse(
           'https://us-central1-open-mic-5cc8e.cloudfunctions.net/getEphemeralKey'),
@@ -34,6 +38,7 @@ class StripeApi {
       },
       body: {
         'cusID': customerId,
+        'debug': debug ? 'true' : 'false',
       },
     );
     return json.decode(response.body)['secret'];
@@ -45,14 +50,26 @@ class StripeApi {
     required String ephemeralKey,
     required Event event,
   }) async {
-    Stripe.merchantIdentifier = 'merchant.slotted';
-    // Stripe.publishableKey =
-    //     'pk_test_51NN216JiJ5SaqolZZSpfh1JgsVWZdWgJ5vzAwiqqPyXLNE5XdTHjrcyWFtX0ueyzBFWmIe6IBcRKtRXFmAyvVd1i00RXcYBy6R';
-    Stripe.publishableKey =
-        'pk_live_51NN216JiJ5SaqolZOcy7QUss4OoGRjpe4vwh2hhnId6dQSEl0QT16cOPUW2pMgcu316JtgU2Ia91pZbfHjGutGro00srzU7thB';
     await Stripe.instance.initPaymentSheet(
       paymentSheetParameters: SetupPaymentSheetParameters(
         paymentIntentClientSecret: paymentIntent['client_secret'],
+        allowsDelayedPaymentMethods: true,
+        appearance: PaymentSheetAppearance(
+          colors: PaymentSheetAppearanceColors(
+            error: Colors.red,
+            icon: slottedOrange,
+            background: CupertinoColors.darkBackgroundGray.withOpacity(1.0),
+            primary: slottedOrange,
+            placeholderText: CupertinoColors.lightBackgroundGray,
+          ),
+          shapes: const PaymentSheetShape(
+            borderRadius: 14,
+            borderWidth: 1.5,
+          ),
+        ),
+        primaryButtonLabel: event.attendees.length < event.slots
+            ? 'Reserve - \$${event.price.toStringAsFixed(2)}'
+            : 'Waitlist - \$${event.price.toStringAsFixed(2)}',
         style: ThemeMode.dark,
         merchantDisplayName: 'Slotted LLC',
         customerId: customer,
@@ -61,16 +78,16 @@ class StripeApi {
           merchantCountryCode: 'US',
           cartItems: [
             ApplePayCartSummaryItem.immediate(
-              label: 'Slotted - ${event.name}',
-              amount: (event.price * 100).toInt().toString(),
+              label: '${event.name} - Slotted',
+              amount: event.price.toString(),
             ),
           ],
           buttonType: PlatformButtonType.pay,
         ),
         googlePay: PaymentSheetGooglePay(
           merchantCountryCode: 'US',
-          label: 'Slotted - ${event.name}',
-          amount: (event.price * 100).toInt().toString(),
+          label: '${event.name} - Slotted',
+          amount: event.price.toString(),
         ),
       ),
     );
@@ -82,16 +99,16 @@ class StripeApi {
       required double amount,
       required String currency,
       String? customerId,
-      String? returnUrl}) async {
+      String? returnUrl,
+      bool debug = false}) async {
     try {
       if (customerId == null) {
-        customerId = await createCustomer();
+        customerId = await createCustomer(cid: customerId, debug: debug);
         FirebaseFirestore.instance.doc('users/$userId').set({
-          'customerID': customerId,
+          '${debug ? 'test-' : ''}customerID': customerId,
         }, SetOptions(merge: true));
       }
 
-      //Request body
       Map<String, dynamic> body = {
         'amount': (amount * 100).toInt().toString(),
         'currency': currency,
@@ -101,12 +118,10 @@ class StripeApi {
         'capture_method': 'manual',
       };
 
-      //Make post request to Stripe
-      // Stripe.instance.retrievePaymentIntent(clientSecret)
       var response = await http.post(
         Uri.parse('https://api.stripe.com/v1/payment_intents'),
         headers: {
-          'Authorization': 'Bearer $stripeKey',
+          'Authorization': 'Bearer ${debug ? stripeDebugKey : stripeKey}',
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: body,

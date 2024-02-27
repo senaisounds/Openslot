@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class SlottedUser {
   String bio = '';
   String? customerID;
+  String? testCustomerID;
   String photoUrl = '';
   String instagram = '';
   bool isHost = false;
@@ -20,6 +21,7 @@ class SlottedUser {
     final slottedUser = SlottedUser();
     slottedUser.bio = docData['bio'] ?? '';
     slottedUser.customerID = docData['customerID'];
+    slottedUser.testCustomerID = docData['test-customerID'];
     slottedUser.photoUrl = docData['photoUrl'] ?? '';
     slottedUser.instagram = docData['instagram'] ?? '';
     slottedUser.isHost = docData['isHost'] ?? false;

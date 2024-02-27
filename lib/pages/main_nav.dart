@@ -12,9 +12,10 @@ import 'package:slotted/widgets/code_verification_page.dart';
 
 // Create class MainNav that manages a tab controller screen with 5 routes. The middle route must point to MyHomePage.
 class MainNav extends StatefulWidget {
-  const MainNav({super.key, required this.user});
+  const MainNav({super.key, required this.user, this.debug = false});
 
   final User? user;
+  final bool debug;
 
   @override
   State<MainNav> createState() => MainNavState();
@@ -46,12 +47,14 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         builder: (context, snapshot) => MyEventsPage(
           user: snapshot.data,
           authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
+          debug: widget.debug
         ),
       ),
       StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) => MyHomePage(
           user: snapshot.data,
+          debug: widget.debug,
         ),
       ),
       StreamBuilder<User?>(
@@ -59,6 +62,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         builder: (context, snapshot) => ProfilePage(
           user: snapshot.data,
           authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
+          debug: widget.debug,
         ),
       ),
     ];

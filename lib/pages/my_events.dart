@@ -9,9 +9,14 @@ import 'package:intl/intl.dart';
 import 'package:slotted/pages/event_details.dart';
 
 class MyEventsPage extends StatefulWidget {
-  const MyEventsPage({super.key, required this.user, required this.authAction});
+  const MyEventsPage(
+      {super.key,
+      required this.user,
+      required this.authAction,
+      this.debug = false});
 
   final User? user;
+  final bool debug;
 
   final Future<void> Function(bool) authAction;
 
@@ -138,7 +143,7 @@ class MyEventsPageState extends State<MyEventsPage> {
         onPressed: () => Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (context) =>
-                EventDetailsPage(user: widget.user, initialEvent: event),
+                EventDetailsPage(user: widget.user, initialEvent: event, debug: widget.debug),
           ),
         ),
         color: CupertinoColors.systemBackground,

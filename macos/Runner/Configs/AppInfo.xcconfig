@@ -8,7 +8,7 @@
 PRODUCT_NAME = slotted
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.slotted
+PRODUCT_BUNDLE_IDENTIFIER = com.M3.Open-Mic
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2024 com.example. All rights reserved.

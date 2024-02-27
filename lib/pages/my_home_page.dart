@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
@@ -11,12 +10,10 @@ import 'package:intl/intl.dart';
 import 'package:slotted/pages/event_details.dart';
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({
-    super.key,
-    required this.user,
-  });
+  const MyHomePage({super.key, required this.user, this.debug = false});
 
   final User? user;
+  final bool debug;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -186,7 +183,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () => Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (context) =>
-                EventDetailsPage(user: widget.user, initialEvent: event),
+                EventDetailsPage(user: widget.user, initialEvent: event, debug: widget.debug),
           ),
         ),
         color: CupertinoColors.systemBackground,
