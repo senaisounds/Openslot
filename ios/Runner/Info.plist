@@ -10,6 +10,8 @@
 	<string>Camera is used to add a profile picture</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location is used to find nearby events</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Location is used to find nearby events</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
