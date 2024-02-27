@@ -47,12 +47,18 @@ class _MyAppState extends State<MyApp> {
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  Future<void> showNotification(String title, String body) async {
-    var iOSPlatformChannelSpecifics = const DarwinNotificationDetails();
+  Future<void> showNotification(int id, String? title, String? body) async {
+    print(id);
+    print(title);
+    print(body);
+    var iOSPlatformChannelSpecifics = const DarwinNotificationDetails(
+      presentBanner: true,
+    );
     var platformChannelSpecifics =
         NotificationDetails(iOS: iOSPlatformChannelSpecifics);
+
     await flutterLocalNotificationsPlugin.show(
-      DateTime.now().millisecondsSinceEpoch, // Notification ID
+      id, // Notification ID
       title, // Notification title
       body, // Notification body
       platformChannelSpecifics,
@@ -65,12 +71,11 @@ class _MyAppState extends State<MyApp> {
 
     final DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-      requestSoundPermission: false,
-      requestBadgePermission: false,
       requestAlertPermission: false,
+      defaultPresentAlert: false,
       onDidReceiveLocalNotification:
           (int id, String? title, String? body, String? payload) async {
-        // Handle notification when app is in foreground on iOS
+        showNotification(id, title, body);
       },
     );
     final InitializationSettings initializationSettings =
@@ -80,13 +85,13 @@ class _MyAppState extends State<MyApp> {
     flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("onMessage: $message");
-      RemoteNotification? notification = message.notification;
-      AppleNotification? iOS = message.notification?.apple;
-
-      if (notification != null && iOS != null) {
-        // Display the notification
-        showNotification(notification.title!, notification.body!);
+      if (message.notification?.body != null &&
+          message.notification?.title != null) {
+        showNotification(
+          DateTime.now().millisecondsSinceEpoch ~/ 1000.0,
+          message.notification!.title,
+          message.notification!.body,
+        );
       }
       // Handle the message when the app is in the foreground
     });

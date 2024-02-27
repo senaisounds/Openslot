@@ -378,6 +378,17 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                             ),
                           ),
                         ),
+                        if (!event.attendees.contains(widget.user?.uid) &&
+                            !event.waitlist.contains(widget.user?.uid))
+                          Text(
+                            '${event.openSlots} slots left',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        const SizedBox(height: 24),
                         SizedBox(
                           height: 66,
                           width: double.infinity,

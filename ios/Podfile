@@ -81,13 +81,13 @@ post_install do |installer|
         # 'PERMISSION_PHOTOS_ADD_ONLY=1',
 
         ## dart: [PermissionGroup.location, PermissionGroup.locationAlways, PermissionGroup.locationWhenInUse]
-        # 'PERMISSION_LOCATION=1',
+        'PERMISSION_LOCATION=1',
 
         ## dart: PermissionGroup.notification
         'PERMISSION_NOTIFICATIONS=1',
 
         ## dart: PermissionGroup.mediaLibrary
-        'PERMISSION_MEDIA_LIBRARY=1',
+        # 'PERMISSION_MEDIA_LIBRARY=1',
 
         ## dart: PermissionGroup.sensors
         # 'PERMISSION_SENSORS=1',
