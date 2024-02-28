@@ -223,6 +223,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
             user: snapshot.data,
             authAction: (context, isLoggedIn, completion) =>
                 _authAction(context, isLoggedIn, completion: completion),
+            reserveAction: (event, slottedUser) => resAuth(event, slottedUser),
             debug: widget.debug),
       ),
       StreamBuilder<User?>(
@@ -289,7 +290,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           child: CupertinoTabScaffold(
             resizeToAvoidBottomInset: false,
             tabBar: CupertinoTabBar(
-              height: 56,
+              height: 64,
               backgroundColor: CupertinoColors.secondarySystemBackground,
               activeColor: slottedOrange,
               currentIndex: _tabController.index,

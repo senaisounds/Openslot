@@ -268,95 +268,164 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ],
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: CupertinoColors.label),
-                      ),
-                      Text(
-                        dateComponents.dayFull, // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            color: CupertinoColors.label),
-                      ),
-                      Text(
-                        dateComponents.time, // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                            color: CupertinoColors.label),
-                      ),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 0, 24, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: CupertinoColors.label),
+                        ),
+                        Text(
+                          dateComponents.dayFull, // Display date and time
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                              color: CupertinoColors.label),
+                        ),
+                        Text(
+                          dateComponents.time, // Display date and time
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                              color: CupertinoColors.label),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 36),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                // crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  SizedBox(
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+                    child: SizedBox(
                     width: 222,
                     child: Text(
                       event.address, // Display address
                       style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: CupertinoColors.label),
-                    ),
-                  ),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: slottedUser == null
-                        ? () => widget.authAction(context, false, () {})
-                        : () => widget.reserveAction(event, slottedUser),
-                    child: Container(
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                         color: CupertinoColors.label,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: CupertinoColors.label,
-                            spreadRadius: 1,
-                            blurRadius: 1,
-                          ),
-                        ],
                       ),
-                      width: 94,
-                      height: 38,
-                      child: slottedUser == null
-                          ? const Text(
-                              'Reserve',
-                              style: TextStyle(
-                                  color: CupertinoColors.systemBackground,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  height: 1.1),
-                              textAlign: TextAlign.center,
-                            )
-                          : Text(
-                              event.attendees.contains(slottedUser.id)
-                                  ? 'Reserved'
-                                  : event.waitlist.contains(slottedUser.id)
-                                      ? 'Waitlisted'
-                                      : event.attendees.length < event.slots
-                                          ? 'Reserve'
-                                          : 'Waitlist',
-                              style: const TextStyle(
-                                  color: slottedOrange,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  height: 1.1),
-                              textAlign: TextAlign.center,
-                            ),
                     ),
+                  ),),
+                  Column(
+                    children: [
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: slottedUser == null
+                            ? () => widget.authAction(context, false, () {})
+                            : () => widget.reserveAction(event, slottedUser),
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: slottedUser == null
+                                ? CupertinoColors.label
+                                : event.attendees.contains(slottedUser.id)
+                                    ? CupertinoColors.label
+                                    : event.waitlist.contains(slottedUser.id)
+                                        ? CupertinoColors.label
+                                        : event.attendees.length < event.slots
+                                            ? slottedOrange
+                                            : slottedOrange,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: slottedUser == null
+                                    ? CupertinoColors.label
+                                    : event.attendees.contains(slottedUser.id)
+                                        ? CupertinoColors.label
+                                        : event.waitlist
+                                                .contains(slottedUser.id)
+                                            ? CupertinoColors.label
+                                            : event.attendees.length <
+                                                    event.slots
+                                                ? slottedOrange
+                                                : slottedOrange,
+                                spreadRadius: 1,
+                                blurRadius: 1,
+                              ),
+                            ],
+                          ),
+                          width: 100,
+                          height: 44,
+                          child: slottedUser == null
+                              ? Text(
+                                  'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}',
+                                  style: TextStyle(
+                                      color: slottedOrange,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: slottedUser == null
+                                          ? 14.5
+                                          : event.attendees
+                                                  .contains(slottedUser.id)
+                                              ? 14.5
+                                              : event.waitlist
+                                                      .contains(slottedUser.id)
+                                                  ? 14.5
+                                                  : event.attendees.length <
+                                                          event.slots
+                                                      ? 18
+                                                      : 18,
+                                      height: 1.2),
+                                  textAlign: TextAlign.center,
+                                )
+                              : Text(
+                                  event.attendees.contains(slottedUser.id)
+                                      ? 'Reserved'
+                                      : event.waitlist.contains(slottedUser.id)
+                                          ? 'Waitlisted'
+                                          : event.attendees.length < event.slots
+                                              ? 'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}'
+                                              : 'Waitlist\n\$${event.price.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                      color: event.attendees
+                                              .contains(slottedUser.id)
+                                          ? slottedOrange
+                                          : event.waitlist
+                                                  .contains(slottedUser.id)
+                                              ? slottedOrange
+                                              : event.attendees.length <
+                                                      event.slots
+                                                  ? CupertinoColors.label
+                                                  : CupertinoColors.label,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: event.attendees
+                                              .contains(slottedUser.id)
+                                          ? 16
+                                          : event.waitlist
+                                                  .contains(slottedUser.id)
+                                              ? 16
+                                              : event.attendees.length <
+                                                      event.slots
+                                                  ? 14.5
+                                                  : 14.5,
+                                      height: 1.2),
+                                  textAlign: TextAlign.center,
+                                ),
+                        ),
+                      ),
+                      if (!event.attendees.contains(slottedUser?.id) &&
+                          !event.waitlist.contains(slottedUser?.id)) ...[
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Slots: 5',
+                          style: TextStyle(
+                            color: CupertinoColors.label,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
