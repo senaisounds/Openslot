@@ -20,10 +20,12 @@ class MyHomePage extends StatefulWidget {
   const MyHomePage(
       {super.key,
       this.debug = false,
+      required this.user,
       required this.authAction,
       required this.reserveAction});
 
   final bool debug;
+  final User? user;
   final Future<void> Function(BuildContext, bool, Function()) authAction;
   final Future<void> Function(Event event, SlottedUser slottedUser)
       reserveAction;
@@ -75,130 +77,123 @@ class _MyHomePageState extends State<MyHomePage> {
       child: CupertinoPageScaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: CupertinoColors.systemBackground,
-        child: StreamBuilder<User?>(
-          stream: FirebaseAuth.instance.authStateChanges(),
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: widget.user == null
+              ? null
+              : FirebaseFirestore.instance
+                  .doc('users/${widget.user!.uid}')
+                  .snapshots(),
           builder: (context, snapshot) {
-            final User? user = snapshot.data;
-            return StreamBuilder<DocumentSnapshot>(
-              stream: user == null
-                  ? null
-                  : FirebaseFirestore.instance
-                      .doc('users/${user.uid}')
-                      .snapshots(),
+            final SlottedUser? slottedUser = snapshot.data == null
+                ? null
+                : SlottedUser.fromDocument(snapshot.data!);
+            return StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance.collection('events').snapshots(),
               builder: (context, snapshot) {
-                final SlottedUser? slottedUser = snapshot.data == null
-                    ? null
-                    : SlottedUser.fromDocument(snapshot.data!);
-                return StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('events')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    final events = snapshot.hasData
-                        ? (_convertQuerySnapshotToEvents(snapshot.data!)
-                              ..sort((event_0, event_1) {
-                                if (event_0.ended != event_1.ended) {
-                                  return event_1.ended ? -1 : 1;
-                                } else if (event_0.date == event_1.date) {
-                                  return event_1.name.compareTo(event_0.name);
-                                }
-                                return event_1.date.compareTo(event_0.date);
-                              }))
-                            .where((event) =>
-                                event.name
-                                    .toLowerCase()
-                                    .contains(query.toLowerCase()) ||
-                                event.address
-                                    .toLowerCase()
-                                    .contains(query.toLowerCase()) ||
-                                event.hostName
-                                    .toLowerCase()
-                                    .contains(query.toLowerCase()))
-                            .toList()
-                        : [];
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: CupertinoTextField(
-                            onTap: () {
-                              setState(() {});
-                            },
-                            onChanged: (query) {
-                              setState(() {
-                                this.query = query;
-                              });
-                            },
-                            onEditingComplete: () {
-                              setState(() {});
-                            },
-                            onTapOutside: (event) {
-                              setState(() {});
-                            },
-                            clearButtonMode: OverlayVisibilityMode.editing,
-                            focusNode: searchFocus,
-                            placeholder: 'Search',
-                            prefix: const Padding(
-                              padding: EdgeInsets.only(left: 8),
-                              child: Icon(
-                                CupertinoIcons.search,
-                                color: CupertinoColors.systemGrey,
-                              ),
-                            ),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemBackground,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSearching
-                                    ? slottedOrange
-                                    : CupertinoColors.systemGrey,
-                                width: 1.5,
-                              ),
-                            ),
+                final events = snapshot.hasData
+                    ? (_convertQuerySnapshotToEvents(snapshot.data!)
+                          ..sort((event_0, event_1) {
+                            if (event_0.ended != event_1.ended) {
+                              return event_1.ended ? -1 : 1;
+                            } else if (event_0.date == event_1.date) {
+                              return event_1.name.compareTo(event_0.name);
+                            }
+                            return event_1.date.compareTo(event_0.date);
+                          }))
+                        .where((event) =>
+                            event.name
+                                .toLowerCase()
+                                .contains(query.toLowerCase()) ||
+                            event.address
+                                .toLowerCase()
+                                .contains(query.toLowerCase()) ||
+                            event.hostName
+                                .toLowerCase()
+                                .contains(query.toLowerCase()))
+                        .toList()
+                    : [];
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: CupertinoTextField(
+                        onTap: () {
+                          setState(() {});
+                        },
+                        onChanged: (query) {
+                          setState(() {
+                            this.query = query;
+                          });
+                        },
+                        onEditingComplete: () {
+                          setState(() {});
+                        },
+                        onTapOutside: (event) {
+                          setState(() {});
+                        },
+                        clearButtonMode: OverlayVisibilityMode.editing,
+                        focusNode: searchFocus,
+                        placeholder: 'Search',
+                        prefix: const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: Icon(
+                            CupertinoIcons.search,
+                            color: CupertinoColors.systemGrey,
                           ),
                         ),
-                        Expanded(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 222),
-                            child: snapshot.hasError
-                                ? Center(
-                                    child: Text('Error: ${snapshot.error}'),
-                                  )
-                                : !snapshot.hasData
-                                    ? const Center(
-                                        child: CupertinoActivityIndicator(
-                                        color: slottedOrange,
-                                        radius: 16,
-                                      ))
-                                    : events.isEmpty
-                                        ? const Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                'No events found',
-                                                style: TextStyle(
-                                                  color: slottedOrange,
-                                                  fontSize: 21,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                        : ListView.builder(
-                                            itemCount: events.length,
-                                            itemBuilder: (context, index) =>
-                                                _buildListItem(context,
-                                                    events[index], slottedUser),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.systemBackground,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSearching
+                                ? slottedOrange
+                                : CupertinoColors.systemGrey,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 222),
+                        child: snapshot.hasError
+                            ? Center(
+                                child: Text('Error: ${snapshot.error}'),
+                              )
+                            : !snapshot.hasData
+                                ? const Center(
+                                    child: CupertinoActivityIndicator(
+                                    color: slottedOrange,
+                                    radius: 16,
+                                  ))
+                                : events.isEmpty
+                                    ? const Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            'No events found',
+                                            style: TextStyle(
+                                              color: slottedOrange,
+                                              fontSize: 21,
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                                        ],
+                                      )
+                                    : ListView.builder(
+                                        itemCount: events.length,
+                                        itemBuilder: (context, index) =>
+                                            _buildListItem(context,
+                                                events[index], slottedUser),
+                                      ),
+                      ),
+                    ),
+                  ],
                 );
               },
             );
@@ -307,16 +302,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
                     child: SizedBox(
-                    width: 222,
-                    child: Text(
-                      event.address, // Display address
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: CupertinoColors.label,
+                      width: 222,
+                      child: Text(
+                        event.address, // Display address
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: CupertinoColors.label,
+                        ),
                       ),
                     ),
-                  ),),
+                  ),
                   Column(
                     children: [
                       CupertinoButton(

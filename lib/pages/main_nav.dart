@@ -230,6 +230,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) => MyHomePage(
           debug: widget.debug,
+          user: snapshot.data,
           authAction: (context, isLoggedIn, completion) =>
               _authAction(context, isLoggedIn, completion: completion),
           reserveAction: (event, slottedUser) => resAuth(event, slottedUser)
