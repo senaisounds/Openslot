@@ -1,14 +1,21 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:slotted/api/stripe.dart';
 import 'package:slotted/common/colors.dart';
+import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/my_events.dart';
 import 'package:slotted/pages/my_home_page.dart';
 import 'package:slotted/pages/profile.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
 import 'package:slotted/widgets/code_verification_page.dart';
+import 'package:http/http.dart' as http;
 
 // Create class MainNav that manages a tab controller screen with 5 routes. The middle route must point to MyHomePage.
 class MainNav extends StatefulWidget {
@@ -35,6 +42,174 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
 
   late final List<Widget> tabViews;
 
+    Future<String> reserveAction(
+      dynamic paymentIntent, Event event, SlottedUser slottedUser) async {
+    var response = await http.post(
+      Uri.parse(
+          'https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: {
+        'eventID': event.id,
+        'userID': slottedUser.id,
+        'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
+        'debug': widget.debug ? 'true' : 'false',
+      },
+    );
+    return response.body;
+  }
+
+  Future<void> resAuth(Event event, SlottedUser slottedUser) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    dynamic paymentIntent = '';
+
+    final isReserved = event.attendees.contains(slottedUser.id);
+    final isWaitlisted = event.waitlist.contains(slottedUser.id);
+
+    if (isReserved || isWaitlisted) {
+      // ignore: use_build_context_synchronously
+      await showCupertinoDialog(
+        context: context,
+        builder: (context) {
+          final isPaid = event.price > 0;
+          return CupertinoAlertDialog(
+            title: Text('${isPaid ? 'Refund' : 'Cancel'} Reservation'),
+            content: Text(
+                'Are you sure you want to give up your slot for this event?${isPaid ? ' You will be refunded after your reservation is cancelled.' : ''}'),
+            actions: [
+              CupertinoDialogAction(
+                  child: const Text(
+                    'Back',
+                    style: TextStyle(
+                      color: slottedOrange,
+                    ),
+                  ),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      isLoading = false;
+                    });
+                  }),
+              CupertinoDialogAction(
+                child: const Text(
+                  'Unreserve',
+                  style: TextStyle(
+                      color: CupertinoColors.systemRed,
+                      fontWeight: FontWeight.w600),
+                ),
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  try {
+                    await reserveAction(paymentIntent, event, slottedUser);
+                  } catch (e) {
+                    String errorMessage =
+                        'There was an error processing your ${isPaid ? 'refund' : 'cancellation'}. Please try again.\n$e';
+                    if (e is PlatformException) {
+                      errorMessage = e.message ?? errorMessage;
+                    } else if (e is StripeException) {
+                      errorMessage = e.error.message ?? errorMessage;
+                    } else if (e is StripeError) {
+                      errorMessage = e.message;
+                    }
+
+                    print(e);
+
+                    // ignore: use_build_context_synchronously
+                    showCupertinoDialog(
+                      context: context,
+                      builder: (context) {
+                        return CupertinoAlertDialog(
+                          title: const Text('Error'),
+                          content: Text(errorMessage),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text('OK'),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                  setState(() {
+                    isLoading = false;
+                  });
+                },
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    try {
+      if (event.price > 0 && !(isReserved || isWaitlisted)) {
+        paymentIntent = await StripeApi.createPaymentIntent(
+          userId: slottedUser.id,
+          amount: event.price,
+          currency: 'USD',
+          customerId: widget.debug
+              ? slottedUser.testCustomerID
+              : slottedUser.customerID,
+          debug: widget.debug,
+        );
+        final stripeCustomerId = paymentIntent['customer'];
+        final ephemeralKey = await StripeApi.getEphemeralKey(stripeCustomerId,
+            debug: widget.debug);
+
+        await StripeApi.pay(
+            paymentIntent: paymentIntent,
+            customer: stripeCustomerId,
+            ephemeralKey: ephemeralKey,
+            event: event);
+      }
+
+      await reserveAction(paymentIntent, event, slottedUser);
+    } catch (e) {
+      String errorMessage =
+          'There was an error processing your payment. Please try again.\n$e';
+      bool cancelled = false;
+      if (e is PlatformException) {
+        errorMessage = e.message ?? errorMessage;
+      } else if (e is StripeException) {
+        errorMessage = e.error.message ?? errorMessage;
+        cancelled = e.error.code == FailureCode.Canceled;
+      } else if (e is StripeError) {
+        errorMessage = e.message;
+      }
+
+      print(e);
+
+      if (!cancelled) {
+        // ignore: use_build_context_synchronously
+        showCupertinoDialog(
+          context: context,
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: const Text('Error'),
+              content: Text(errorMessage),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -45,16 +220,18 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) => MyEventsPage(
-          user: snapshot.data,
-          authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
-          debug: widget.debug
-        ),
+            user: snapshot.data,
+            authAction: (context, isLoggedIn, completion) =>
+                _authAction(context, isLoggedIn, completion: completion),
+            debug: widget.debug),
       ),
       StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) => MyHomePage(
-          user: snapshot.data,
           debug: widget.debug,
+          authAction: (context, isLoggedIn, completion) =>
+              _authAction(context, isLoggedIn, completion: completion),
+          reserveAction: (event, slottedUser) => resAuth(event, slottedUser)
         ),
       ),
       StreamBuilder<User?>(
@@ -181,7 +358,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           const Center(
             child: CupertinoActivityIndicator(
               radius: 20,
-              color: slottedOrange,
+              color: CupertinoColors.black,
             ),
           ),
       ],
@@ -218,7 +395,8 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     );
   }
 
-  Future<void> _authAction(BuildContext context, bool loggedIn) async {
+  Future<void> _authAction(BuildContext context, bool loggedIn,
+      {Function()? completion}) async {
     setState(() {
       isLoading = true;
     });
@@ -228,6 +406,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         setState(() {
           isLoading = false;
         });
+        completion?.call();
         Navigator.of(context).pop();
       } else {
         // Present sign in modal to collect phone number
@@ -265,6 +444,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                       phoneNumber = null;
                       isLoading = false;
                     });
+                    completion?.call();
                     Navigator.of(context).pop();
                   },
                   child: const Text('Cancel'),
@@ -287,6 +467,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                             setState(() {
                               isLoading = false;
                             });
+                            completion?.call();
                           },
                           verificationFailed: (FirebaseAuthException e) {
                             // Handle error
@@ -307,6 +488,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                             setState(() {
                               isLoading = false;
                             });
+                            completion?.call();
                           },
                           codeSent: (String verificationId, int? resendToken) {
                             // Code sent for manual entry
@@ -319,6 +501,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                               setState(() {
                                 isLoading = false;
                               });
+                              completion?.call();
                             });
                           },
                           codeAutoRetrievalTimeout: (String verificationId) {
@@ -340,6 +523,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                             setState(() {
                               isLoading = false;
                             });
+                            completion?.call();
                           },
                         );
                     Navigator.of(context).pop(phoneNumber);
@@ -360,6 +544,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           setState(() {
             isLoading = false;
           });
+          completion?.call();
         }
       }
     } catch (e) {
@@ -367,6 +552,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       setState(() {
         isLoading = false;
       });
+      completion?.call();
       rethrow;
     }
   }

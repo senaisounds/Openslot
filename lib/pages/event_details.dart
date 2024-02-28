@@ -17,14 +17,16 @@ import 'package:slotted/common/slotted_user.dart';
 import 'package:http/http.dart' as http;
 
 class EventDetailsPage extends StatefulWidget {
-  const EventDetailsPage(
-      {super.key,
-      required this.user,
-      required this.initialEvent,
-      this.debug = false});
-  final User? user;
+  const EventDetailsPage({
+    super.key,
+    required this.authAction,
+    required this.initialEvent,
+    this.debug = false,
+  });
+
   final Event initialEvent;
   final bool debug;
+  final Future<void> Function(BuildContext, bool, Function()) authAction;
 
   @override
   State<EventDetailsPage> createState() => _EventDetailsPageState();
@@ -34,8 +36,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   final MapController mapController = MapController();
   bool actionPending = false;
 
-  Future<String> reserveAction(
-      dynamic paymentIntent, Event event, SlottedUser slottedUser) async {
+  Future<String> reserveAction(dynamic paymentIntent, Event event,
+      SlottedUser slottedUser, User user) async {
     var response = await http.post(
       Uri.parse(
           'https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
@@ -44,7 +46,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       },
       body: {
         'eventID': event.id,
-        'userID': widget.user!.uid,
+        'userID': user.uid,
         'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
         'debug': widget.debug ? 'true' : 'false',
       },
@@ -52,150 +54,149 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     return response.body;
   }
 
-  Future<void> _reserveAction(Event event, SlottedUser slottedUser) async {
+  Future<void> _reserveAction(
+      Event event, SlottedUser slottedUser, User user) async {
     setState(() {
       actionPending = true;
     });
 
-    if (widget.user != null) {
-      dynamic paymentIntent = '';
+    dynamic paymentIntent = '';
 
-      final isReserved = event.attendees.contains(widget.user!.uid);
-      final isWaitlisted = event.waitlist.contains(widget.user!.uid);
+    final isReserved = event.attendees.contains(user?.uid);
+    final isWaitlisted = event.waitlist.contains(user?.uid);
 
-      if (isReserved || isWaitlisted) {
-        // ignore: use_build_context_synchronously
-        await showCupertinoDialog(
-          context: context,
-          builder: (context) {
-            final isPaid = event.price > 0;
-            return CupertinoAlertDialog(
-              title: Text('${isPaid ? 'Refund' : 'Cancel'} Reservation'),
-              content: Text(
-                  'Are you sure you want to give up your slot for this event?${isPaid ? ' You will be refunded after your reservation is cancelled.' : ''}'),
-              actions: [
-                CupertinoDialogAction(
-                    child: const Text(
-                      'Back',
-                      style: TextStyle(
-                        color: slottedOrange,
-                      ),
-                    ),
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      setState(() {
-                        actionPending = false;
-                      });
-                    }),
-                CupertinoDialogAction(
+    if (isReserved || isWaitlisted) {
+      // ignore: use_build_context_synchronously
+      await showCupertinoDialog(
+        context: context,
+        builder: (context) {
+          final isPaid = event.price > 0;
+          return CupertinoAlertDialog(
+            title: Text('${isPaid ? 'Refund' : 'Cancel'} Reservation'),
+            content: Text(
+                'Are you sure you want to give up your slot for this event?${isPaid ? ' You will be refunded after your reservation is cancelled.' : ''}'),
+            actions: [
+              CupertinoDialogAction(
                   child: const Text(
-                    'Unreserve',
+                    'Back',
                     style: TextStyle(
-                        color: CupertinoColors.systemRed,
-                        fontWeight: FontWeight.w600),
+                      color: slottedOrange,
+                    ),
                   ),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    try {
-                      await reserveAction(paymentIntent, event, slottedUser);
-                    } catch (e) {
-                      String errorMessage =
-                          'There was an error processing your ${isPaid ? 'refund' : 'cancellation'}. Please try again.\n$e';
-                      if (e is PlatformException) {
-                        errorMessage = e.message ?? errorMessage;
-                      } else if (e is StripeException) {
-                        errorMessage = e.error.message ?? errorMessage;
-                      } else if (e is StripeError) {
-                        errorMessage = e.message;
-                      }
-
-                      print(e);
-
-                      // ignore: use_build_context_synchronously
-                      showCupertinoDialog(
-                        context: context,
-                        builder: (context) {
-                          return CupertinoAlertDialog(
-                            title: const Text('Error'),
-                            content: Text(errorMessage),
-                            actions: [
-                              CupertinoDialogAction(
-                                child: const Text('OK'),
-                                onPressed: () => Navigator.of(context).pop(),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    }
                     setState(() {
                       actionPending = false;
                     });
-                  },
+                  }),
+              CupertinoDialogAction(
+                child: const Text(
+                  'Unreserve',
+                  style: TextStyle(
+                      color: CupertinoColors.systemRed,
+                      fontWeight: FontWeight.w600),
+                ),
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  try {
+                    await reserveAction(paymentIntent, event, slottedUser, user);
+                  } catch (e) {
+                    String errorMessage =
+                        'There was an error processing your ${isPaid ? 'refund' : 'cancellation'}. Please try again.\n$e';
+                    if (e is PlatformException) {
+                      errorMessage = e.message ?? errorMessage;
+                    } else if (e is StripeException) {
+                      errorMessage = e.error.message ?? errorMessage;
+                    } else if (e is StripeError) {
+                      errorMessage = e.message;
+                    }
+
+                    print(e);
+
+                    // ignore: use_build_context_synchronously
+                    showCupertinoDialog(
+                      context: context,
+                      builder: (context) {
+                        return CupertinoAlertDialog(
+                          title: const Text('Error'),
+                          content: Text(errorMessage),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text('OK'),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                  setState(() {
+                    actionPending = false;
+                  });
+                },
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    try {
+      if (event.price > 0 && !(isReserved || isWaitlisted)) {
+        paymentIntent = await StripeApi.createPaymentIntent(
+          userId: user.uid,
+          amount: event.price,
+          currency: 'USD',
+          customerId: widget.debug
+              ? slottedUser.testCustomerID
+              : slottedUser.customerID,
+          debug: widget.debug,
+        );
+        final stripeCustomerId = paymentIntent['customer'];
+        final ephemeralKey = await StripeApi.getEphemeralKey(stripeCustomerId,
+            debug: widget.debug);
+
+        await StripeApi.pay(
+            paymentIntent: paymentIntent,
+            customer: stripeCustomerId,
+            ephemeralKey: ephemeralKey,
+            event: event);
+      }
+
+      await reserveAction(paymentIntent, event, slottedUser, user);
+    } catch (e) {
+      String errorMessage =
+          'There was an error processing your payment. Please try again.\n$e';
+      bool cancelled = false;
+      if (e is PlatformException) {
+        errorMessage = e.message ?? errorMessage;
+      } else if (e is StripeException) {
+        errorMessage = e.error.message ?? errorMessage;
+        cancelled = e.error.code == FailureCode.Canceled;
+      } else if (e is StripeError) {
+        errorMessage = e.message;
+      }
+
+      print(e);
+
+      if (!cancelled) {
+        // ignore: use_build_context_synchronously
+        showCupertinoDialog(
+          context: context,
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: const Text('Error'),
+              content: Text(errorMessage),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             );
           },
         );
-        return;
-      }
-
-      try {
-        if (event.price > 0 && !(isReserved || isWaitlisted)) {
-          paymentIntent = await StripeApi.createPaymentIntent(
-            userId: widget.user!.uid,
-            amount: event.price,
-            currency: 'USD',
-            customerId: widget.debug
-                ? slottedUser.testCustomerID
-                : slottedUser.customerID,
-            debug: widget.debug,
-          );
-          final stripeCustomerId = paymentIntent['customer'];
-          final ephemeralKey = await StripeApi.getEphemeralKey(stripeCustomerId,
-              debug: widget.debug);
-
-          await StripeApi.pay(
-              paymentIntent: paymentIntent,
-              customer: stripeCustomerId,
-              ephemeralKey: ephemeralKey,
-              event: event);
-        }
-
-        await reserveAction(paymentIntent, event, slottedUser);
-      } catch (e) {
-        String errorMessage =
-            'There was an error processing your payment. Please try again.\n$e';
-        bool cancelled = false;
-        if (e is PlatformException) {
-          errorMessage = e.message ?? errorMessage;
-        } else if (e is StripeException) {
-          errorMessage = e.error.message ?? errorMessage;
-          cancelled = e.error.code == FailureCode.Canceled;
-        } else if (e is StripeError) {
-          errorMessage = e.message;
-        }
-
-        print(e);
-
-        if (!cancelled) {
-          // ignore: use_build_context_synchronously
-          showCupertinoDialog(
-            context: context,
-            builder: (context) {
-              return CupertinoAlertDialog(
-                title: const Text('Error'),
-                content: Text(errorMessage),
-                actions: [
-                  CupertinoDialogAction(
-                    child: const Text('OK'),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              );
-            },
-          );
-        }
       }
     }
 
@@ -208,244 +209,237 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: !actionPending,
-      child: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .doc('users/${widget.user!.uid}')
-            .snapshots(),
-        builder: (context, userSnap) {
-          final slottedUser = widget.user == null || userSnap.data == null
-              ? null
-              : SlottedUser.fromDocument(userSnap.data!);
+      child: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          final User? user = snapshot.data;
           return StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('events')
-                .doc(widget.initialEvent.id)
-                .snapshots(),
-            builder: (context, snapshot) {
-              Event event;
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                event = widget.initialEvent;
-              }
-              if (snapshot.hasError) {
-                return const Center(
-                  child: Text('Error loading event'),
-                );
-              }
-              if (!snapshot.hasData) {
-                return const Center(
-                  child: Text('Event not found'),
-                );
-              }
-              event = Event.fromDocument(snapshot.data!);
-              return CupertinoPageScaffold(
-                resizeToAvoidBottomInset: false,
-                navigationBar: CupertinoNavigationBar(
-                  border: null,
-                  backgroundColor: CupertinoColors.systemBackground,
-                  leading: actionPending ? const SizedBox() : null,
-                  middle: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-                    child: Text(
-                      event.name,
-                      style: const TextStyle(
-                        color: slottedOrange,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 20,
+            stream: user == null
+                ? null
+                : FirebaseFirestore.instance
+                    .doc('users/${user!.uid}')
+                    .snapshots(),
+            builder: (context, userSnap) {
+              final slottedUser = userSnap.data == null
+                  ? null
+                  : SlottedUser.fromDocument(userSnap.data!);
+              return StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('events')
+                    .doc(widget.initialEvent.id)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  Event event;
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    event = widget.initialEvent;
+                  }
+                  if (snapshot.hasError) {
+                    return const Center(
+                      child: Text('Error loading event'),
+                    );
+                  }
+                  if (!snapshot.hasData) {
+                    return const Center(
+                      child: Text('Event not found'),
+                    );
+                  }
+                  event = Event.fromDocument(snapshot.data!);
+                  return CupertinoPageScaffold(
+                    resizeToAvoidBottomInset: false,
+                    navigationBar: CupertinoNavigationBar(
+                      border: null,
+                      backgroundColor: CupertinoColors.systemBackground,
+                      leading: actionPending ? const SizedBox() : null,
+                      middle: Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+                        child: Text(
+                          event.name,
+                          style: const TextStyle(
+                            color: slottedOrange,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                child: SafeArea(
-                  child: Center(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 16),
-                        Text('Hosted by ${event.hostName}'),
-                        if (event.rules.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            event.rules,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        Text(
-                          '${_convertDateTimeToStringComponents(event.date).dayFull}, ${_convertDateTimeToStringComponents(event.date).monthFull} ${_convertDateTimeToStringComponents(event.date).dayNum} at ${_convertDateTimeToStringComponents(event.date).time}',
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          event.address,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        // Insert map showing location
-                        Expanded(
-                          child: SafeArea(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Container(
-                                clipBehavior: Clip.hardEdge,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: Stack(
-                                  children: [
-                                    FlutterMap(
-                                      mapController: mapController,
-                                      options: MapOptions(
-                                        initialCenter: event.location,
-                                        initialZoom: 16,
-                                        minZoom: 2,
-                                        maxZoom: 19,
-                                        cameraConstraint:
-                                            CameraConstraint.contain(
-                                          bounds: LatLngBounds(
-                                            const LatLng(-90, -180),
-                                            const LatLng(90, 180),
-                                          ),
-                                        ),
-                                        interactionOptions:
-                                            const InteractionOptions(
-                                                flags: InteractiveFlag.all &
-                                                    ~InteractiveFlag.rotate,
-                                                enableMultiFingerGestureRace:
-                                                    false),
-                                      ),
+                    child: SafeArea(
+                      child: Center(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 16),
+                            Text('Hosted by ${event.hostName}'),
+                            if (event.rules.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                event.rules,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            Text(
+                              '${_convertDateTimeToStringComponents(event.date).dayFull}, ${_convertDateTimeToStringComponents(event.date).monthFull} ${_convertDateTimeToStringComponents(event.date).dayNum} at ${_convertDateTimeToStringComponents(event.date).time}',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              event.address,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            // Insert map showing location
+                            Expanded(
+                              child: SafeArea(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Container(
+                                    clipBehavior: Clip.hardEdge,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: Stack(
                                       children: [
-                                        TileLayer(
-                                            retinaMode:
-                                                RetinaMode.isHighDensity(
-                                                    context),
-                                            userAgentPackageName:
-                                                'com.M3.Open-Mic',
-                                            urlTemplate:
-                                                'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png?api_key={api_key}',
-                                            additionalOptions: const {
-                                              'api_key':
-                                                  'bca0bb22-6d70-4b47-83ab-f11382d719e3'
-                                            }),
-                                        MarkerLayer(
-                                          markers: <Marker>[
-                                            Marker(
-                                              width: 56.0,
-                                              height: 56.0,
-                                              point: event.location,
-                                              alignment:
-                                                  const Alignment(0.0, -0.2),
-                                              child: GestureDetector(
-                                                onTap: () =>
-                                                    mapController.moveAndRotate(
-                                                        event.location,
-                                                        mapController
-                                                                .camera.zoom +
-                                                            3,
-                                                        0),
-                                                child: Image.asset(
-                                                  'lib/assets/images/s_pin.png',
-                                                ),
+                                        FlutterMap(
+                                          mapController: mapController,
+                                          options: MapOptions(
+                                            initialCenter: event.location,
+                                            initialZoom: 16,
+                                            minZoom: 2,
+                                            maxZoom: 19,
+                                            cameraConstraint:
+                                                CameraConstraint.contain(
+                                              bounds: LatLngBounds(
+                                                const LatLng(-90, -180),
+                                                const LatLng(90, 180),
                                               ),
                                             ),
+                                            interactionOptions:
+                                                const InteractionOptions(
+                                                    flags: InteractiveFlag.all &
+                                                        ~InteractiveFlag.rotate,
+                                                    enableMultiFingerGestureRace:
+                                                        false),
+                                          ),
+                                          children: [
+                                            TileLayer(
+                                                retinaMode:
+                                                    RetinaMode.isHighDensity(
+                                                        context),
+                                                userAgentPackageName:
+                                                    'com.M3.Open-Mic',
+                                                urlTemplate:
+                                                    'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png?api_key={api_key}',
+                                                additionalOptions: const {
+                                                  'api_key':
+                                                      'bca0bb22-6d70-4b47-83ab-f11382d719e3'
+                                                }),
+                                            MarkerLayer(
+                                              markers: <Marker>[
+                                                Marker(
+                                                  width: 56.0,
+                                                  height: 56.0,
+                                                  point: event.location,
+                                                  alignment: const Alignment(
+                                                      0.0, -0.2),
+                                                  child: GestureDetector(
+                                                    onTap: () => mapController
+                                                        .moveAndRotate(
+                                                            event.location,
+                                                            mapController.camera
+                                                                    .zoom +
+                                                                3,
+                                                            0),
+                                                    child: Image.asset(
+                                                      'lib/assets/images/s_pin.png',
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ],
+                                        ),
+                                        Positioned(
+                                          top: 16,
+                                          right: 16,
+                                          child: CupertinoButton(
+                                              color: CupertinoColors
+                                                  .systemBackground,
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              padding: const EdgeInsets.all(4),
+                                              child: const SizedBox(
+                                                height: 44,
+                                                width: 44,
+                                                child: Icon(
+                                                  CupertinoIcons.location,
+                                                  color: slottedOrange,
+                                                  size: 30,
+                                                ),
+                                              ),
+                                              onPressed: () => mapController
+                                                  .move(event.location, 16)),
                                         ),
                                       ],
                                     ),
-                                    Positioned(
-                                      top: 16,
-                                      right: 16,
-                                      child: CupertinoButton(
-                                          color:
-                                              CupertinoColors.systemBackground,
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          padding: const EdgeInsets.all(4),
-                                          child: const SizedBox(
-                                            height: 44,
-                                            width: 44,
-                                            child: Icon(
-                                              CupertinoIcons.location,
-                                              color: slottedOrange,
-                                              size: 30,
-                                            ),
-                                          ),
-                                          onPressed: () => mapController.move(
-                                              event.location, 16)),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                        if (!event.attendees.contains(widget.user?.uid) &&
-                            !event.waitlist.contains(widget.user?.uid))
-                          Text(
-                            '${event.openSlots} slots left',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          height: 66,
-                          width: double.infinity,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(22, 0, 22, 0),
-                            child: CupertinoButton(
-                              color: event.attendees.contains(widget.user!.uid)
-                                  ? CupertinoColors.secondarySystemBackground
-                                  : event.waitlist.contains(widget.user!.uid)
+                            if (!event.attendees.contains(user?.uid) &&
+                                !event.waitlist.contains(user?.uid))
+                              Text(
+                                '${event.openSlots} slots left',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              height: 66,
+                              width: double.infinity,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(22, 0, 22, 0),
+                                child: CupertinoButton(
+                                  color: event.attendees.contains(user?.uid)
                                       ? CupertinoColors
                                           .secondarySystemBackground
-                                      : slottedOrange,
-                              padding: EdgeInsets.zero,
-                              onPressed: () =>
-                                  widget.user == null || actionPending
+                                      : event.waitlist.contains(user?.uid)
+                                          ? CupertinoColors
+                                              .secondarySystemBackground
+                                          : slottedOrange,
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () => actionPending
                                       ? null
-                                      : _reserveAction(event, slottedUser!),
-                              borderRadius: BorderRadius.circular(20),
-                              child: actionPending
-                                  ? CupertinoActivityIndicator(
-                                      radius: 14,
-                                      color: event.attendees
-                                              .contains(widget.user!.uid)
-                                          ? slottedOrange
-                                          : event.waitlist
-                                                  .contains(widget.user!.uid)
+                                      : (slottedUser == null
+                                          ? () async {
+                                              setState(() {
+                                                actionPending = true;
+                                              });
+                                              await widget.authAction(
+                                                  context, false, () {
+                                                setState(() {
+                                                  actionPending = false;
+                                                });
+                                              });
+                                            }()
+                                          : _reserveAction(event, slottedUser, user!)),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: actionPending
+                                      ? CupertinoActivityIndicator(
+                                          radius: 14,
+                                          color: event.attendees
+                                                  .contains(user?.uid)
                                               ? slottedOrange
-                                              : CupertinoColors
-                                                  .secondarySystemBackground,
-                                    )
-                                  : event.attendees.contains(widget.user!.uid)
-                                      ? const Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              'Reserved',
-                                              style: TextStyle(
-                                                color: slottedOrange,
-                                                fontSize: 19,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                            SizedBox(width: 12),
-                                            Icon(
-                                              CupertinoIcons
-                                                  .check_mark_circled_solid,
-                                              size: 20,
-                                              color: slottedOrange,
-                                              weight: 30,
-                                            )
-                                          ],
+                                              : event.waitlist
+                                                      .contains(user?.uid)
+                                                  ? slottedOrange
+                                                  : CupertinoColors
+                                                      .secondarySystemBackground,
                                         )
-                                      : event.waitlist
-                                              .contains(widget.user!.uid)
+                                      : event.attendees.contains(user?.uid)
                                           ? const Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
@@ -453,7 +447,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                   CrossAxisAlignment.center,
                                               children: [
                                                 Text(
-                                                  'Waitlisted',
+                                                  'Reserved',
                                                   style: TextStyle(
                                                     color: slottedOrange,
                                                     fontSize: 19,
@@ -470,35 +464,78 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                 )
                                               ],
                                             )
-                                          : event.openSlots > 0
-                                              ? Text(
-                                                  'Reserve - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
-                                                  style: const TextStyle(
-                                                    color: CupertinoColors
-                                                        .systemBackground,
-                                                    fontSize: 19,
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
+                                          : event.waitlist.contains(user?.uid)
+                                              ? const Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      'Waitlisted',
+                                                      style: TextStyle(
+                                                        color: slottedOrange,
+                                                        fontSize: 19,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 12),
+                                                    Icon(
+                                                      CupertinoIcons
+                                                          .check_mark_circled_solid,
+                                                      size: 20,
+                                                      color: slottedOrange,
+                                                      weight: 30,
+                                                    )
+                                                  ],
                                                 )
-                                              : Text(
-                                                  'Waitlist - \$${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
-                                                  style: const TextStyle(
-                                                    color: CupertinoColors
-                                                        .systemBackground,
-                                                    fontSize: 19,
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                                ),
+                                              : slottedUser == null
+                                                  ? const Text(
+                                                      'Sign in to reserve',
+                                                      style: TextStyle(
+                                                        color: CupertinoColors
+                                                            .label,
+                                                        fontSize: 19,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                    )
+                                                  : event.openSlots > 0
+                                                      ? Text(
+                                                          'Reserve - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
+                                                          style:
+                                                              const TextStyle(
+                                                            color: CupertinoColors
+                                                                .systemBackground,
+                                                            fontSize: 19,
+                                                            fontWeight:
+                                                                FontWeight.w800,
+                                                          ),
+                                                        )
+                                                      : Text(
+                                                          'Waitlist - \$${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
+                                                          style:
+                                                              const TextStyle(
+                                                            color: CupertinoColors
+                                                                .systemBackground,
+                                                            fontSize: 19,
+                                                            fontWeight:
+                                                                FontWeight.w800,
+                                                          ),
+                                                        ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(
+                              height: 32,
+                            )
+                          ],
                         ),
-                        const SizedBox(
-                          height: 32,
-                        )
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           );

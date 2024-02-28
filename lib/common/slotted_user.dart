@@ -11,6 +11,7 @@ class SlottedUser {
   String pushToken = '';
   String twitter = '';
   String username = '';
+  String id = '';
 
   static SlottedUser fromDocument(DocumentSnapshot document) {
     if (document.data() == null) {
@@ -29,6 +30,7 @@ class SlottedUser {
     slottedUser.pushToken = docData['pushToken'] ?? '';
     slottedUser.twitter = docData['twitter'] ?? '';
     slottedUser.username = docData['username'] ?? '';
+    slottedUser.id = document.id;
 
     return slottedUser;
   }

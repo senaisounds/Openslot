@@ -4,14 +4,6 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Photos are used to add a profile picture</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Camera is used to add a profile picture</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Location is used to find nearby events</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Location is used to find nearby events</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -37,7 +29,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>app-1-482276707475-ios-ebdecf6627457b46d41166</string>
+				<string>app-1-482276707475-ios-06df3593bd445244d41166</string>
 			</array>
 		</dict>
 	</array>
@@ -45,6 +37,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera is used to add a profile picture</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Location is used to find nearby events</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location is used to find nearby events</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photos are used to add a profile picture</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

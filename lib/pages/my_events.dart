@@ -18,7 +18,7 @@ class MyEventsPage extends StatefulWidget {
   final User? user;
   final bool debug;
 
-  final Future<void> Function(bool) authAction;
+  final Future<void> Function(BuildContext, bool, Function()) authAction;
 
   @override
   MyEventsPageState createState() => MyEventsPageState();
@@ -37,7 +37,7 @@ class MyEventsPageState extends State<MyEventsPage> {
         child: widget.user == null
             ? CupertinoButton(
                 child: const Text('Sign In'),
-                onPressed: () => widget.authAction(loggedIn),
+                onPressed: () => widget.authAction(context, loggedIn, () {}),
               )
             : Padding(
                 padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
@@ -140,12 +140,17 @@ class MyEventsPageState extends State<MyEventsPage> {
       child: CupertinoButton(
         borderRadius: BorderRadius.circular(12),
         padding: const EdgeInsets.all(0),
-        onPressed: () => Navigator.of(context).push(
-          CupertinoPageRoute(
-            builder: (context) =>
-                EventDetailsPage(user: widget.user, initialEvent: event, debug: widget.debug),
-          ),
-        ),
+        onPressed: () => widget.user == null
+            ? null
+            : Navigator.of(context).push(
+                CupertinoPageRoute(
+                  builder: (context) => EventDetailsPage(
+                    initialEvent: event,
+                    debug: widget.debug,
+                    authAction: widget.authAction,
+                  ),
+                ),
+              ),
         color: CupertinoColors.systemBackground,
         child: Container(
           padding: const EdgeInsets.all(12),
