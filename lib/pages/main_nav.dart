@@ -4,8 +4,10 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:slotted/api/stripe.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
@@ -32,6 +34,33 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   late final CupertinoTabController _tabController;
   late final SlottedUser? slottedUser;
 
+  final FocusNode authFocusNode = FocusNode();
+  KeyboardActionsConfig _buildConfig(BuildContext context) {
+    return KeyboardActionsConfig(
+      keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
+      keyboardBarColor: CupertinoColors.secondaryLabel.withOpacity(1),
+      nextFocus: false,
+      actions: [
+        KeyboardActionsItem(focusNode: authFocusNode, toolbarButtons: [
+          (node) {
+            return CupertinoButton(
+              padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
+              onPressed: () => node.unfocus(),
+              child: const Text(
+                'Done',
+                style: TextStyle(
+                  color: slottedOrange,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          }
+        ]),
+      ],
+    );
+  }
+
   String? phoneNumber;
 
   bool isLoading = false;
@@ -42,7 +71,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
 
   late final List<Widget> tabViews;
 
-    Future<String> reserveAction(
+  Future<String> reserveAction(
       dynamic paymentIntent, Event event, SlottedUser slottedUser) async {
     var response = await http.post(
       Uri.parse(
@@ -229,12 +258,11 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) => MyHomePage(
-          debug: widget.debug,
-          user: snapshot.data,
-          authAction: (context, isLoggedIn, completion) =>
-              _authAction(context, isLoggedIn, completion: completion),
-          reserveAction: (event, slottedUser) => resAuth(event, slottedUser)
-        ),
+            debug: widget.debug,
+            user: snapshot.data,
+            authAction: (context, isLoggedIn, completion) =>
+                _authAction(context, isLoggedIn, completion: completion),
+            reserveAction: (event, slottedUser) => resAuth(event, slottedUser)),
       ),
       StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
@@ -350,17 +378,28 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         ),
         if (isLoading)
           const Opacity(
-            opacity: 0.5,
+            opacity: 0.7,
             child: ModalBarrier(
               color: CupertinoColors.black,
               dismissible: false,
             ),
           ),
         if (isLoading)
-          const Center(
-            child: CupertinoActivityIndicator(
-              radius: 20,
-              color: CupertinoColors.black,
+          Center(
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                // color: CupertinoColors.black.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const CircularProgressIndicator(
+                strokeCap: StrokeCap.round,
+                backgroundColor: CupertinoColors.systemOrange,
+                strokeAlign: -8,
+                strokeWidth: 5,
+                color: slottedOrange,
+              ),
             ),
           ),
       ],
@@ -412,10 +451,17 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         Navigator.of(context).pop();
       } else {
         // Present sign in modal to collect phone number
-        await showCupertinoModalPopup(
+        final result = await showCupertinoModalPopup(
           context: context,
           builder: (builder) {
-            return CupertinoAlertDialog(
+            return
+                // KeyboardActions(
+                //   isDialog: true,
+                //   disableScroll: true,
+                //   autoScroll: false,
+                //   config: _buildConfig(context),
+                //   child:
+                CupertinoAlertDialog(
               title: const Text(
                 'Sign In',
                 style: TextStyle(
@@ -425,6 +471,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
               content: Padding(
                 padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
                 child: CupertinoTextField(
+                  focusNode: authFocusNode,
                   autofocus: true,
                   style: const TextStyle(
                     fontSize: 16,
@@ -538,11 +585,12 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   ),
                 ),
               ],
+              // ),
             );
           },
         );
 
-        if (phoneNumber == null) {
+        if (result == null) {
           setState(() {
             isLoading = false;
           });

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/date_components.dart';
 import 'package:slotted/common/event_class.dart';
@@ -48,102 +49,127 @@ class MyEventsPageState extends State<MyEventsPage> {
               ? SlottedUser.fromDocument(snapshot.data!)
               : null;
           return Center(
-            child: widget.user == null
-                ? CupertinoButton(
-                    child: const Text('Sign In'),
-                    onPressed: () =>
-                        widget.authAction(context, loggedIn, () {}),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        CupertinoSegmentedControl(
-                          children: {
-                            0: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Text(
-                                'Attending',
-                                style: TextStyle(
-                                    color: CupertinoColors.systemBackground,
-                                    fontWeight: eventMode == 0
-                                        ? FontWeight.w700
-                                        : FontWeight.w400,
-                                    fontSize: eventMode == 0 ? 18 : 17),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            1: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Text(
-                                'Hosting',
-                                style: TextStyle(
-                                    color: CupertinoColors.systemBackground,
-                                    fontWeight: eventMode == 1
-                                        ? FontWeight.w700
-                                        : FontWeight.w400,
-                                    fontSize: eventMode == 1 ? 18 : 17),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          },
-                          onValueChanged: (value) {
-                            setState(() {
-                              eventMode = value;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: StreamBuilder<QuerySnapshot>(
-                            stream: eventMode == 0
-                                ? FirebaseFirestore.instance
-                                    .collection('events')
-                                    .where('attendees',
-                                        arrayContains: widget.user!.uid)
-                                    .snapshots()
-                                : FirebaseFirestore.instance
-                                    .collection('events')
-                                    .where('host', isEqualTo: widget.user!.uid)
-                                    .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                final events = _convertQuerySnapshotToEvents(
-                                    snapshot.data!)
-                                  ..sort((event_0, event_1) {
-                                    if (event_0.ended != event_1.ended) {
-                                      return event_1.ended ? -1 : 1;
-                                    } else if (event_0.date == event_1.date) {
-                                      return event_1.name
-                                          .compareTo(event_0.name);
-                                    }
-                                    return event_1.date.compareTo(event_0.date);
-                                  });
-                                if (events.isEmpty) {
-                                  return const Text('No events found');
-                                }
-                                return ListView.builder(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  itemCount: events.length,
-                                  itemBuilder: (context, index) =>
-                                      _buildListItem(
-                                          context, events[index], slottedUser),
-                                );
-                              } else if (snapshot.hasError) {
-                                return Text('Error: ${snapshot.error}');
-                              } else {
-                                return const CupertinoActivityIndicator(
-                                  radius: 20,
-                                  color: slottedOrange,
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      ],
+            child: snapshot.connectionState == ConnectionState.waiting
+                ? Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      // color: CupertinoColors.black.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                  ),
+                    child: const CircularProgressIndicator(
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: CupertinoColors.systemOrange,
+                      strokeAlign: -8,
+                      strokeWidth: 5,
+                      color: slottedOrange,
+                    ),
+                  )
+                : widget.user == null
+                    ? CupertinoButton(
+                        child: const Text('Sign In'),
+                        onPressed: () =>
+                            widget.authAction(context, loggedIn, () {}),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (slottedUser!.isHost) ...[
+                              CupertinoSegmentedControl(
+                                children: {
+                                  0: Padding(
+                                    padding: const EdgeInsets.all(6),
+                                    child: Text(
+                                      'Attending',
+                                      style: TextStyle(
+                                          color:
+                                              CupertinoColors.systemBackground,
+                                          fontWeight: eventMode == 0
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                          fontSize: eventMode == 0 ? 18 : 17),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  1: Padding(
+                                    padding: const EdgeInsets.all(6),
+                                    child: Text(
+                                      'Hosting',
+                                      style: TextStyle(
+                                          color:
+                                              CupertinoColors.systemBackground,
+                                          fontWeight: eventMode == 1
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                          fontSize: eventMode == 1 ? 18 : 17),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                },
+                                onValueChanged: (value) {
+                                  setState(() {
+                                    eventMode = value;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12)
+                            ],
+                            Expanded(
+                              child: StreamBuilder<QuerySnapshot>(
+                                stream: eventMode == 0
+                                    ? FirebaseFirestore.instance
+                                        .collection('events')
+                                        .where('attendees',
+                                            arrayContains: widget.user!.uid)
+                                        .snapshots()
+                                    : FirebaseFirestore.instance
+                                        .collection('events')
+                                        .where('host',
+                                            isEqualTo: widget.user!.uid)
+                                        .snapshots(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    final events =
+                                        _convertQuerySnapshotToEvents(
+                                            snapshot.data!)
+                                          ..sort((event_0, event_1) {
+                                            if (event_0.ended !=
+                                                event_1.ended) {
+                                              return event_1.ended ? -1 : 1;
+                                            } else if (event_0.date ==
+                                                event_1.date) {
+                                              return event_1.name
+                                                  .compareTo(event_0.name);
+                                            }
+                                            return event_1.date
+                                                .compareTo(event_0.date);
+                                          });
+                                    if (events.isEmpty) {
+                                      return const Text('No events found');
+                                    }
+                                    return ListView.builder(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      itemCount: events.length,
+                                      itemBuilder: (context, index) =>
+                                          _buildListItem(context, events[index],
+                                              slottedUser),
+                                    );
+                                  } else if (snapshot.hasError) {
+                                    return Text('Error: ${snapshot.error}');
+                                  } else {
+                                    return const CupertinoActivityIndicator(
+                                      radius: 20,
+                                      color: slottedOrange,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
           );
         },
       ),
@@ -359,9 +385,9 @@ class MyEventsPageState extends State<MyEventsPage> {
                       if (!event.attendees.contains(slottedUser?.id) &&
                           !event.waitlist.contains(slottedUser?.id)) ...[
                         const SizedBox(height: 4),
-                        const Text(
-                          'Slots: 5',
-                          style: TextStyle(
+                        Text(
+                          'Slots: ${event.slots - event.attendees.length}',
+                          style: const TextStyle(
                             color: CupertinoColors.label,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,

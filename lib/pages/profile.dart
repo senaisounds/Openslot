@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/slotted_user.dart';
@@ -57,15 +58,15 @@ class ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final bool loggedIn = widget.user != null;
-    return KeyboardActions(
-      isDialog: true,
-      config: _buildConfig(context),
-      child: CupertinoPageScaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: CupertinoColors.systemBackground,
+    return CupertinoPageScaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: CupertinoColors.systemBackground,
+      child: KeyboardActions(
+        config: _buildConfig(context),
         child: !loggedIn
             ? Center(
                 child: CupertinoButton(
+                  padding: EdgeInsets.zero,
                   child: const Text('Sign In'),
                   onPressed: () => widget.authAction(loggedIn),
                 ),
@@ -76,10 +77,21 @@ class ProfilePageState extends State<ProfilePage> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CupertinoActivityIndicator(
-                        radius: 16,
-                        color: slottedOrange,
+                    return Center(
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          // color: CupertinoColors.black.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const CircularProgressIndicator(
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: CupertinoColors.systemOrange,
+                          strokeAlign: -8,
+                          strokeWidth: 5,
+                          color: slottedOrange,
+                        ),
                       ),
                     );
                   }
@@ -159,6 +171,13 @@ class ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 32),
                       CupertinoTextField(
+                        onChanged: (value) {
+                          FirebaseFirestore.instance
+                              .doc('users/${widget.user!.uid}')
+                              .update({
+                            'bio': value,
+                          }).then((value) => print('Bio updated'));
+                        },
                         keyboardType: TextInputType.multiline,
                         focusNode: bioFocus,
                         placeholder: 'Bio',
@@ -192,7 +211,7 @@ class ProfilePageState extends State<ProfilePage> {
                                     'https://x.com/${slottedUser.twitter}');
                                 try {
                                   await launchUrl(url,
-                                      mode: LaunchMode.inAppWebView);
+                                      mode: LaunchMode.inAppBrowserView);
                                 } catch (e) {
                                   print(e);
                                 }
@@ -227,7 +246,7 @@ class ProfilePageState extends State<ProfilePage> {
                                     'https://instagram.com/${slottedUser.instagram}');
                                 try {
                                   await launchUrl(url,
-                                      mode: LaunchMode.inAppWebView);
+                                      mode: LaunchMode.inAppBrowserView);
                                 } catch (e) {
                                   print(e);
                                 }

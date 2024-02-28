@@ -99,7 +99,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                 onPressed: () async {
                   Navigator.of(context).pop();
                   try {
-                    await reserveAction(paymentIntent, event, slottedUser, user);
+                    await reserveAction(
+                        paymentIntent, event, slottedUser, user);
                   } catch (e) {
                     String errorMessage =
                         'There was an error processing your ${isPaid ? 'refund' : 'cancellation'}. Please try again.\n$e';
@@ -267,28 +268,78 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const SizedBox(height: 16),
-                            Text('Hosted by ${event.hostName}'),
-                            if (event.rules.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                event.rules,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                            const SizedBox(height: 8),
-                            Text(
-                              '${_convertDateTimeToStringComponents(event.date).dayFull}, ${_convertDateTimeToStringComponents(event.date).monthFull} ${_convertDateTimeToStringComponents(event.date).dayNum} at ${_convertDateTimeToStringComponents(event.date).time}',
-                              textAlign: TextAlign.center,
+                            const SizedBox(
+                              height: 20,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              event.address,
-                              textAlign: TextAlign.center,
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Text(
+                                  'Hosted by ${event.hostName}',
+                                  style: const TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  '${_convertDateTimeToStringComponents(event.date).dayFull}, ${_convertDateTimeToStringComponents(event.date).monthFull} ${_convertDateTimeToStringComponents(event.date).dayNum} at ${_convertDateTimeToStringComponents(event.date).time}',
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  event.address,
+                                  textAlign: TextAlign.center,
+                                ),
+                                if (event.rules.isNotEmpty) ...[
+                                  const SizedBox(height: 28),
+                                  const Text(
+                                    'Rules',
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: CupertinoColors.systemBackground
+                                          .withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    height: 96,
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.8,
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.vertical,
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceEvenly,
+                                        children: event.rules
+                                            .split('\n')
+                                            .map((rule) => Text(
+                                                  rule,
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                  ),
+                                                ))
+                                            .toList(),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 16,
+                                  ),
+                                ],
+                                if (event.rules.isEmpty)
+                                  const SizedBox(
+                                    height: 32,
+                                  ),
+                              ],
                             ),
-                            const SizedBox(height: 16),
-                            // Insert map showing location
-                            Expanded(
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width,
+                              height: MediaQuery.of(context).size.width * 0.78,
                               child: SafeArea(
                                 child: Padding(
                                   padding: const EdgeInsets.all(24),
@@ -385,6 +436,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                 ),
                               ),
                             ),
+                            const Expanded(
+                              child: SizedBox(),
+                            ),
                             if (!event.attendees.contains(user?.uid) &&
                                 !event.waitlist.contains(user?.uid))
                               Text(
@@ -425,7 +479,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                 });
                                               });
                                             }()
-                                          : _reserveAction(event, slottedUser, user!)),
+                                          : _reserveAction(
+                                              event, slottedUser, user!)),
                                   borderRadius: BorderRadius.circular(20),
                                   child: actionPending
                                       ? CupertinoActivityIndicator(
@@ -506,20 +561,22 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                           'Reserve - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
                                                           style:
                                                               const TextStyle(
-                                                            color: CupertinoColors
-                                                                .systemBackground,
-                                                            fontSize: 19,
+                                                            color:
+                                                                CupertinoColors
+                                                                    .label,
+                                                            fontSize: 20,
                                                             fontWeight:
                                                                 FontWeight.w800,
                                                           ),
                                                         )
                                                       : Text(
-                                                          'Waitlist - \$${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
+                                                          'Waitlist - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
                                                           style:
                                                               const TextStyle(
-                                                            color: CupertinoColors
-                                                                .systemBackground,
-                                                            fontSize: 19,
+                                                            color:
+                                                                CupertinoColors
+                                                                    .label,
+                                                            fontSize: 20,
                                                             fontWeight:
                                                                 FontWeight.w800,
                                                           ),

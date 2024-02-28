@@ -84,7 +84,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   .doc('users/${widget.user!.uid}')
                   .snapshots(),
           builder: (context, snapshot) {
-            final SlottedUser? slottedUser = snapshot.data == null
+            final SlottedUser? slottedUser = snapshot.data == null || widget.user == null
                 ? null
                 : SlottedUser.fromDocument(snapshot.data!);
             return StreamBuilder<QuerySnapshot>(
@@ -300,7 +300,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
                     child: SizedBox(
                       width: 222,
                       child: Text(
@@ -411,10 +411,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       if (!event.attendees.contains(slottedUser?.id) &&
                           !event.waitlist.contains(slottedUser?.id)) ...[
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Slots: 5',
-                          style: TextStyle(
+                        const SizedBox(height: 6),
+                        Text(
+                          'Slots: ${event.slots - event.attendees.length}',
+                          style: const TextStyle(
                             color: CupertinoColors.label,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
