@@ -14,6 +14,7 @@ import 'package:slotted/pages/main_nav.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 const bool _debug = true;
+int idCount = 0;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,8 +88,9 @@ class _MyAppState extends State<MyApp> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (message.notification?.body != null &&
           message.notification?.title != null) {
+        idCount++;
         showNotification(
-          DateTime.now().millisecondsSinceEpoch ~/ 1000.0,
+          (DateTime.now().millisecondsSinceEpoch ~/ 1000.0) + idCount,
           message.notification!.title,
           message.notification!.body,
         );
