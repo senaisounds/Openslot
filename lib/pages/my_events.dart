@@ -1,5 +1,9 @@
+import 'dart:math';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:slotted/common/colors.dart';
@@ -222,22 +226,22 @@ class MyEventsPageState extends State<MyEventsPage> {
                       Text(
                         event.name, // Display title
                         style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 21,
                             color: CupertinoColors.label),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         event.hostName, // Display hostname
                         style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
                             color: CupertinoColors.label),
                       ),
                     ],
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 24, 0),
+                    padding: const EdgeInsets.fromLTRB(0, 0, 18, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -252,14 +256,14 @@ class MyEventsPageState extends State<MyEventsPage> {
                           dateComponents.dayFull, // Display date and time
                           style: const TextStyle(
                               fontWeight: FontWeight.w500,
-                              fontSize: 15,
+                              fontSize: 16,
                               color: CupertinoColors.label),
                         ),
                         Text(
                           dateComponents.time, // Display date and time
                           style: const TextStyle(
                               fontWeight: FontWeight.w500,
-                              fontSize: 15,
+                              fontSize: 16,
                               color: CupertinoColors.label),
                         ),
                       ],
@@ -267,21 +271,100 @@ class MyEventsPageState extends State<MyEventsPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 14),
+              if (event.attendees.isNotEmpty) ...[
+                const Text(
+                  'Attendees',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 6),
+                  height: 54,
+                  // width: double.infinity,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      // color: CupertinoColors.systemGrey.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(32),
+                    ),
+                    // Build a row of slightly overlapping profile images for the attendees that are going
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: event.attendees
+                          .sublist(0, min(10, event.attendees.length))
+                          .asMap()
+                          .map(
+                            (index, attendee) => MapEntry(
+                              index,
+                              FutureBuilder<String>(
+                                future: FirebaseStorage.instance
+                                    .ref('profileImgs')
+                                    .child('$attendee.png')
+                                    .getDownloadURL(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                          ConnectionState.done &&
+                                      snapshot.hasData) {
+                                    return Transform.translate(
+                                      offset: Offset(index * -20.0,
+                                          0), // Adjust the overlap by changing this value
+                                      child: CupertinoButton(
+                                        onPressed: () => {},
+                                        padding: EdgeInsets.zero,
+                                        child: Container(
+                                          width: 40,
+                                          height: 40,
+                                          clipBehavior: Clip.hardEdge,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(32),
+                                            border: Border.all(
+                                                color: Colors.black,
+                                                width: 3,
+                                                strokeAlign: BorderSide
+                                                    .strokeAlignOutside),
+                                          ),
+                                          child: CachedNetworkImage(
+                                            fit: BoxFit.fill,
+                                            imageUrl: snapshot.data.toString(),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    return const SizedBox(width: 0);
+                                  }
+                                },
+                              ),
+                            ),
+                          )
+                          .values
+                          .toList(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+              // const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
                     child: SizedBox(
                       width: 222,
                       child: Text(
                         event.address, // Display address
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                          fontSize: 15,
                           color: CupertinoColors.label,
+                          decoration: TextDecoration.underline,
                         ),
                       ),
                     ),
@@ -384,13 +467,13 @@ class MyEventsPageState extends State<MyEventsPage> {
                       ),
                       if (!event.attendees.contains(slottedUser?.id) &&
                           !event.waitlist.contains(slottedUser?.id)) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 12),
                         Text(
-                          'Slots: ${event.slots - event.attendees.length}',
+                          '${event.slots - event.attendees.length} of ${event.slots} slots',
                           style: const TextStyle(
                             color: CupertinoColors.label,
                             fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                            fontSize: 16,
                           ),
                         ),
                       ],
