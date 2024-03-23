@@ -10,6 +10,8 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:slotted/api/firebase_options.dart';
 import 'package:slotted/common/colors.dart';
+import 'package:slotted/pages/countdown_timer.dart';
+import 'package:slotted/pages/live.dart';
 import 'package:slotted/pages/main_nav.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -118,6 +120,7 @@ class _MyAppState extends State<MyApp> {
         brightness: Brightness.dark,
         primaryColor: slottedOrange,
       ),
+      // home: LivePage(),
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
