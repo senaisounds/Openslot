@@ -222,7 +222,13 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () => Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (context) => event.live
-                ? LivePage()
+                ? LivePage(
+                    event: event,
+                    debug: widget.debug,
+                    user: widget.user,
+                    authAction: widget.authAction,
+                    reserveAction: widget.reserveAction,
+                  )
                 : EventDetailsPage(
                     initialEvent: event,
                     debug: widget.debug,
@@ -408,7 +414,13 @@ class _MyHomePageState extends State<MyHomePage> {
                         onPressed: event.live
                             ? () => Navigator.of(context).push(
                                   CupertinoPageRoute(
-                                    builder: (context) => LivePage(),
+                                    builder: (context) => LivePage(
+                                      event: event,
+                                      debug: widget.debug,
+                                      user: widget.user,
+                                      authAction: widget.authAction,
+                                      reserveAction: widget.reserveAction,
+                                    ),
                                   ),
                                 )
                             : slottedUser == null
