@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -439,16 +440,16 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                             const Expanded(
                               child: SizedBox(),
                             ),
-                            if (!event.attendees.contains(user?.uid) &&
-                                !event.waitlist.contains(user?.uid))
-                              Text(
-                                '${event.openSlots} slots left',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18,
-                                ),
-                                textAlign: TextAlign.center,
+                            // if (!event.attendees.contains(user?.uid) &&
+                            //     !event.waitlist.contains(user?.uid))
+                            Text(
+                              '${event.openSlots} of ${event.slots} slots',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
                               ),
+                              textAlign: TextAlign.center,
+                            ),
                             const SizedBox(height: 24),
                             SizedBox(
                               height: 66,
@@ -457,30 +458,41 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                 padding:
                                     const EdgeInsets.fromLTRB(22, 0, 22, 0),
                                 child: CupertinoButton(
-                                  color: event.attendees.contains(user?.uid)
-                                      ? CupertinoColors
-                                          .secondarySystemBackground
-                                      : event.waitlist.contains(user?.uid)
-                                          ? CupertinoColors
-                                              .secondarySystemBackground
-                                          : slottedOrange,
+                                  color: event.live
+                                      ? CupertinoColors.activeGreen
+                                      : event.host == slottedUser?.id
+                                          ? slottedOrange
+                                          : event.attendees.contains(user?.uid)
+                                              ? CupertinoColors
+                                                  .secondarySystemBackground
+                                              : event.waitlist
+                                                      .contains(user?.uid)
+                                                  ? CupertinoColors
+                                                      .secondarySystemBackground
+                                                  : slottedOrange,
                                   padding: EdgeInsets.zero,
                                   onPressed: () => actionPending
                                       ? null
-                                      : (slottedUser == null
-                                          ? () async {
-                                              setState(() {
-                                                actionPending = true;
-                                              });
-                                              await widget.authAction(
-                                                  context, false, () {
-                                                setState(() {
-                                                  actionPending = false;
-                                                });
-                                              });
-                                            }()
-                                          : _reserveAction(
-                                              event, slottedUser, user!)),
+                                      : event.live
+                                          ? Navigator.of(context).pop()
+                                          : event.host == slottedUser?.id ||
+                                                  event.date
+                                                      .isBefore(DateTime.now())
+                                              ? Navigator.of(context).pop()
+                                              : (slottedUser == null
+                                                  ? () async {
+                                                      setState(() {
+                                                        actionPending = true;
+                                                      });
+                                                      await widget.authAction(
+                                                          context, false, () {
+                                                        setState(() {
+                                                          actionPending = false;
+                                                        });
+                                                      });
+                                                    }()
+                                                  : _reserveAction(event,
+                                                      slottedUser, user!)),
                                   borderRadius: BorderRadius.circular(20),
                                   child: actionPending
                                       ? CupertinoActivityIndicator(
@@ -494,93 +506,127 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                   : CupertinoColors
                                                       .secondarySystemBackground,
                                         )
-                                      : event.attendees.contains(user?.uid)
-                                          ? const Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  'Reserved',
+                                      : event.live
+                                          ? const Text('Live',
+                                              style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 20,
+                                                  height: 1.2),
+                                              textAlign: TextAlign.center)
+                                          : event.host == slottedUser?.id ||
+                                                  event.date
+                                                      .isBefore(DateTime.now())
+                                              ? const Text('View',
                                                   style: TextStyle(
-                                                    color: slottedOrange,
-                                                    fontSize: 19,
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                                ),
-                                                SizedBox(width: 12),
-                                                Icon(
-                                                  CupertinoIcons
-                                                      .check_mark_circled_solid,
-                                                  size: 20,
-                                                  color: slottedOrange,
-                                                  weight: 30,
-                                                )
-                                              ],
-                                            )
-                                          : event.waitlist.contains(user?.uid)
-                                              ? const Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      'Waitlisted',
-                                                      style: TextStyle(
-                                                        color: slottedOrange,
-                                                        fontSize: 19,
-                                                        fontWeight:
-                                                            FontWeight.w800,
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 12),
-                                                    Icon(
-                                                      CupertinoIcons
-                                                          .check_mark_circled_solid,
-                                                      size: 20,
-                                                      color: slottedOrange,
-                                                      weight: 30,
-                                                    )
-                                                  ],
-                                                )
-                                              : slottedUser == null
-                                                  ? const Text(
-                                                      'Sign in to reserve',
-                                                      style: TextStyle(
-                                                        color: CupertinoColors
-                                                            .label,
-                                                        fontSize: 19,
-                                                        fontWeight:
-                                                            FontWeight.w800,
-                                                      ),
-                                                    )
-                                                  : event.openSlots > 0
-                                                      ? Text(
-                                                          'Reserve - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
-                                                          style:
-                                                              const TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 20,
+                                                      height: 1.2),
+                                                  textAlign: TextAlign.center)
+                                              : event.attendees
+                                                      .contains(user?.uid)
+                                                  ? const Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Text(
+                                                          'Reserved',
+                                                          style: TextStyle(
                                                             color:
-                                                                CupertinoColors
-                                                                    .label,
-                                                            fontSize: 20,
-                                                            fontWeight:
-                                                                FontWeight.w800,
-                                                          ),
-                                                        )
-                                                      : Text(
-                                                          'Waitlist - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
-                                                          style:
-                                                              const TextStyle(
-                                                            color:
-                                                                CupertinoColors
-                                                                    .label,
-                                                            fontSize: 20,
+                                                                slottedOrange,
+                                                            fontSize: 19,
                                                             fontWeight:
                                                                 FontWeight.w800,
                                                           ),
                                                         ),
+                                                        SizedBox(width: 12),
+                                                        Icon(
+                                                          CupertinoIcons
+                                                              .check_mark_circled_solid,
+                                                          size: 20,
+                                                          color: slottedOrange,
+                                                          weight: 30,
+                                                        )
+                                                      ],
+                                                    )
+                                                  : event.waitlist
+                                                          .contains(user?.uid)
+                                                      ? const Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Text(
+                                                              'Waitlisted',
+                                                              style: TextStyle(
+                                                                color:
+                                                                    slottedOrange,
+                                                                fontSize: 19,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w800,
+                                                              ),
+                                                            ),
+                                                            SizedBox(width: 12),
+                                                            Icon(
+                                                              CupertinoIcons
+                                                                  .check_mark_circled_solid,
+                                                              size: 20,
+                                                              color:
+                                                                  slottedOrange,
+                                                              weight: 30,
+                                                            )
+                                                          ],
+                                                        )
+                                                      : slottedUser == null
+                                                          ? const Text(
+                                                              'Sign in to reserve',
+                                                              style: TextStyle(
+                                                                color:
+                                                                    CupertinoColors
+                                                                        .label,
+                                                                fontSize: 19,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w800,
+                                                              ),
+                                                            )
+                                                          : event.openSlots > 0
+                                                              ? Text(
+                                                                  'Reserve - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    color: CupertinoColors
+                                                                        .label,
+                                                                    fontSize:
+                                                                        20,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w800,
+                                                                  ),
+                                                                )
+                                                              : Text(
+                                                                  'Waitlist - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    color: CupertinoColors
+                                                                        .label,
+                                                                    fontSize:
+                                                                        20,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w800,
+                                                                  ),
+                                                                ),
                                 ),
                               ),
                             ),
