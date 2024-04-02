@@ -482,7 +482,8 @@ class LivePageState extends State<LivePage> {
                                       : placeholderImage;
                                   return CupertinoListTile(
                                     onTap: event.host != widget.user?.uid ||
-                                            event.ended
+                                            event.ended ||
+                                            !event.live
                                         ? null
                                         : () {
                                             _lineupPerformer(
