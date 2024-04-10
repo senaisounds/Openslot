@@ -292,6 +292,15 @@ class EditEventPageState extends State<EditEventPage> {
                         FocusScope.of(context).unfocus();
                         FocusScope.of(context).requestFocus(eventDateNode);
                       });
+
+                      if (eventDate.text.isEmpty) {
+                        eventDate.text = dateFormatter.format(now.add(
+                          Duration(
+                            minutes: 15 - now.minute % 15,
+                          ),
+                        ));
+                      }
+
                       final result = await showBoardDateTimePicker(
                         context: context,
                         pickerType: DateTimePickerType.datetime,
@@ -553,7 +562,6 @@ class EditEventPageState extends State<EditEventPage> {
                             eventDate.text.isEmpty ||
                             eventSlots.text.isEmpty ||
                             eventPrice.text.isEmpty ||
-                            eventRules.text.isEmpty ||
                             eventLocation.text.isEmpty
                         ? null
                         : () async {
@@ -628,7 +636,6 @@ class EditEventPageState extends State<EditEventPage> {
                                       eventDate.text.isEmpty ||
                                       eventSlots.text.isEmpty ||
                                       eventPrice.text.isEmpty ||
-                                      eventRules.text.isEmpty ||
                                       eventLocation.text.isEmpty
                                   ? Colors.grey
                                   : Colors.white,
