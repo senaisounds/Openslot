@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:location_picker_flutter_map/location_picker_flutter_map.dart';
 import 'package:flutter/material.dart';
+import 'package:slotted/common/colors.dart';
 
 class LocationPage extends StatefulWidget {
   const LocationPage({super.key, required this.onPicked});
@@ -16,9 +17,11 @@ class LocationPageState extends State<LocationPage> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: const CupertinoNavigationBar(
+        backgroundColor: CupertinoColors.systemBackground,
         middle: Text(
           'Pick Location',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: slottedOrange),
         ),
       ),
       child: SafeArea(

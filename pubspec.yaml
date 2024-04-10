@@ -55,8 +55,8 @@ dependencies:
   flutter_launcher_icons: "^0.13.1"
   maps_launcher: ^2.2.1
   intl: ^0.18.1
-  omni_datetime_picker: ^1.0.9
   location_picker_flutter_map: ^2.1.0
+  board_datetime_picker: ^1.6.1
 
 flutter_launcher_icons:
   android: "launcher_icon"

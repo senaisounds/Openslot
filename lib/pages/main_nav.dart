@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -87,6 +88,92 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       },
     );
     return response.body;
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      var response = await http.post(
+        Uri.parse(
+            'https://us-central1-open-mic-5cc8e.cloudfunctions.net/deleteEvent'),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'eventID': eventId,
+        },
+      );
+      final body = response.body;
+
+      if (response.statusCode == 200) {
+        print(body);
+        // ignore: use_build_context_synchronously
+        showCupertinoDialog(
+          context: context,
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: const Text('Success'),
+              content: const Text('Event deleted successfully.'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        // ignore: use_build_context_synchronously
+        showCupertinoDialog(
+          context: context,
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: const Text('Error'),
+              content: Text(
+                  'There was an error deleting the event. Please try again.\n$body'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      String errorMessage =
+          'There was an error deleting the event. Please try again.\n$e';
+      if (e is FirebaseException) {
+        errorMessage = e.message ?? errorMessage;
+      }
+
+      print(e);
+
+      // ignore: use_build_context_synchronously
+      showCupertinoDialog(
+        context: context,
+        builder: (context) {
+          return CupertinoAlertDialog(
+            title: const Text('Error'),
+            content: Text(errorMessage),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          );
+        },
+      );
+    }
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> resAuth(Event event, SlottedUser slottedUser) async {
@@ -253,16 +340,19 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
             authAction: (context, isLoggedIn, completion) =>
                 _authAction(context, isLoggedIn, completion: completion),
             reserveAction: (event, slottedUser) => resAuth(event, slottedUser),
+            deleteEvent: (eventId) => deleteEvent(eventId),
             debug: widget.debug),
       ),
       StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) => MyHomePage(
-            debug: widget.debug,
-            user: snapshot.data,
-            authAction: (context, isLoggedIn, completion) =>
-                _authAction(context, isLoggedIn, completion: completion),
-            reserveAction: (event, slottedUser) => resAuth(event, slottedUser)),
+          debug: widget.debug,
+          user: snapshot.data,
+          authAction: (context, isLoggedIn, completion) =>
+              _authAction(context, isLoggedIn, completion: completion),
+          reserveAction: (event, slottedUser) => resAuth(event, slottedUser),
+          deleteEvent: (eventId) => deleteEvent(eventId),
+        ),
       ),
       StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),

@@ -17,6 +17,7 @@ class Event {
   String hostName = '';
   String id = '';
   bool live = false;
+  LatLng location = const LatLng(0, 0);
   String name = '';
   String? performer;
   DateTime? performerStart;
@@ -28,7 +29,6 @@ class Event {
   int timeLimit = 0;
   EventType type = EventType.mic;
   List<String> waitlist = [];
-  LatLng location = const LatLng(0, 0);
 
   int get openSlots {
     return max(0, slots - attendees.length);
@@ -107,5 +107,44 @@ class Event {
     }
 
     return event;
+  }
+
+  static Map<String, dynamic> toDocument(
+    Event event, {
+    bool deletingAttendees = false,
+    bool deletingWaitlist = false,
+  }) {
+    final docData = <String, dynamic>{};
+
+    docData['address'] = event.address;
+    docData['attendees'] = deletingAttendees
+        ? event.attendees
+        : FieldValue.arrayUnion(event.attendees);
+    docData['date'] = event.date;
+    docData['ended'] = event.ended;
+    docData['host'] = event.host;
+    docData['hostName'] = event.hostName;
+    docData['id'] = event.id;
+    docData['live'] = event.live;
+    docData['location'] =
+        GeoPoint(event.location.latitude, event.location.longitude);
+    docData['name'] = event.name;
+    docData['performer'] = event.performer;
+    docData['performerStart'] = event.performerStart;
+    docData['price'] = event.price;
+    docData['reservationTimestamps'] =
+        event.reservationTimestamps.map((key, value) {
+      return MapEntry(key, Timestamp.fromDate(value));
+    });
+    docData['rules'] = event.rules;
+    docData['signupOnLocation'] = event.signupOnLocation;
+    docData['slots'] = event.slots;
+    docData['timeLimit'] = event.timeLimit;
+    docData['type'] = event.type.name.toUpperCase();
+    docData['waitlist'] = deletingWaitlist
+        ? event.waitlist
+        : FieldValue.arrayUnion(event.waitlist);
+
+    return docData;
   }
 }
