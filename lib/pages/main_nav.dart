@@ -104,6 +104,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         },
         body: {
           'eventID': eventId,
+          'debug': widget.debug ? 'true' : 'false',
         },
       );
       final body = response.body;
