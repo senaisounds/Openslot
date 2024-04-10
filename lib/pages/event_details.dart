@@ -12,6 +12,7 @@ import 'package:slotted/api/stripe.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/date_components.dart';
 import 'package:slotted/common/event_class.dart';
+import 'package:maps_launcher/maps_launcher.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
@@ -63,8 +64,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
     dynamic paymentIntent = '';
 
-    final isReserved = event.attendees.contains(user?.uid);
-    final isWaitlisted = event.waitlist.contains(user?.uid);
+    final isReserved = event.attendees.contains(user.uid);
+    final isWaitlisted = event.waitlist.contains(user.uid);
 
     if (isReserved || isWaitlisted) {
       // ignore: use_build_context_synchronously
@@ -219,7 +220,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
             stream: user == null
                 ? null
                 : FirebaseFirestore.instance
-                    .doc('users/${user!.uid}')
+                    .doc('users/${user.uid}')
                     .snapshots(),
             builder: (context, userSnap) {
               final slottedUser = userSnap.data == null
@@ -288,9 +289,24 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 10),
-                                Text(
-                                  event.address,
-                                  textAlign: TextAlign.center,
+                                CupertinoButton(
+                                  onPressed: () async {
+                                    MapsLauncher.launchQuery(event.address)
+                                        .catchError((error) {
+                                      print('Launch error');
+                                      print(error.toString());
+                                      return true;
+                                    });
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  child: Text(
+                                    event.address,
+                                    style: const TextStyle(
+                                        decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                                 if (event.rules.isNotEmpty) ...[
                                   const SizedBox(height: 28),
