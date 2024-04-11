@@ -154,6 +154,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                                       ),
                                     },
                                     onValueChanged: (value) {
+                                      if (value == eventMode) return;
                                       setState(() {
                                         eventMode = value;
                                       });
@@ -271,8 +272,9 @@ class MyEventsPageState extends State<MyEventsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       child: GestureDetector(
         onLongPress: () {
-          if (slottedUser?.id != event.host || event.live || event.ended)
+          if (slottedUser?.id != event.host || event.live || event.ended) {
             return;
+          }
           // Show confirmation dialog on whether to delete the event
           showCupertinoDialog(
             context: context,
@@ -317,15 +319,35 @@ class MyEventsPageState extends State<MyEventsPage> {
                         ),
             ),
           ),
-          color: CupertinoColors.systemBackground,
+          // color: CupertinoColors.systemBackground,
+          // color: slottedOrange,
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
+              // Shimmering slottedOrange and systemGrey gradient
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                stops: const [0.0, 0.8, 1.0],
+                colors: [
+                  slottedOrange.withOpacity(0.9),
+                  slottedOrange
+                      .withRed(slottedOrange.red + 1)
+                      .withGreen(slottedOrange.green + 1)
+                      .withBlue(slottedOrange.blue + 1)
+                      .withOpacity(0.7),
+                  slottedOrange.withOpacity(0.9),
+                  // CupertinoColors.black.withOpacity(0.5),
+                  // slottedOrange.withOpacity(0.4),
+                  // CupertinoColors.white.withOpacity(0.8),
+                  // slottedOrange.withOpacity(0.8),
+                ],
+              ),
               borderRadius: BorderRadius.circular(12),
-              color: CupertinoColors.systemBackground,
-              boxShadow: const [
+              // color: slottedOrange.withOpacity(1),
+              boxShadow: [
                 BoxShadow(
-                  color: slottedOrange,
+                  color: slottedOrange.withOpacity(0.4),
                   spreadRadius: 3,
                   blurRadius: 9,
                 ),
@@ -397,6 +419,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
+                      color: CupertinoColors.label,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -479,6 +502,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                       child: SizedBox(
                         width: 222,
                         child: Text(
+                          maxLines: 3,
                           event.address, // Display address
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
@@ -526,27 +550,45 @@ class MyEventsPageState extends State<MyEventsPage> {
                             decoration: BoxDecoration(
                               color: event.live
                                   ? CupertinoColors.systemGreen
-                                  : event.host == slottedUser?.id
-                                      ? slottedOrange
-                                      : slottedUser == null
-                                          ? CupertinoColors.label
-                                          : event.attendees
-                                                  .contains(slottedUser.id)
-                                              ? CupertinoColors.label
-                                              : event.waitlist
-                                                      .contains(slottedUser.id)
-                                                  ? CupertinoColors.label
-                                                  : event.attendees.length <
-                                                          event.slots
-                                                      ? slottedOrange
-                                                      : slottedOrange,
+                                  : event.host == slottedUser?.id &&
+                                          event.host.isNotEmpty &&
+                                          (slottedUser?.id ?? '').isNotEmpty
+                                      ? event.date.isBefore(DateTime.now())
+                                          ? event.ended
+                                              ? CupertinoColors.systemGrey
+                                              : CupertinoColors.white
+                                                  .withOpacity(0.8)
+                                          : CupertinoColors.systemBlue
+                                              .withBlue(CupertinoColors
+                                                      .systemBlue.blue -
+                                                  40)
+                                              .withRed(CupertinoColors
+                                                      .systemBlue.red +
+                                                  40)
+                                              .withGreen(CupertinoColors
+                                                      .systemBlue.green -
+                                                  40)
+                                              .withOpacity(0.8)
+                                      : event.ended
+                                          ? CupertinoColors.systemGrey
+                                          : CupertinoColors.label,
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
                                   color: event.live
                                       ? CupertinoColors.systemGreen
+                                          .withBlue(CupertinoColors.systemGreen.blue -
+                                              40)
+                                          .withRed(CupertinoColors.systemGreen.red -
+                                              40)
+                                          .withGreen(CupertinoColors.systemGreen.green -
+                                              40)
                                       : event.host == slottedUser?.id
                                           ? slottedOrange
+                                              .withBlue(slottedOrange.blue - 40)
+                                              .withRed(slottedOrange.red - 40)
+                                              .withGreen(
+                                                  slottedOrange.green - 40)
                                           : slottedUser == null
                                               ? CupertinoColors.label
                                               : event.attendees
@@ -558,6 +600,9 @@ class MyEventsPageState extends State<MyEventsPage> {
                                                       : event.attendees.length <
                                                               event.slots
                                                           ? slottedOrange
+                                                              .withBlue(slottedOrange.blue - 40)
+                                                              .withRed(slottedOrange.red - 40)
+                                                              .withGreen(slottedOrange.green - 40)
                                                           : slottedOrange,
                                   spreadRadius: 1,
                                   blurRadius: 1,
@@ -567,95 +612,130 @@ class MyEventsPageState extends State<MyEventsPage> {
                             width: 100,
                             height: 44,
                             child: event.live
-                                ? const Text('Live',
+                                ? const Text(
+                                    'Live',
                                     style: TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 20,
-                                        height: 1.2),
-                                    textAlign: TextAlign.center)
-                                : event.host == slottedUser?.id ||
-                                        event.date.isBefore(DateTime.now())
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 20,
+                                      height: 1.2,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  )
+                                : event.date.isBefore(DateTime.now())
                                     ? Text(
-                                        event.ended
-                                            ? 'View'
-                                            : event.date
-                                                    .isBefore(DateTime.now())
-                                                ? 'Start'
-                                                : 'Edit',
+                                        event.host == slottedUser?.id &&
+                                                !event.ended
+                                            ? 'Start'
+                                            : event.ended
+                                                ? 'Ended'
+                                                : 'View',
                                         style: TextStyle(
-                                            color: slottedUser != null
-                                                ? Colors.black
-                                                : Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 20,
-                                            height: 1.2),
-                                        textAlign: TextAlign.center)
-                                    : slottedUser == null
+                                          color:
+                                              event.host == slottedUser?.id &&
+                                                      !event.ended
+                                                  ? Colors.black
+                                                  : event.ended
+                                                      ? Colors.black
+                                                      : Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 20,
+                                          height: 1.2,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      )
+                                    : event.host == slottedUser?.id
                                         ? Text(
-                                            'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}',
+                                            event.ended
+                                                ? 'View'
+                                                : event.date.isBefore(
+                                                        DateTime.now())
+                                                    ? 'Start'
+                                                    : 'Edit',
                                             style: TextStyle(
-                                                color: slottedOrange,
+                                                color: slottedUser?.id ==
+                                                        event.host
+                                                    ? Colors.black
+                                                    : Colors.white,
                                                 fontWeight: FontWeight.w700,
-                                                fontSize: slottedUser == null
-                                                    ? 14.5
-                                                    : event.attendees.contains(
-                                                            slottedUser.id)
+                                                fontSize: 20,
+                                                height: 1.2),
+                                            textAlign: TextAlign.center)
+                                        : slottedUser == null
+                                            ? Text(
+                                                'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}',
+                                                style: TextStyle(
+                                                    color: slottedOrange,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: slottedUser ==
+                                                            null
                                                         ? 14.5
-                                                        : event.waitlist
+                                                        : event.attendees
                                                                 .contains(
                                                                     slottedUser
                                                                         .id)
                                                             ? 14.5
+                                                            : event.waitlist
+                                                                    .contains(
+                                                                        slottedUser
+                                                                            .id)
+                                                                ? 14.5
+                                                                : event.attendees
+                                                                            .length <
+                                                                        event
+                                                                            .slots
+                                                                    ? 18
+                                                                    : 18,
+                                                    height: 1.2),
+                                                textAlign: TextAlign.center,
+                                              )
+                                            : Text(
+                                                event.attendees.contains(
+                                                        slottedUser.id)
+                                                    ? 'Reserved'
+                                                    : event.waitlist.contains(
+                                                            slottedUser.id)
+                                                        ? 'Waitlisted'
+                                                        : event.attendees
+                                                                    .length <
+                                                                event.slots
+                                                            ? 'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}'
+                                                            : 'Waitlist\n\$${event.price.toStringAsFixed(2)}',
+                                                style: TextStyle(
+                                                    color: !event.date.isAfter(
+                                                            DateTime.now())
+                                                        ? Colors.white
+                                                        : event.attendees.contains(
+                                                                slottedUser.id)
+                                                            ? slottedOrange
+                                                            : event.waitlist.contains(
+                                                                    slottedUser
+                                                                        .id)
+                                                                ? slottedOrange
+                                                                : event.attendees
+                                                                            .length <
+                                                                        event
+                                                                            .slots
+                                                                    ? CupertinoColors
+                                                                        .label
+                                                                    : CupertinoColors
+                                                                        .label,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: event.attendees
+                                                            .contains(
+                                                                slottedUser.id)
+                                                        ? 16
+                                                        : event.waitlist.contains(
+                                                                slottedUser.id)
+                                                            ? 16
                                                             : event.attendees
                                                                         .length <
                                                                     event.slots
-                                                                ? 18
-                                                                : 18,
-                                                height: 1.2),
-                                            textAlign: TextAlign.center,
-                                          )
-                                        : Text(
-                                            event.attendees
-                                                    .contains(slottedUser.id)
-                                                ? 'Reserved'
-                                                : event.waitlist.contains(
-                                                        slottedUser.id)
-                                                    ? 'Waitlisted'
-                                                    : event.attendees.length <
-                                                            event.slots
-                                                        ? 'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}'
-                                                        : 'Waitlist\n\$${event.price.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                                color: event.attendees.contains(
-                                                        slottedUser.id)
-                                                    ? slottedOrange
-                                                    : event.waitlist.contains(
-                                                            slottedUser.id)
-                                                        ? slottedOrange
-                                                        : event.attendees
-                                                                    .length <
-                                                                event.slots
-                                                            ? CupertinoColors
-                                                                .label
-                                                            : CupertinoColors
-                                                                .label,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: event.attendees
-                                                        .contains(
-                                                            slottedUser.id)
-                                                    ? 16
-                                                    : event.waitlist.contains(
-                                                            slottedUser.id)
-                                                        ? 16
-                                                        : event.attendees
-                                                                    .length <
-                                                                event.slots
-                                                            ? 14.5
-                                                            : 14.5,
-                                                height: 1.2),
-                                            textAlign: TextAlign.center,
-                                          ),
+                                                                ? 14.5
+                                                                : 14.5,
+                                                    height: 1.2),
+                                                textAlign: TextAlign.center,
+                                              ),
                           ),
                         ),
                         if (!event.attendees.contains(slottedUser?.id) &&

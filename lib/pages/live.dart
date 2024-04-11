@@ -420,13 +420,13 @@ class LivePageState extends State<LivePage> {
                       ),
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color:
                               CupertinoColors.systemBackground.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        height: 96,
+                        height: 72,
                         width: MediaQuery.of(context).size.width * 0.8,
                         child: SingleChildScrollView(
                           scrollDirection: Axis.vertical,
@@ -593,10 +593,20 @@ class LivePageState extends State<LivePage> {
                                               ? "Start Event"
                                               : "Upcoming"
                                           : "Event Ended",
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 21,
-                                      fontWeight: FontWeight.w600),
+                                  style: TextStyle(
+                                    color: event.live
+                                        ? event.performer != null
+                                            ? Colors.black
+                                            : CupertinoColors.systemGrey
+                                        : !event.ended
+                                            ? event.date
+                                                    .isBefore(DateTime.now())
+                                                ? Colors.black
+                                                : CupertinoColors.systemGrey
+                                            : CupertinoColors.systemGrey,
+                                    fontSize: 21,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
