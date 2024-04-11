@@ -583,8 +583,10 @@ class MyEventsPageState extends State<MyEventsPage> {
                                                     .isBefore(DateTime.now())
                                                 ? 'Start'
                                                 : 'Edit',
-                                        style: const TextStyle(
-                                            color: Colors.black,
+                                        style: TextStyle(
+                                            color: slottedUser != null
+                                                ? Colors.black
+                                                : Colors.white,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 20,
                                             height: 1.2),

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -7,10 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
-import 'package:slotted/api/stripe.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/date_components.dart';
@@ -19,8 +15,6 @@ import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/pages/event_details.dart';
-import 'package:http/http.dart' as http;
-import 'package:slotted/pages/countdown_timer.dart';
 import 'package:slotted/pages/live.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -221,8 +215,9 @@ class _MyHomePageState extends State<MyHomePage> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       child: GestureDetector(
         onLongPress: () {
-          if (slottedUser?.id != event.host || event.live || event.ended)
+          if (slottedUser?.id != event.host || event.live || event.ended) {
             return;
+          }
           // Show confirmation dialog on whether to delete the event
           showCupertinoDialog(
             context: context,
@@ -517,13 +512,16 @@ class _MyHomePageState extends State<MyHomePage> {
                             width: 100,
                             height: 44,
                             child: event.live
-                                ? const Text('Live',
+                                ? const Text(
+                                    'Live',
                                     style: TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 20,
-                                        height: 1.2),
-                                    textAlign: TextAlign.center)
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 20,
+                                      height: 1.2,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  )
                                 : event.host == slottedUser?.id ||
                                         event.date.isBefore(DateTime.now())
                                     ? Text(
@@ -535,8 +533,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                         DateTime.now())
                                                     ? 'Start'
                                                     : 'Edit',
-                                        style: const TextStyle(
-                                            color: Colors.black,
+                                        style: TextStyle(
+                                            color: slottedUser != null
+                                                ? Colors.black
+                                                : Colors.white,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 20,
                                             height: 1.2),

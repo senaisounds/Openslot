@@ -1,17 +1,11 @@
 // ignore_for_file: use_build_context_synchronously
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:slotted/api/firebase_options.dart';
 import 'package:slotted/common/colors.dart';
-import 'package:slotted/pages/countdown_timer.dart';
-import 'package:slotted/pages/live.dart';
 import 'package:slotted/pages/main_nav.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -45,8 +39,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
@@ -120,36 +112,7 @@ class _MyAppState extends State<MyApp> {
         brightness: Brightness.dark,
         primaryColor: slottedOrange,
       ),
-      // home: LivePage(),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.data?.uid != null) {
-            Permission.notification.request().then((status) {
-              if (status.isGranted) {
-                // Permission is granted
-                print('Notification permissions granted');
-                _firebaseMessaging.getAPNSToken().then((apnsToken) {
-                  return _firebaseMessaging.getToken();
-                }).then((token) {
-                  FirebaseFirestore.instance
-                      .doc('users/${snapshot.data!.uid}')
-                      .set(
-                    {
-                      'pushToken': token,
-                    },
-                    SetOptions(merge: true),
-                  );
-                });
-              } else {
-                // Permission is denied
-                print('Notification permissions denied');
-              }
-            });
-          }
-          return MainNav(user: snapshot.data, debug: widget.debug);
-        },
-      ),
+      home: MainNav(debug: widget.debug),
     );
   }
 }

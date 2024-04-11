@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:latlong2/latlong.dart';
@@ -319,7 +318,6 @@ class EditEventPageState extends State<EditEventPage> {
                           const Duration(days: 365),
                         ),
                         onChanged: (date) {
-                          print('onchanged: $date');
                           setState(() {
                             eventDate.text = dateFormatter.format(date);
                           });
@@ -347,7 +345,11 @@ class EditEventPageState extends State<EditEventPage> {
                         ),
                       );
 
-                      print(dateFormatter.format(result ?? now));
+                      if (result != null) {
+                        setState(() {
+                          eventDate.text = dateFormatter.format(result);
+                        });
+                      }
                     },
                     style: const TextStyle(
                       color: CupertinoColors.white,
@@ -358,7 +360,6 @@ class EditEventPageState extends State<EditEventPage> {
                     keyboardType: TextInputType.none,
                     onChanged: (value) {
                       final date = dateFormatter.parse(value);
-                      print('onchanged: $date');
                       setState(() {
                         eventDate.text = dateFormatter.format(date);
                       });

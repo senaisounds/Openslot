@@ -4,11 +4,13 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:slotted/api/stripe.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
@@ -22,9 +24,8 @@ import 'package:http/http.dart' as http;
 
 // Create class MainNav that manages a tab controller screen with 5 routes. The middle route must point to MyHomePage.
 class MainNav extends StatefulWidget {
-  const MainNav({super.key, required this.user, this.debug = false});
+  const MainNav({super.key, this.debug = false});
 
-  final User? user;
   final bool debug;
 
   @override
@@ -34,6 +35,7 @@ class MainNav extends StatefulWidget {
 class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   late final CupertinoTabController _tabController;
   late final SlottedUser? slottedUser;
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
   final FocusNode authFocusNode = FocusNode();
   KeyboardActionsConfig _buildConfig(BuildContext context) {
@@ -110,9 +112,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       final body = response.body;
 
       if (response.statusCode == 200) {
-        print(body);
-        // ignore: use_build_context_synchronously
-        showCupertinoDialog(
+        await showCupertinoDialog(
           context: context,
           builder: (context) {
             return CupertinoAlertDialog(
@@ -128,8 +128,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
           },
         );
       } else {
-        // ignore: use_build_context_synchronously
-        showCupertinoDialog(
+        await showCupertinoDialog(
           context: context,
           builder: (context) {
             return CupertinoAlertDialog(
@@ -153,10 +152,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         errorMessage = e.message ?? errorMessage;
       }
 
-      print(e);
-
-      // ignore: use_build_context_synchronously
-      showCupertinoDialog(
+      await showCupertinoDialog(
         context: context,
         builder: (context) {
           return CupertinoAlertDialog(
@@ -188,7 +184,6 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     final isWaitlisted = event.waitlist.contains(slottedUser.id);
 
     if (isReserved || isWaitlisted) {
-      // ignore: use_build_context_synchronously
       await showCupertinoDialog(
         context: context,
         builder: (context) {
@@ -233,10 +228,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                       errorMessage = e.message;
                     }
 
-                    print(e);
-
-                    // ignore: use_build_context_synchronously
-                    showCupertinoDialog(
+                    await showCupertinoDialog(
                       context: context,
                       builder: (context) {
                         return CupertinoAlertDialog(
@@ -303,8 +295,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       print(e);
 
       if (!cancelled) {
-        // ignore: use_build_context_synchronously
-        showCupertinoDialog(
+        await showCupertinoDialog(
           context: context,
           builder: (context) {
             return CupertinoAlertDialog(
@@ -374,126 +365,150 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    bool loggedIn = widget.user != null;
-    return Stack(
-      children: [
-        CupertinoPageScaffold(
-          resizeToAvoidBottomInset: false,
-          navigationBar: CupertinoNavigationBar(
-            border: null,
-            backgroundColor: CupertinoColors.systemBackground,
-            middle: _buildNavigationTitle(),
-            leading: loggedIn
-                ? CupertinoButton(
-                    onPressed: isLoading ? null : () {},
-                    padding: EdgeInsets.zero,
-                    child: const Icon(CupertinoIcons.bell, size: 30),
-                  )
-                : null,
-            trailing: CupertinoButton(
-              onPressed:
-                  isLoading ? null : () => _openSettings(context, loggedIn),
-              padding: EdgeInsets.zero,
-              child: loggedIn
-                  ? const Icon(
-                      CupertinoIcons.gear,
-                      size: 30,
-                    )
-                  : const Text(
-                      'Sign In',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-            ),
-          ),
-          child: CupertinoTabScaffold(
-            resizeToAvoidBottomInset: false,
-            tabBar: CupertinoTabBar(
-              height: 64,
-              backgroundColor: CupertinoColors.secondarySystemBackground,
-              activeColor: slottedOrange,
-              currentIndex: _tabController.index,
-              onTap: (index) {
-                _tabController.index = index;
-                setState(() {
-                  switch (_tabController.index) {
-                    case 0:
-                      titleString = 'My Events';
-                    case 1:
-                      titleString = 'Slotted';
-                    case 2:
-                      titleString = 'Profile';
-                    default:
-                      titleString = 'Slotted';
-                  }
-                });
-              },
-              iconSize: iconSize,
-              items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.list_bullet),
-                  // label: 'My Events',
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        bool loggedIn = snapshot.data != null;
+        if (snapshot.data?.uid != null) {
+          Permission.notification.request().then((status) {
+            if (status.isGranted) {
+              // Permission is granted
+              _firebaseMessaging.getAPNSToken().then((apnsToken) {
+                return _firebaseMessaging.getToken();
+              }).then((token) {
+                FirebaseFirestore.instance
+                    .doc('users/${snapshot.data!.uid}')
+                    .set(
+                  {
+                    'pushToken': token,
+                  },
+                  SetOptions(merge: true),
+                );
+              });
+            } else {}
+          });
+        }
+        return Stack(
+          children: [
+            CupertinoPageScaffold(
+              resizeToAvoidBottomInset: false,
+              navigationBar: CupertinoNavigationBar(
+                border: null,
+                backgroundColor: CupertinoColors.systemBackground,
+                middle: _buildNavigationTitle(),
+                leading: loggedIn
+                    ? CupertinoButton(
+                        onPressed: isLoading ? null : () {},
+                        padding: EdgeInsets.zero,
+                        child: const Icon(CupertinoIcons.bell, size: 30),
+                      )
+                    : null,
+                trailing: CupertinoButton(
+                  onPressed:
+                      isLoading ? null : () => _openSettings(context, loggedIn),
+                  padding: EdgeInsets.zero,
+                  child: loggedIn
+                      ? const Icon(
+                          CupertinoIcons.gear,
+                          size: 30,
+                        )
+                      : const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                 ),
-                BottomNavigationBarItem(
-                  icon: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(40),
-                      border: Border.all(
-                        color: _tabController.index == 1
-                            ? slottedOrange.withOpacity(0.93)
-                            : CupertinoColors.systemGrey.withOpacity(0.7),
-                        width: 3,
+              ),
+              child: CupertinoTabScaffold(
+                resizeToAvoidBottomInset: false,
+                tabBar: CupertinoTabBar(
+                  height: 64,
+                  backgroundColor: CupertinoColors.secondarySystemBackground,
+                  activeColor: slottedOrange,
+                  currentIndex: _tabController.index,
+                  onTap: (index) {
+                    _tabController.index = index;
+                    setState(() {
+                      switch (_tabController.index) {
+                        case 0:
+                          titleString = 'My Events';
+                        case 1:
+                          titleString = 'Slotted';
+                        case 2:
+                          titleString = 'Profile';
+                        default:
+                          titleString = 'Slotted';
+                      }
+                    });
+                  },
+                  iconSize: iconSize,
+                  items: [
+                    const BottomNavigationBarItem(
+                      icon: Icon(CupertinoIcons.list_bullet),
+                      // label: 'My Events',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(40),
+                          border: Border.all(
+                            color: _tabController.index == 1
+                                ? slottedOrange.withOpacity(0.93)
+                                : CupertinoColors.systemGrey.withOpacity(0.7),
+                            width: 3,
+                          ),
+                        ),
+                        child: Image.asset(
+                          'lib/assets/images/s_logo.png',
+                          width: iconSize * 1.2,
+                          height: iconSize * 1.2,
+                          color: _tabController.index == 1
+                              ? slottedOrange.withOpacity(0.93)
+                              : CupertinoColors.systemGrey.withOpacity(0.7),
+                        ),
                       ),
                     ),
-                    child: Image.asset(
-                      'lib/assets/images/s_logo.png',
-                      width: iconSize * 1.2,
-                      height: iconSize * 1.2,
-                      color: _tabController.index == 1
-                          ? slottedOrange.withOpacity(0.93)
-                          : CupertinoColors.systemGrey.withOpacity(0.7),
+                    const BottomNavigationBarItem(
+                      icon: Icon(CupertinoIcons.person),
+                      // label: 'Profile',
                     ),
+                  ],
+                ),
+                tabBuilder: (context, index) {
+                  return tabViews[index];
+                },
+              ),
+            ),
+            if (isLoading)
+              const Opacity(
+                opacity: 0.7,
+                child: ModalBarrier(
+                  color: CupertinoColors.black,
+                  dismissible: false,
+                ),
+              ),
+            if (isLoading)
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    // color: CupertinoColors.black.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const CircularProgressIndicator(
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: CupertinoColors.systemOrange,
+                    strokeAlign: -8,
+                    strokeWidth: 5,
+                    color: slottedOrange,
                   ),
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.person),
-                  // label: 'Profile',
-                ),
-              ],
-            ),
-            tabBuilder: (context, index) {
-              return tabViews[index];
-            },
-          ),
-        ),
-        if (isLoading)
-          const Opacity(
-            opacity: 0.7,
-            child: ModalBarrier(
-              color: CupertinoColors.black,
-              dismissible: false,
-            ),
-          ),
-        if (isLoading)
-          Center(
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                // color: CupertinoColors.black.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(24),
               ),
-              child: const CircularProgressIndicator(
-                strokeCap: StrokeCap.round,
-                backgroundColor: CupertinoColors.systemOrange,
-                strokeAlign: -8,
-                strokeWidth: 5,
-                color: slottedOrange,
-              ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -689,7 +704,6 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         }
       }
     } catch (e) {
-      print(e);
       setState(() {
         isLoading = false;
       });
