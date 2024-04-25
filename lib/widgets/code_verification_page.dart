@@ -1,8 +1,11 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:slotted/common/colors.dart';
+import 'package:slotted/pages/profile.dart';
 
 class CodeVerificationPage extends StatefulWidget {
   final String verificationId;
@@ -91,8 +94,26 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
         smsCode: code,
       );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final userResult =
+          await FirebaseAuth.instance.signInWithCredential(credential);
       // Navigate to your desired page after successful login
+      // final userDoc = await FirebaseFirestore.instance
+      //     .doc('users/${userResult.user!.uid}')
+      //     .get();
+      // if (userDoc.data()?['username'] == null ||
+      //     userDoc.data()?['username'] == '' ||
+      //     userDoc.data()!['username'] == null ||
+      //     userDoc.data()!['username'] == '') {
+      //   Navigator.of(context).pushReplacement(
+      //     CupertinoPageRoute(
+      //       builder: (context) => const ProfilePage(
+      //         user: null,
+      //         authAction: null,
+      //       ),
+      //     ),
+      //   );
+      //   return;
+      // }
       Navigator.of(context).pop();
     } catch (e) {
       FirebaseAuthException exception = e as FirebaseAuthException;

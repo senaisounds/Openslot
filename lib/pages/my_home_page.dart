@@ -41,6 +41,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final FocusNode searchFocus = FocusNode();
   String query = '';
   bool actionPending = false;
+  String headerTitle = 'UPCOMING';
+  final ScrollController eventsScrollController = ScrollController();
 
   KeyboardActionsConfig _buildConfig(BuildContext context) {
     return KeyboardActionsConfig(
@@ -70,6 +72,37 @@ class _MyHomePageState extends State<MyHomePage> {
       ],
     );
   }
+
+  // @override
+  // void initState() {
+  //   eventsScrollController.addListener(() {
+  //     // set headerTitle based on the date of the first event in view
+  //     if (eventsScrollController.position.atEdge) {
+  //       if (eventsScrollController.position.pixels == 0) {
+  //         // Top of the list
+  //         setState(() {
+  //         headerTitle = 'UPCOMING';
+  //         });
+  //       } else {
+  //         // Bottom of the list
+  //         setState(() {
+  //         headerTitle = 'PAST';
+  //         });
+  //       }
+  //     } else {
+  //       // Scrolling in between
+  //       final firstVisibleEventIndex = eventsScrollController
+  //         .position.minScrollExtent.toInt() ~/ 100; // Assuming each event takes 100 pixels
+  //       final firstVisibleEvent = [firstVisibleEventIndex];
+  //       final dateComponents =
+  //         _convertDateTimeToStringComponents(firstVisibleEvent.date);
+  //       setState(() {
+  //         headerTitle = dateComponents.dayFull;
+  //       });
+  //     }
+  //   });
+  //   super.initState();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -189,11 +222,39 @@ class _MyHomePageState extends State<MyHomePage> {
                                           ),
                                         ],
                                       )
-                                    : ListView.builder(
-                                        itemCount: events.length,
-                                        itemBuilder: (context, index) =>
-                                            _buildListItem(context,
-                                                events[index], slottedUser),
+                                    // : ListView.builder(
+                                    //     itemCount: events.length,
+                                    //     itemBuilder: (context, index) =>
+                                    //         _buildListItem(context,
+                                    //             events[index], slottedUser),
+                                    //   ),
+                                    // build list items with headers (if applicable) Today, Tomorrow, Upcoming
+                                    : Column(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Text(
+                                              headerTitle,
+                                              style: const TextStyle(
+                                                color: slottedOrange,
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: ListView.builder(
+                                              controller:
+                                                  eventsScrollController,
+                                              itemCount: events.length,
+                                              itemBuilder: (context, index) =>
+                                                  _buildListItem(
+                                                      context,
+                                                      events[index],
+                                                      slottedUser),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                       ),
                     ),
@@ -211,503 +272,508 @@ class _MyHomePageState extends State<MyHomePage> {
       BuildContext context, Event event, SlottedUser? slottedUser) {
     final dateComponents = _convertDateTimeToStringComponents(event.date);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      child: GestureDetector(
-        onLongPress: () {
-          if (slottedUser?.id != event.host || event.live || event.ended) {
-            return;
-          }
-          // Show confirmation dialog on whether to delete the event
-          showCupertinoDialog(
-            context: context,
-            builder: (context) => CupertinoAlertDialog(
-              title: const Text('Delete Event'),
-              content:
-                  const Text('Are you sure you want to delete this event?'),
-              actions: [
-                CupertinoDialogAction(
-                  child: const Text('Cancel'),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                CupertinoDialogAction(
-                  child: const Text('Delete'),
-                  onPressed: () async {
-                    widget.deleteEvent(event.id);
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-        child: CupertinoButton(
-          borderRadius: BorderRadius.circular(12),
-          padding: const EdgeInsets.all(0),
-          onPressed: () => Navigator.of(context).push(
-            CupertinoPageRoute(
-              builder: (context) =>
-                  event.live || event.ended || event.host == slottedUser?.id
-                      ? LivePage(
-                          event: event,
-                          debug: widget.debug,
-                          user: widget.user,
-                          authAction: widget.authAction,
-                          reserveAction: widget.reserveAction,
-                        )
-                      : EventDetailsPage(
-                          initialEvent: event,
-                          debug: widget.debug,
-                          authAction: widget.authAction,
-                        ),
-            ),
+    final cellChild = CupertinoButton(
+      borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.all(0),
+      onPressed: () => Navigator.of(context).push(
+        CupertinoPageRoute(
+          builder: (context) =>
+              event.live || event.ended || event.host == slottedUser?.id
+                  ? LivePage(
+                      event: event,
+                      debug: widget.debug,
+                      user: widget.user,
+                      authAction: widget.authAction,
+                      reserveAction: widget.reserveAction,
+                    )
+                  : EventDetailsPage(
+                      initialEvent: event,
+                      debug: widget.debug,
+                      authAction: widget.authAction,
+                    ),
+        ),
+      ),
+      // color: CupertinoColors.systemBackground,
+      // color: slottedOrange,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          // Shimmering slottedOrange and systemGrey gradient
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            stops: const [0.0, 0.4, 0.8, 1.0],
+            colors: [
+              slottedOrange
+                  .withRed(slottedOrange.red + 1)
+                  .withGreen(slottedOrange.green + 1)
+                  .withBlue(slottedOrange.blue + 1)
+                  .withOpacity(0.9),
+              slottedOrange.withOpacity(0.7),
+              slottedOrange
+                  .withRed(slottedOrange.red + 1)
+                  .withGreen(slottedOrange.green + 1)
+                  .withBlue(slottedOrange.blue + 1)
+                  .withOpacity(0.9),
+              slottedOrange.withOpacity(0.8),
+              // CupertinoColors.black.withOpacity(0.5),
+              // slottedOrange.withOpacity(0.4),
+              // CupertinoColors.white.withOpacity(0.8),
+              // slottedOrange.withOpacity(0.8),
+            ],
           ),
-          // color: CupertinoColors.systemBackground,
-          // color: slottedOrange,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              // Shimmering slottedOrange and systemGrey gradient
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                stops: const [0.0, 0.4, 0.8, 1.0],
-                colors: [
-                  slottedOrange
-                      .withRed(slottedOrange.red + 1)
-                      .withGreen(slottedOrange.green + 1)
-                      .withBlue(slottedOrange.blue + 1)
-                      .withOpacity(0.9),
-                  slottedOrange.withOpacity(0.7),
-                  slottedOrange
-                      .withRed(slottedOrange.red + 1)
-                      .withGreen(slottedOrange.green + 1)
-                      .withBlue(slottedOrange.blue + 1)
-                      .withOpacity(0.9),
-                  slottedOrange.withOpacity(0.8),
-                  // CupertinoColors.black.withOpacity(0.5),
-                  // slottedOrange.withOpacity(0.4),
-                  // CupertinoColors.white.withOpacity(0.8),
-                  // slottedOrange.withOpacity(0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              // color: slottedOrange.withOpacity(1),
-              boxShadow: [
-                BoxShadow(
-                  color: slottedOrange.withOpacity(0.4),
-                  spreadRadius: 3,
-                  blurRadius: 9,
-                ),
-              ],
+          borderRadius: BorderRadius.circular(12),
+          // color: slottedOrange.withOpacity(1),
+          boxShadow: [
+            BoxShadow(
+              color: slottedOrange.withOpacity(0.4),
+              spreadRadius: 3,
+              blurRadius: 9,
             ),
-            child: Column(
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          event.name, // Display title
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 21,
-                              color: CupertinoColors.label),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          event.hostName, // Display hostname
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                              color: CupertinoColors.label),
-                        ),
-                      ],
+                    Text(
+                      event.name, // Display title
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 21,
+                          color: CupertinoColors.label),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 18, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: CupertinoColors.label),
-                          ),
-                          Text(
-                            dateComponents.dayFull, // Display date and time
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                                color: CupertinoColors.label),
-                          ),
-                          Text(
-                            dateComponents.time, // Display date and time
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                                color: CupertinoColors.label),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      event.hostName, // Display hostname
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                          color: CupertinoColors.label),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                if (event.attendees.isNotEmpty) ...[
-                  const Text(
-                    'Attendees',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: CupertinoColors.label,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 6),
-                    height: 54,
-                    // width: double.infinity,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        // color: CupertinoColors.systemGrey.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      // Build a row of slightly overlapping profile images for the attendees that are going
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: event.attendees
-                            .sublist(0, min(10, event.attendees.length))
-                            .asMap()
-                            .map(
-                              (index, attendee) => MapEntry(
-                                index,
-                                FutureBuilder<String>(
-                                  future: FirebaseStorage.instance
-                                      .ref('profileImgs')
-                                      .child('$attendee.png')
-                                      .getDownloadURL(),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                            ConnectionState.done &&
-                                        snapshot.hasData) {
-                                      return Transform.translate(
-                                        offset: Offset(index * -20.0,
-                                            0), // Adjust the overlap by changing this value
-                                        child: CupertinoButton(
-                                          onPressed: () => {},
-                                          padding: EdgeInsets.zero,
-                                          child: Container(
-                                            width: 40,
-                                            height: 40,
-                                            clipBehavior: Clip.hardEdge,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(32),
-                                              border: Border.all(
-                                                  color: Colors.black,
-                                                  width: 3,
-                                                  strokeAlign: BorderSide
-                                                      .strokeAlignOutside),
-                                            ),
-                                            child: CachedNetworkImage(
-                                              fit: BoxFit.fill,
-                                              imageUrl:
-                                                  snapshot.data.toString(),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    } else {
-                                      return const SizedBox(width: 0);
-                                    }
-                                  },
-                                ),
-                              ),
-                            )
-                            .values
-                            .toList(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                // const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
-                      child: SizedBox(
-                        width: 222,
-                        child: Text(
-                          maxLines: 3,
-                          event.address, // Display address
-                          style: const TextStyle(
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 18, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
+                        style: const TextStyle(
                             fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                            color: CupertinoColors.label,
-                            decoration: TextDecoration.underline,
+                            fontSize: 16,
+                            color: CupertinoColors.label),
+                      ),
+                      Text(
+                        dateComponents.dayFull, // Display date and time
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            color: CupertinoColors.label),
+                      ),
+                      Text(
+                        dateComponents.time, // Display date and time
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            color: CupertinoColors.label),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (event.attendees.isNotEmpty) ...[
+              const Text(
+                'Attendees',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: CupertinoColors.label,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 6),
+                height: 54,
+                // width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    // color: CupertinoColors.systemGrey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  // Build a row of slightly overlapping profile images for the attendees that are going
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: event.attendees
+                        .sublist(0, min(10, event.attendees.length))
+                        .asMap()
+                        .map(
+                          (index, attendee) => MapEntry(
+                            index,
+                            FutureBuilder<String>(
+                              future: FirebaseStorage.instance
+                                  .ref('profileImgs')
+                                  .child('$attendee.png')
+                                  .getDownloadURL(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                        ConnectionState.done &&
+                                    snapshot.hasData) {
+                                  return Transform.translate(
+                                    offset: Offset(index * -20.0,
+                                        0), // Adjust the overlap by changing this value
+                                    child: CupertinoButton(
+                                      onPressed: () => {},
+                                      padding: EdgeInsets.zero,
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
+                                        clipBehavior: Clip.hardEdge,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(32),
+                                          border: Border.all(
+                                              color: Colors.black,
+                                              width: 3,
+                                              strokeAlign: BorderSide
+                                                  .strokeAlignOutside),
+                                        ),
+                                        child: CachedNetworkImage(
+                                          fit: BoxFit.fill,
+                                          imageUrl: snapshot.data.toString(),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  return const SizedBox(width: 0);
+                                }
+                              },
+                            ),
                           ),
-                        ),
+                        )
+                        .values
+                        .toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            // const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+                  child: SizedBox(
+                    width: 222,
+                    child: Text(
+                      maxLines: 3,
+                      event.address, // Display address
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: CupertinoColors.label,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
-                    Column(
-                      children: [
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: event.live ||
-                                  event.ended ||
-                                  event.date.isBefore(DateTime.now())
+                  ),
+                ),
+                Column(
+                  children: [
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: event.live ||
+                              event.ended ||
+                              event.date.isBefore(DateTime.now())
+                          ? () => Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) => LivePage(
+                                    event: event,
+                                    debug: widget.debug,
+                                    user: widget.user,
+                                    authAction: widget.authAction,
+                                    reserveAction: widget.reserveAction,
+                                  ),
+                                ),
+                              )
+                          : event.host == slottedUser?.id
                               ? () => Navigator.of(context).push(
                                     CupertinoPageRoute(
-                                      builder: (context) => LivePage(
+                                      builder: (context) => EditEventPage(
+                                        user: slottedUser,
                                         event: event,
-                                        debug: widget.debug,
-                                        user: widget.user,
-                                        authAction: widget.authAction,
-                                        reserveAction: widget.reserveAction,
                                       ),
                                     ),
                                   )
-                              : event.host == slottedUser?.id
-                                  ? () => Navigator.of(context).push(
-                                        CupertinoPageRoute(
-                                          builder: (context) => EditEventPage(
-                                            user: slottedUser,
-                                            event: event,
-                                          ),
-                                        ),
-                                      )
-                                  : slottedUser == null
-                                      ? () => widget.authAction(
-                                          context, false, () {})
-                                      : () => widget.reserveAction(
-                                          event, slottedUser),
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
+                              : slottedUser == null
+                                  ? () =>
+                                      widget.authAction(context, false, () {})
+                                  : () =>
+                                      widget.reserveAction(event, slottedUser),
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: event.live
+                              ? CupertinoColors.systemGreen
+                              : event.host == slottedUser?.id &&
+                                      event.host.isNotEmpty &&
+                                      (slottedUser?.id ?? '').isNotEmpty
+                                  ? event.date.isBefore(DateTime.now())
+                                      ? event.ended
+                                          ? CupertinoColors.systemGrey
+                                          : CupertinoColors.white
+                                              .withOpacity(0.8)
+                                      : CupertinoColors.systemBlue
+                                          .withBlue(
+                                              CupertinoColors.systemBlue.blue -
+                                                  40)
+                                          .withRed(
+                                              CupertinoColors.systemBlue.red +
+                                                  40)
+                                          .withGreen(
+                                              CupertinoColors.systemBlue.green -
+                                                  40)
+                                          .withOpacity(0.8)
+                                  : event.ended
+                                      ? CupertinoColors.systemGrey
+                                      : CupertinoColors.label,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
                               color: event.live
                                   ? CupertinoColors.systemGreen
-                                  : event.host == slottedUser?.id &&
-                                          event.host.isNotEmpty &&
-                                          (slottedUser?.id ?? '').isNotEmpty
-                                      ? event.date.isBefore(DateTime.now())
-                                          ? event.ended
-                                              ? CupertinoColors.systemGrey
-                                              : CupertinoColors.white
-                                                  .withOpacity(0.8)
-                                          : CupertinoColors.systemBlue
-                                              .withBlue(CupertinoColors
-                                                      .systemBlue.blue -
-                                                  40)
-                                              .withRed(CupertinoColors
-                                                      .systemBlue.red +
-                                                  40)
-                                              .withGreen(CupertinoColors
-                                                      .systemBlue.green -
-                                                  40)
-                                              .withOpacity(0.8)
-                                      : event.ended
-                                          ? CupertinoColors.systemGrey
-                                          : CupertinoColors.label,
-                              borderRadius: BorderRadius.circular(24),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: event.live
-                                      ? CupertinoColors.systemGreen
-                                          .withBlue(CupertinoColors.systemGreen.blue -
+                                      .withBlue(
+                                          CupertinoColors.systemGreen.blue - 40)
+                                      .withRed(
+                                          CupertinoColors.systemGreen.red - 40)
+                                      .withGreen(
+                                          CupertinoColors.systemGreen.green -
                                               40)
-                                          .withRed(CupertinoColors.systemGreen.red -
-                                              40)
-                                          .withGreen(CupertinoColors.systemGreen.green -
-                                              40)
-                                      : event.host == slottedUser?.id
-                                          ? slottedOrange
-                                              .withBlue(slottedOrange.blue - 40)
-                                              .withRed(slottedOrange.red - 40)
-                                              .withGreen(
-                                                  slottedOrange.green - 40)
-                                          : slottedUser == null
+                                  : event.host == slottedUser?.id
+                                      ? slottedOrange
+                                          .withBlue(slottedOrange.blue - 40)
+                                          .withRed(slottedOrange.red - 40)
+                                          .withGreen(slottedOrange.green - 40)
+                                      : slottedUser == null
+                                          ? CupertinoColors.label
+                                          : event.attendees
+                                                  .contains(slottedUser.id)
                                               ? CupertinoColors.label
-                                              : event.attendees
+                                              : event.waitlist
                                                       .contains(slottedUser.id)
                                                   ? CupertinoColors.label
-                                                  : event.waitlist.contains(
-                                                          slottedUser.id)
-                                                      ? CupertinoColors.label
-                                                      : event.attendees.length <
-                                                              event.slots
-                                                          ? slottedOrange
-                                                              .withBlue(slottedOrange.blue - 40)
-                                                              .withRed(slottedOrange.red - 40)
-                                                              .withGreen(slottedOrange.green - 40)
-                                                          : slottedOrange,
-                                  spreadRadius: 1,
-                                  blurRadius: 1,
-                                ),
-                              ],
+                                                  : event.attendees.length <
+                                                          event.slots
+                                                      ? slottedOrange
+                                                          .withBlue(
+                                                              slottedOrange
+                                                                      .blue -
+                                                                  40)
+                                                          .withRed(slottedOrange.red - 40)
+                                                          .withGreen(slottedOrange.green - 40)
+                                                      : slottedOrange,
+                              spreadRadius: 1,
+                              blurRadius: 1,
                             ),
-                            width: 100,
-                            height: 44,
-                            child: event.live
-                                ? const Text(
-                                    'Live',
+                          ],
+                        ),
+                        width: 100,
+                        height: 44,
+                        child: event.live
+                            ? const Text(
+                                'Live',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 20,
+                                  height: 1.2,
+                                ),
+                                textAlign: TextAlign.center,
+                              )
+                            : event.date.isBefore(DateTime.now())
+                                ? Text(
+                                    event.host == slottedUser?.id &&
+                                            !event.ended
+                                        ? 'Start'
+                                        : event.ended
+                                            ? 'Ended'
+                                            : 'View',
                                     style: TextStyle(
-                                      color: Colors.black,
+                                      color: event.host == slottedUser?.id &&
+                                              !event.ended
+                                          ? Colors.black
+                                          : event.ended
+                                              ? Colors.black
+                                              : Colors.white,
                                       fontWeight: FontWeight.w700,
                                       fontSize: 20,
                                       height: 1.2,
                                     ),
                                     textAlign: TextAlign.center,
                                   )
-                                : event.date.isBefore(DateTime.now())
+                                : event.host == slottedUser?.id
                                     ? Text(
-                                        event.host == slottedUser?.id &&
-                                                !event.ended
-                                            ? 'Start'
-                                            : event.ended
-                                                ? 'Ended'
-                                                : 'View',
+                                        event.ended
+                                            ? 'View'
+                                            : event.date
+                                                    .isBefore(DateTime.now())
+                                                ? 'Start'
+                                                : 'Edit',
                                         style: TextStyle(
-                                          color:
-                                              event.host == slottedUser?.id &&
-                                                      !event.ended
-                                                  ? Colors.black
-                                                  : event.ended
-                                                      ? Colors.black
-                                                      : Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 20,
-                                          height: 1.2,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      )
-                                    : event.host == slottedUser?.id
+                                            color: slottedUser?.id == event.host
+                                                ? Colors.black
+                                                : Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 20,
+                                            height: 1.2),
+                                        textAlign: TextAlign.center)
+                                    : slottedUser == null
                                         ? Text(
-                                            event.ended
-                                                ? 'View'
-                                                : event.date.isBefore(
-                                                        DateTime.now())
-                                                    ? 'Start'
-                                                    : 'Edit',
+                                            'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}',
                                             style: TextStyle(
-                                                color: slottedUser?.id ==
-                                                        event.host
-                                                    ? Colors.black
-                                                    : Colors.white,
+                                                color: slottedOrange,
                                                 fontWeight: FontWeight.w700,
-                                                fontSize: 20,
-                                                height: 1.2),
-                                            textAlign: TextAlign.center)
-                                        : slottedUser == null
-                                            ? Text(
-                                                'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}',
-                                                style: TextStyle(
-                                                    color: slottedOrange,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: slottedUser ==
-                                                            null
+                                                fontSize: slottedUser == null
+                                                    ? 14.5
+                                                    : event.attendees.contains(
+                                                            slottedUser.id)
                                                         ? 14.5
-                                                        : event.attendees
+                                                        : event.waitlist
                                                                 .contains(
                                                                     slottedUser
                                                                         .id)
                                                             ? 14.5
-                                                            : event.waitlist
-                                                                    .contains(
-                                                                        slottedUser
-                                                                            .id)
-                                                                ? 14.5
-                                                                : event.attendees
-                                                                            .length <
-                                                                        event
-                                                                            .slots
-                                                                    ? 18
-                                                                    : 18,
-                                                    height: 1.2),
-                                                textAlign: TextAlign.center,
-                                              )
-                                            : Text(
-                                                event.attendees.contains(
-                                                        slottedUser.id)
-                                                    ? 'Reserved'
-                                                    : event.waitlist.contains(
-                                                            slottedUser.id)
-                                                        ? 'Waitlisted'
-                                                        : event.attendees
-                                                                    .length <
-                                                                event.slots
-                                                            ? 'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}'
-                                                            : 'Waitlist\n\$${event.price.toStringAsFixed(2)}',
-                                                style: TextStyle(
-                                                    color: !event.date.isAfter(
-                                                            DateTime.now())
-                                                        ? Colors.white
-                                                        : event.attendees.contains(
-                                                                slottedUser.id)
-                                                            ? slottedOrange
-                                                            : event.waitlist.contains(
-                                                                    slottedUser
-                                                                        .id)
-                                                                ? slottedOrange
-                                                                : event.attendees
-                                                                            .length <
-                                                                        event
-                                                                            .slots
-                                                                    ? CupertinoColors
-                                                                        .label
-                                                                    : CupertinoColors
-                                                                        .label,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: event.attendees
-                                                            .contains(
-                                                                slottedUser.id)
-                                                        ? 16
-                                                        : event.waitlist.contains(
-                                                                slottedUser.id)
-                                                            ? 16
                                                             : event.attendees
                                                                         .length <
                                                                     event.slots
-                                                                ? 14.5
-                                                                : 14.5,
-                                                    height: 1.2),
-                                                textAlign: TextAlign.center,
-                                              ),
-                          ),
-                        ),
-                        if (!event.attendees.contains(slottedUser?.id) &&
-                            !event.waitlist.contains(slottedUser?.id)) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            '${event.slots - event.attendees.length} of ${event.slots} slots',
-                            style: const TextStyle(
-                              color: CupertinoColors.label,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ],
+                                                                ? 18
+                                                                : 18,
+                                                height: 1.2),
+                                            textAlign: TextAlign.center,
+                                          )
+                                        : Text(
+                                            event.attendees
+                                                    .contains(slottedUser.id)
+                                                ? 'Reserved'
+                                                : event.waitlist.contains(
+                                                        slottedUser.id)
+                                                    ? 'Waitlisted'
+                                                    : event.attendees.length <
+                                                            event.slots
+                                                        ? 'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}'
+                                                        : 'Waitlist\n\$${event.price.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                                color: !event.date
+                                                        .isAfter(DateTime.now())
+                                                    ? Colors.white
+                                                    : event.attendees.contains(
+                                                            slottedUser.id)
+                                                        ? slottedOrange
+                                                        : event.waitlist
+                                                                .contains(
+                                                                    slottedUser
+                                                                        .id)
+                                                            ? slottedOrange
+                                                            : event.attendees
+                                                                        .length <
+                                                                    event.slots
+                                                                ? CupertinoColors
+                                                                    .white
+                                                                : CupertinoColors
+                                                                    .white,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: event.attendees
+                                                        .contains(
+                                                            slottedUser.id)
+                                                    ? 16
+                                                    : event.waitlist.contains(
+                                                            slottedUser.id)
+                                                        ? 16
+                                                        : event.attendees
+                                                                    .length <
+                                                                event.slots
+                                                            ? 14.5
+                                                            : 14.5,
+                                                height: 1.2),
+                                            textAlign: TextAlign.center,
+                                          ),
+                      ),
                     ),
+                    if (!event.attendees.contains(slottedUser?.id) &&
+                        !event.waitlist.contains(slottedUser?.id)) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        '${event.slots - event.attendees.length} of ${event.slots} slots',
+                        style: const TextStyle(
+                          color: CupertinoColors.label,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
+
+    return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        child: slottedUser?.id == event.host
+            ? Dismissible(
+                key: Key(event.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 30, 0),
+                  alignment: Alignment.centerRight,
+                  // color: CupertinoColors.systemRed,
+                  child: const Icon(
+                    CupertinoIcons.trash,
+                    color: CupertinoColors.systemRed,
+                  ),
+                ),
+                confirmDismiss: (direction) {
+                  return showCupertinoDialog(
+                    context: context,
+                    builder: (context) => CupertinoAlertDialog(
+                      title: const Text('Delete Event'),
+                      content: const Text(
+                          'Are you sure you want to delete this event?'),
+                      actions: [
+                        CupertinoDialogAction(
+                          child: const Text('Cancel'),
+                          onPressed: () => Navigator.of(context).pop(false),
+                        ),
+                        CupertinoDialogAction(
+                          child: const Text('Delete'),
+                          onPressed: () async {
+                            widget.deleteEvent(event.id);
+                            Navigator.of(context).pop(true);
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: cellChild,
+              )
+            : cellChild);
   }
 
   DateComponents _convertDateTimeToStringComponents(DateTime date) {

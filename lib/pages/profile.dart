@@ -17,7 +17,7 @@ class ProfilePage extends StatefulWidget {
 
   final User? user;
 
-  final Future<void> Function(bool) authAction;
+  final Future<void> Function(bool)? authAction;
 
   final bool debug;
 
@@ -68,7 +68,7 @@ class ProfilePageState extends State<ProfilePage> {
                 child: CupertinoButton(
                   padding: EdgeInsets.zero,
                   child: const Text('Sign In'),
-                  onPressed: () => widget.authAction(loggedIn),
+                  onPressed: () => widget.authAction?.call(loggedIn),
                 ),
               )
             : StreamBuilder<DocumentSnapshot>(
@@ -99,7 +99,7 @@ class ProfilePageState extends State<ProfilePage> {
                     return Center(
                       child: CupertinoButton(
                         child: const Text('Sign In'),
-                        onPressed: () => widget.authAction(loggedIn),
+                        onPressed: () => widget.authAction?.call(loggedIn),
                       ),
                     );
                   }
@@ -148,7 +148,9 @@ class ProfilePageState extends State<ProfilePage> {
                                     ),
                                   )
                                 : Text(
-                                    slottedUser.username.characters.first,
+                                    slottedUser.username.isNotEmpty
+                                        ? slottedUser.username.characters.first
+                                        : '',
                                     style: const TextStyle(
                                       fontSize: pictureSize * 0.78,
                                       fontWeight: FontWeight.bold,

@@ -584,7 +584,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                     fontWeight: FontWeight.bold,
                   ),
                   placeholder: 'Phone Number',
-                  keyboardType: TextInputType.number,
+                  keyboardType: TextInputType.phone,
                   onChanged: (value) {
                     setState(() {
                       phoneNumber = value;
@@ -606,11 +606,21 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                 ),
                 CupertinoDialogAction(
                   onPressed: () async {
-                    if (phoneNumber == null || phoneNumber!.isEmpty) {
+                    // Format phone number, filter all characters except 0-9 and +
+                    var formattedNumber = phoneNumber
+                        ?.replaceAll(' ', '')
+                        .replaceAll('-', '')
+                        .trim();
+                    // if formattedNumber doesn't start with +, add +1
+
+                    if (formattedNumber == null || formattedNumber.isEmpty) {
                       return;
                     }
-                    final formattedNumber =
-                        '+1${phoneNumber!.replaceAll(RegExp(r'[^0-9]'), '')}';
+
+                    if (!formattedNumber.startsWith('+')) {
+                      formattedNumber = '+1$formattedNumber';
+                    }
+
                     await FirebaseAuthService().firebaseAuth.verifyPhoneNumber(
                           phoneNumber: formattedNumber,
                           verificationCompleted:
@@ -681,7 +691,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                             completion?.call();
                           },
                         );
-                    Navigator.of(context).pop(phoneNumber);
+                    Navigator.of(context).pop(formattedNumber);
                   },
                   child: const Text(
                     'Sign In',
