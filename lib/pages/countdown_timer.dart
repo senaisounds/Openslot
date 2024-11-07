@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 class CountdownTimer extends StatefulWidget {
+  const CountdownTimer({super.key});
+
   @override
   _CountdownTimerState createState() => _CountdownTimerState();
 }

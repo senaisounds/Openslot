@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' as latlong2;
 import 'package:location_picker_flutter_map/location_picker_flutter_map.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
@@ -43,33 +43,37 @@ class EditEventPageState extends State<EditEventPage> {
   TextEditingController eventRules = TextEditingController();
   TextEditingController eventLocation = TextEditingController();
 
-  Future<void> _selectLocation(
-      BuildContext context, TextEditingController controller) async {
+  Future<void> _selectLocation(BuildContext context,
+      TextEditingController controller, LatLong? eventLocation) async {
     final location = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Theme(
           data: ThemeData.from(
             colorScheme: ColorScheme.dark(
                 primary: slottedOrange,
-                background: CupertinoColors.label.withOpacity(1.0)),
+                surface: CupertinoColors.label.withOpacity(1.0)),
           ),
-          child: LocationPage(onPicked: (pickedData) {
-            Navigator.of(context).pop(pickedData);
-          }),
+          child: LocationPage(
+              onPicked: (loc) {
+                Navigator.of(context).pop(loc);
+              },
+              eventLocation: eventLocation,
+          ),
         ),
       ),
     );
 
-    final picked = location as PickedData?;
+    final picked = location as Map<String, dynamic>?;
     if (picked != null) {
       setState(() {
-        controller.text = picked.address;
-        eventLocationData = picked;
+        controller.text = picked['address'];
+        eventLocationData =
+            LatLong(picked['latlng'].latitude, picked['latlng'].longitude);
       });
     }
   }
 
-  PickedData? eventLocationData;
+  LatLong? eventLocationData;
 
   final textController = BoardDateTimeTextController();
 
@@ -532,7 +536,8 @@ class EditEventPageState extends State<EditEventPage> {
                       setState(() {
                         FocusScope.of(context).unfocus();
                       });
-                      _selectLocation(context, eventLocation);
+                      _selectLocation(
+                          context, eventLocation, eventLocationData);
                     },
                     decoration: BoxDecoration(
                       border: Border.all(
@@ -586,9 +591,9 @@ class EditEventPageState extends State<EditEventPage> {
                             event.host = widget.user!.id;
                             event.hostName = widget.user!.username;
 
-                            final finalLatData = eventLocationData?.latLong ??
-                                const LatLong(0, 0);
-                            event.location = LatLng(
+                            final finalLatData =
+                                eventLocationData ?? const LatLong(0, 0);
+                            event.location = latlong2.LatLng(
                                 finalLatData.latitude, finalLatData.longitude);
                             event.address = eventLocation.text;
 

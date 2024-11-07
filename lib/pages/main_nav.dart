@@ -74,6 +74,10 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
 
   late final List<Widget> tabViews;
 
+  final TextEditingController phoneController = TextEditingController();
+
+  bool _hasCheckedUser = false;
+
   Future<String> reserveAction(
       dynamic paymentIntent, Event event, SlottedUser slottedUser) async {
     var response = await http.post(
@@ -360,8 +364,11 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _tabController.dispose();
+    phoneController.dispose();
     super.dispose();
   }
+
+  bool isDialogShowing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -370,22 +377,100 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       builder: (context, snapshot) {
         bool loggedIn = snapshot.data != null;
         if (snapshot.data?.uid != null) {
-          Permission.notification.request().then((status) {
-            if (status.isGranted) {
-              // Permission is granted
-              _firebaseMessaging.getAPNSToken().then((apnsToken) {
-                return _firebaseMessaging.getToken();
-              }).then((token) {
-                FirebaseFirestore.instance
-                    .doc('users/${snapshot.data!.uid}')
-                    .set(
-                  {
-                    'pushToken': token,
-                  },
-                  SetOptions(merge: true),
-                );
+          // Use a delayed future to run this code once after launch
+          String? currentUid = snapshot.data?.uid;  // Capture current UID
+          Future.delayed(const Duration(seconds: 2), () {
+            if (!mounted) return;  // Check if widget is still mounted
+            if (snapshot.data?.uid != currentUid) return; // Check if user changed
+            
+            // Track if we've already run this code
+            if (!_hasCheckedUser) {
+              _hasCheckedUser = true;
+              
+              FirebaseFirestore.instance
+                  .doc('users/${snapshot.data!.uid}')
+                  .get()
+                  .then((value) {
+                final slottedUser = SlottedUser.fromDocument(value);
+
+                if (slottedUser.username.isEmpty) {
+                  // Show username collection dialog
+                  if (!isDialogShowing) {
+                    isDialogShowing = true;
+                    showCupertinoDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) {
+                        final usernameController = TextEditingController();
+                        return CupertinoAlertDialog(
+                          title: const Text('Welcome to Slotted!'),
+                          content: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+                            child: Column(
+                              children: [
+                                const Text(
+                                    'Please choose a username to get started.'),
+                                const SizedBox(
+                                  height: 8,
+                                ),
+                                CupertinoTextField(
+                                  autofocus: true,
+                                  controller: usernameController,
+                                  placeholder: 'Username',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          actions: [
+                            CupertinoDialogAction(
+                              onPressed: () {
+                                if (usernameController.text.isNotEmpty) {
+                                  FirebaseFirestore.instance
+                                      .doc('users/${snapshot.data!.uid}')
+                                      .set({
+                                    'username': usernameController.text,
+                                    'joined': Timestamp.now(),
+                                    'isHost': true,
+                                  }, SetOptions(merge: true)).then((_) {
+                                    isDialogShowing = false;
+                                    Navigator.pop(context);
+                                  });
+                                }
+                              },
+                              child: const Text('Save'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                }
               });
-            } else {}
+
+              Permission.notification.request().then((status) {
+                if (status.isGranted) {
+                  // Permission is granted
+                  _firebaseMessaging.getAPNSToken().then((apnsToken) {
+                    // print("APNS TOKEN: $apnsToken");
+                    return _firebaseMessaging.getToken();
+                  }).then((token) {
+                    // print("MESSAGING TOKEN: $token");
+                    FirebaseFirestore.instance
+                        .doc('users/${snapshot.data!.uid}')
+                        .set(
+                      {
+                        'pushToken': token,
+                      },
+                      SetOptions(merge: true),
+                    );
+                  });
+                }
+              });
+            }
           });
         }
         return Stack(
@@ -557,6 +642,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         Navigator.of(context).pop();
       } else {
         // Present sign in modal to collect phone number
+        phoneController.clear();
         final result = await showCupertinoModalPopup(
           context: context,
           builder: (builder) {
@@ -586,10 +672,21 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   placeholder: 'Phone Number',
                   keyboardType: TextInputType.phone,
                   onChanged: (value) {
+                    // Format the display value
+                    final digits = value.replaceAll(RegExp(r'\D'), '');
+                    String formatted = '';
+                    for (int i = 0; i < digits.length && i < 10; i++) {
+                      if (i == 3 || i == 6) formatted += '-';
+                      formatted += digits[i];
+                    }
+
                     setState(() {
-                      phoneNumber = value;
+                      phoneNumber = value.replaceAll('-', '');
+                      phoneController.text = formatted;
                     });
                   },
+                  controller: phoneController,
+                  maxLength: 12,
                 ),
               ),
               actions: [

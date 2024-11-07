@@ -42,6 +42,9 @@ class _MyAppState extends State<MyApp> {
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _signInPhoneController = TextEditingController();
+
   Future<void> showNotification(int id, String? title, String? body) async {
     print(id);
     print(title);
@@ -58,6 +61,125 @@ class _MyAppState extends State<MyApp> {
       body, // Notification body
       platformChannelSpecifics,
     );
+  }
+
+  bool isProfileIncomplete(Map<String, dynamic> profileData) {
+    // Check for non-optional fields
+    return profileData['name'] == null ||
+        profileData['name'].isEmpty ||
+        profileData['email'] == null ||
+        profileData['email'].isEmpty;
+  }
+
+  void showProfileCompletionDialog(BuildContext context) {
+    _phoneController.addListener(() {
+      final text = _phoneController.text;
+      _phoneController.value = _phoneController.value.copyWith(
+        text: _formatPhoneNumber(text),
+        selection:
+            TextSelection.collapsed(offset: _formatPhoneNumber(text).length),
+      );
+    });
+
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissal
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Complete Your Profile'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const CupertinoTextField(
+                placeholder: 'Name',
+                // Add controller and logic to update name
+              ),
+              const SizedBox(height: 8),
+              const CupertinoTextField(
+                placeholder: 'Email',
+                // Add controller and logic to update email
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: _phoneController,
+                placeholder: 'Phone Number',
+                keyboardType: TextInputType.phone,
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('Submit'),
+              onPressed: () {
+                // Validate and update profile data
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showSignInDialog(BuildContext context) {
+    _signInPhoneController.addListener(() {
+      final text = _signInPhoneController.text;
+      _signInPhoneController.value = _signInPhoneController.value.copyWith(
+        text: _formatPhoneNumber(text),
+        selection: TextSelection.collapsed(offset: _formatPhoneNumber(text).length),
+      );
+    });
+
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissal
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Text('Sign In'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const CupertinoTextField(
+                placeholder: 'Email',
+                // Add controller and logic to update email
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: _signInPhoneController,
+                placeholder: 'Phone Number',
+                keyboardType: TextInputType.phone,
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('Sign In'),
+              onPressed: () {
+                // Validate and handle sign-in logic
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _formatPhoneNumber(String input) {
+    final digits = input.replaceAll(RegExp(r'\D'), '');
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i == 3 || i == 6) buffer.write('-');
+      buffer.write(digits[i]);
+    }
+    return buffer.toString();
+  }
+
+  void onUserSignIn(BuildContext context, Map<String, dynamic> profileData) {
+    if (isProfileIncomplete(profileData)) {
+      showProfileCompletionDialog(context);
+    }
+    // Continue with the rest of the sign-in logic
   }
 
   @override

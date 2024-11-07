@@ -1,11 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:slotted/common/colors.dart';
-import 'package:slotted/pages/profile.dart';
 
 class CodeVerificationPage extends StatefulWidget {
   final String verificationId;
@@ -36,6 +33,7 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
           children: [
             const SizedBox(height: 8.0),
             CupertinoTextField(
+              textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               style: const TextStyle(
                 color: CupertinoColors.label,
@@ -43,8 +41,26 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
               ),
               padding: const EdgeInsets.all(12),
               controller: _codeController,
-              placeholder: 'Verification Code',
+              placeholder: 'X-X-X-X-X-X',
               autofocus: true,
+              maxLength: 11, // 6 digits + 5 hyphens
+              onChanged: (value) {
+                // Remove any non-digit characters
+                final digits = value.replaceAll(RegExp(r'\D'), '');
+                
+                // Format with hyphens
+                String formatted = '';
+                for (int i = 0; i < digits.length && i < 6; i++) {
+                  if (i > 0) formatted += '-';
+                  formatted += digits[i];
+                }
+                
+                // Update text field
+                _codeController.value = TextEditingValue(
+                  text: formatted,
+                  selection: TextSelection.collapsed(offset: formatted.length),
+                );
+              },
               decoration: BoxDecoration(
                 color: CupertinoColors.secondarySystemBackground,
                 borderRadius: BorderRadius.circular(12),
@@ -65,7 +81,7 @@ class CodeVerificationPageState extends State<CodeVerificationPage> {
                       setState(() {
                         _loading = true;
                       });
-                      final code = _codeController.text.trim();
+                      final code = _codeController.text.trim().replaceAll('-', '');
                       await _verifyCode(code, context);
                     },
               child: _loading

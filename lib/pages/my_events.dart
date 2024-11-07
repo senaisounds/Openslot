@@ -41,6 +41,8 @@ class MyEventsPage extends StatefulWidget {
 
 class MyEventsPageState extends State<MyEventsPage> {
   int eventMode = 0;
+  String headerTitle = 'UPCOMING';
+  final ScrollController eventsScrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +165,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              if (eventMode == 1 && slottedUser.isHost) ...[
+                              if (slottedUser.isHost) ...[
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 30,
@@ -218,32 +220,97 @@ class MyEventsPageState extends State<MyEventsPage> {
                                             arrayContains: widget.user!.uid)
                                         .snapshots(),
                                 builder: (context, snapshot) {
+                                  if (!snapshot.hasData) {
+                                    return const Center(
+                                      child: CupertinoActivityIndicator(
+                                        color: slottedOrange,
+                                        radius: 16,
+                                      ),
+                                    );
+                                  }
                                   if (snapshot.hasData) {
                                     final events =
                                         _convertQuerySnapshotToEvents(
                                             snapshot.data!)
                                           ..sort((event_0, event_1) {
-                                            if (event_0.ended !=
-                                                event_1.ended) {
-                                              return event_1.ended ? -1 : 1;
-                                            } else if (event_0.date ==
-                                                event_1.date) {
-                                              return event_1.name
-                                                  .compareTo(event_0.name);
-                                            }
-                                            return event_1.date
-                                                .compareTo(event_0.date);
+                                            return event_0.date
+                                                .compareTo(event_1.date);
                                           });
+                                    final now = DateTime.now();
+                                    final todayEvents = events.where((event) {
+                                      return (event.date.day == now.day &&
+                                              event.date.month == now.month &&
+                                              event.date.year == now.year &&
+                                              !event.ended) ||
+                                          event.live;
+                                    }).toList();
+
+                                    final tomorrow =
+                                        now.add(const Duration(days: 1));
+                                    final tomorrowEvents =
+                                        events.where((event) {
+                                      return event.date.day == tomorrow.day &&
+                                          event.date.month == tomorrow.month &&
+                                          event.date.year == tomorrow.year &&
+                                          !event.ended;
+                                    }).toList();
+
+                                    final upcomingEvents =
+                                        events.where((event) {
+                                      return !todayEvents.contains(event) &&
+                                          !tomorrowEvents.contains(event) &&
+                                          !event.ended;
+                                    }).toList();
+
+                                    final endedEvents = events
+                                        .where((event) => event.ended)
+                                        .toList();
+
                                     if (events.isEmpty) {
-                                      return const Text('No events found');
+                                      return const Text('No events found',
+                                          style: TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w700,
+                                              color:
+                                                  CupertinoColors.systemGrey),
+                                          textAlign: TextAlign.center);
                                     }
-                                    return ListView.builder(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      itemCount: events.length,
-                                      itemBuilder: (context, index) =>
-                                          _buildListItem(context, events[index],
-                                              slottedUser),
+                                    return ListView(
+                                      controller: eventsScrollController,
+                                      children: [
+                                        if (todayEvents.isNotEmpty) ...[
+                                          _buildHeader('Today'),
+                                          ...todayEvents.map((event) =>
+                                              _buildListItem(
+                                                  context, event, slottedUser)),
+                                        ],
+                                        if (tomorrowEvents.isNotEmpty) ...[
+                                          _buildHeader('Tomorrow'),
+                                          ...tomorrowEvents.map((event) =>
+                                              _buildListItem(
+                                                  context, event, slottedUser)),
+                                        ],
+                                        if (upcomingEvents.isNotEmpty) ...[
+                                          _buildHeader('Upcoming'),
+                                          ...upcomingEvents.map((event) =>
+                                              _buildListItem(
+                                                  context, event, slottedUser)),
+                                        ],
+                                        if (endedEvents.isNotEmpty) ...[
+                                          _buildHeader('Ended'),
+                                          ...endedEvents.map((event) =>
+                                              _buildListItem(
+                                                  context, event, slottedUser)),
+                                        ],
+                                      ],
                                     );
+                                    // return ListView.builder(
+                                    //   padding: const EdgeInsets.only(top: 4),
+                                    //   itemCount: events.length,
+                                    //   itemBuilder: (context, index) =>
+                                    //       _buildListItem(context, events[index],
+                                    //           slottedUser),
+                                    // );
                                   } else if (snapshot.hasError) {
                                     return Text('Error: ${snapshot.error}');
                                   } else {
@@ -264,6 +331,20 @@ class MyEventsPageState extends State<MyEventsPage> {
     );
   }
 
+  Widget _buildHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: slottedOrange,
+          fontSize: 24,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   Widget _buildListItem(
       BuildContext context, Event event, SlottedUser? slottedUser) {
     final dateComponents = _convertDateTimeToStringComponents(event.date);
@@ -273,20 +354,26 @@ class MyEventsPageState extends State<MyEventsPage> {
       padding: const EdgeInsets.all(0),
       onPressed: () => Navigator.of(context).push(
         CupertinoPageRoute(
-          builder: (context) =>
-              event.live || event.ended || event.host == slottedUser?.id
-                  ? LivePage(
-                      event: event,
-                      debug: widget.debug,
-                      user: widget.user,
-                      authAction: widget.authAction,
-                      reserveAction: widget.reserveAction,
-                    )
-                  : EventDetailsPage(
-                      initialEvent: event,
-                      debug: widget.debug,
-                      authAction: widget.authAction,
-                    ),
+          builder: (context) => LivePage(
+            event: event,
+            debug: widget.debug,
+            user: widget.user,
+            authAction: widget.authAction,
+            reserveAction: widget.reserveAction,
+          ),
+          // event.live || event.ended || event.host != slottedUser?.id
+          //     ? LivePage(
+          //         event: event,
+          //         debug: widget.debug,
+          //         user: widget.user,
+          //         authAction: widget.authAction,
+          //         reserveAction: widget.reserveAction,
+          //       )
+          //     : EventDetailsPage(
+          //         initialEvent: event,
+          //         debug: widget.debug,
+          //         authAction: widget.authAction,
+          //       ),
         ),
       ),
       // color: CupertinoColors.systemBackground,
@@ -298,26 +385,48 @@ class MyEventsPageState extends State<MyEventsPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            stops: const [0.0, 0.8, 1.0],
-            colors: [
-              slottedOrange.withOpacity(0.9),
-              slottedOrange
-                  .withRed(slottedOrange.red + 1)
-                  .withGreen(slottedOrange.green + 1)
-                  .withBlue(slottedOrange.blue + 1)
-                  .withOpacity(0.7),
-              slottedOrange.withOpacity(0.9),
-              // CupertinoColors.black.withOpacity(0.5),
-              // slottedOrange.withOpacity(0.4),
-              // CupertinoColors.white.withOpacity(0.8),
-              // slottedOrange.withOpacity(0.8),
-            ],
+            stops: const [0.0, 0.4, 0.8, 1.0],
+            colors: event.ended
+                ? [
+                    CupertinoColors.systemGrey
+                        .withRed(CupertinoColors.systemGrey.red + 1)
+                        .withGreen(CupertinoColors.systemGrey.green + 1)
+                        .withBlue(CupertinoColors.systemGrey.blue + 1)
+                        .withOpacity(0.9),
+                    CupertinoColors.systemGrey.withOpacity(0.7),
+                    CupertinoColors.systemGrey
+                        .withRed(CupertinoColors.systemGrey.red + 1)
+                        .withGreen(CupertinoColors.systemGrey.green + 1)
+                        .withBlue(CupertinoColors.systemGrey.blue + 1)
+                        .withOpacity(0.9),
+                    CupertinoColors.systemGrey.withOpacity(0.8),
+                  ]
+                : [
+                    slottedOrange
+                        .withRed(slottedOrange.red + 1)
+                        .withGreen(slottedOrange.green + 1)
+                        .withBlue(slottedOrange.blue + 1)
+                        .withOpacity(0.9),
+                    slottedOrange.withOpacity(0.7),
+                    slottedOrange
+                        .withRed(slottedOrange.red + 1)
+                        .withGreen(slottedOrange.green + 1)
+                        .withBlue(slottedOrange.blue + 1)
+                        .withOpacity(0.9),
+                    slottedOrange.withOpacity(0.8),
+                    // CupertinoColors.black.withOpacity(0.5),
+                    // slottedOrange.withOpacity(0.4),
+                    // CupertinoColors.white.withOpacity(0.8),
+                    // slottedOrange.withOpacity(0.8),
+                  ],
           ),
           borderRadius: BorderRadius.circular(12),
           // color: slottedOrange.withOpacity(1),
           boxShadow: [
             BoxShadow(
-              color: slottedOrange.withOpacity(0.4),
+              color: event.ended
+                  ? CupertinoColors.systemGrey.withOpacity(0.4)
+                  : slottedOrange.withOpacity(0.4),
               spreadRadius: 3,
               blurRadius: 9,
             ),
@@ -331,25 +440,27 @@ class MyEventsPageState extends State<MyEventsPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.name, // Display title
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 21,
-                          color: CupertinoColors.label),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      event.hostName, // Display hostname
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
-                          color: CupertinoColors.label),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.name, // Display title
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 21,
+                            color: CupertinoColors.label),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Host: ${event.hostName}', // Display hostname
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                            color: CupertinoColors.label),
+                      ),
+                    ],
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(0, 0, 18, 0),
@@ -417,39 +528,40 @@ class MyEventsPageState extends State<MyEventsPage> {
                                   .ref('profileImgs')
                                   .child('$attendee.png')
                                   .getDownloadURL(),
+                              initialData: placeholderImage,
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                        ConnectionState.done &&
-                                    snapshot.hasData) {
-                                  return Transform.translate(
-                                    offset: Offset(index * -20.0,
-                                        0), // Adjust the overlap by changing this value
-                                    child: CupertinoButton(
-                                      onPressed: () => {},
-                                      padding: EdgeInsets.zero,
-                                      child: Container(
-                                        width: 40,
-                                        height: 40,
-                                        clipBehavior: Clip.hardEdge,
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(32),
-                                          border: Border.all(
-                                              color: Colors.black,
-                                              width: 3,
-                                              strokeAlign: BorderSide
-                                                  .strokeAlignOutside),
-                                        ),
-                                        child: CachedNetworkImage(
-                                          fit: BoxFit.fill,
-                                          imageUrl: snapshot.data.toString(),
-                                        ),
+                                return Transform.translate(
+                                  offset: Offset(index * -20.0,
+                                      0), // Adjust the overlap by changing this value
+                                  child: CupertinoButton(
+                                    onPressed: () => {},
+                                    padding: EdgeInsets.zero,
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      clipBehavior: Clip.hardEdge,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(32),
+                                        border: Border.all(
+                                            color: snapshot.connectionState ==
+                                                    ConnectionState.done
+                                                ? Colors.black
+                                                : Colors.transparent,
+                                            width: 1.5,
+                                            strokeAlign:
+                                                BorderSide.strokeAlignOutside),
+                                      ),
+                                      child: CachedNetworkImage(
+                                        fit: BoxFit.fill,
+                                        imageUrl: (snapshot.connectionState ==
+                                                    ConnectionState.done &&
+                                                snapshot.hasData)
+                                            ? snapshot.data.toString()
+                                            : placeholderImage,
                                       ),
                                     ),
-                                  );
-                                } else {
-                                  return const SizedBox(width: 0);
-                                }
+                                  ),
+                                );
                               },
                             ),
                           ),
@@ -544,38 +656,37 @@ class MyEventsPageState extends State<MyEventsPage> {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: event.live
-                                  ? CupertinoColors.systemGreen
-                                      .withBlue(
-                                          CupertinoColors.systemGreen.blue - 40)
-                                      .withRed(
-                                          CupertinoColors.systemGreen.red - 40)
-                                      .withGreen(
-                                          CupertinoColors.systemGreen.green -
+                              color: event.ended
+                                  ? CupertinoColors.black
+                                  : event.live
+                                      ? CupertinoColors.systemGreen
+                                          .withBlue(CupertinoColors.systemGreen.blue -
                                               40)
-                                  : event.host == slottedUser?.id
-                                      ? slottedOrange
-                                          .withBlue(slottedOrange.blue - 40)
-                                          .withRed(slottedOrange.red - 40)
-                                          .withGreen(slottedOrange.green - 40)
-                                      : slottedUser == null
-                                          ? CupertinoColors.label
-                                          : event.attendees
-                                                  .contains(slottedUser.id)
+                                          .withRed(CupertinoColors.systemGreen.red -
+                                              40)
+                                          .withGreen(CupertinoColors.systemGreen.green -
+                                              40)
+                                      : event.host == slottedUser?.id
+                                          ? slottedOrange
+                                              .withBlue(slottedOrange.blue - 40)
+                                              .withRed(slottedOrange.red - 40)
+                                              .withGreen(
+                                                  slottedOrange.green - 40)
+                                          : slottedUser == null
                                               ? CupertinoColors.label
-                                              : event.waitlist
+                                              : event.attendees
                                                       .contains(slottedUser.id)
                                                   ? CupertinoColors.label
-                                                  : event.attendees.length <
-                                                          event.slots
-                                                      ? slottedOrange
-                                                          .withBlue(
-                                                              slottedOrange
-                                                                      .blue -
-                                                                  40)
-                                                          .withRed(slottedOrange.red - 40)
-                                                          .withGreen(slottedOrange.green - 40)
-                                                      : slottedOrange,
+                                                  : event.waitlist.contains(
+                                                          slottedUser.id)
+                                                      ? CupertinoColors.label
+                                                      : event.attendees.length <
+                                                              event.slots
+                                                          ? slottedOrange
+                                                              .withBlue(slottedOrange.blue - 40)
+                                                              .withRed(slottedOrange.red - 40)
+                                                              .withGreen(slottedOrange.green - 40)
+                                                          : slottedOrange,
                               spreadRadius: 1,
                               blurRadius: 1,
                             ),
@@ -682,9 +793,9 @@ class MyEventsPageState extends State<MyEventsPage> {
                                                                         .length <
                                                                     event.slots
                                                                 ? CupertinoColors
-                                                                    .label
+                                                                    .white
                                                                 : CupertinoColors
-                                                                    .label,
+                                                                    .white,
                                                 fontWeight: FontWeight.w700,
                                                 fontSize: event.attendees
                                                         .contains(
@@ -730,6 +841,15 @@ class MyEventsPageState extends State<MyEventsPage> {
             ? Dismissible(
                 key: Key(event.id),
                 direction: DismissDirection.endToStart,
+                background: Container(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 30, 0),
+                  alignment: Alignment.centerRight,
+                  // color: CupertinoColors.systemRed,
+                  child: const Icon(
+                    CupertinoIcons.trash,
+                    color: CupertinoColors.systemRed,
+                  ),
+                ),
                 confirmDismiss: (direction) {
                   return showCupertinoDialog(
                     context: context,
