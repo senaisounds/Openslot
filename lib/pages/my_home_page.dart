@@ -16,6 +16,7 @@ import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/pages/event_details.dart';
 import 'package:slotted/pages/live.dart';
+import 'package:slotted/pages/profile.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage(
@@ -384,6 +385,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         event.name, // Display title
                         style: const TextStyle(
                             fontWeight: FontWeight.w700,
@@ -462,44 +465,111 @@ class _MyHomePageState extends State<MyHomePage> {
                         .map(
                           (index, attendee) => MapEntry(
                             index,
-                            FutureBuilder<String>(
-                              future: FirebaseStorage.instance
-                                  .ref('profileImgs')
-                                  .child('$attendee.png')
-                                  .getDownloadURL(),
-                              initialData: placeholderImage,
-                              builder: (context, snapshot) {
-                                return Transform.translate(
-                                  offset: Offset(index * -20.0,
-                                      0), // Adjust the overlap by changing this value
-                                  child: CupertinoButton(
-                                    onPressed: () => {},
-                                    padding: EdgeInsets.zero,
-                                    child: Container(
-                                      width: 40,
-                                      height: 40,
-                                      clipBehavior: Clip.hardEdge,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(32),
-                                        border: Border.all(
-                                            color: snapshot.connectionState ==
-                                                    ConnectionState.done
-                                                ? Colors.black
-                                                : Colors.transparent,
-                                            width: 1.5,
-                                            strokeAlign:
-                                                BorderSide.strokeAlignOutside),
+                            FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance
+                                  .doc('users/$attendee')
+                                  .get(),
+                              initialData: null,
+                              builder: (context, docSnapshot) {
+                                return FutureBuilder<String>(
+                                  future: FirebaseStorage.instance
+                                      .ref('profileImgs')
+                                      .child('$attendee.png')
+                                      .getDownloadURL(),
+                                  initialData: placeholderImage,
+                                  builder: (context, snapshot) {
+                                    return Transform.translate(
+                                      offset: Offset(index * -20.0,
+                                          0), // Adjust the overlap by changing this value
+                                      child: CupertinoButton(
+                                        onPressed: (docSnapshot.data?.exists ??
+                                                    false) !=
+                                                true
+                                            ? () => showCupertinoDialog(
+                                                  context: context,
+                                                  builder: (context) =>
+                                                      CupertinoAlertDialog(
+                                                    title: const Text('🧍'),
+                                                    content: Text(
+                                                        '$attendee does not have an account'),
+                                                    actions: [
+                                                      CupertinoDialogAction(
+                                                        child: const Text(
+                                                            'Dismiss'),
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop(),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                            : () => Navigator.of(context).push(
+                                                  CupertinoPageRoute(
+                                                    builder: (context) =>
+                                                        CupertinoPageScaffold(
+                                                      resizeToAvoidBottomInset:
+                                                          false,
+                                                      backgroundColor:
+                                                          CupertinoColors
+                                                              .systemBackground,
+                                                      navigationBar:
+                                                          const CupertinoNavigationBar(
+                                                        middle: Text(
+                                                            "Performer's Profile"),
+                                                        backgroundColor:
+                                                            CupertinoColors
+                                                                .secondarySystemBackground,
+                                                      ),
+                                                      child: ProfilePage(
+                                                        debug: widget.debug,
+                                                        user: widget.user,
+                                                        authAction:
+                                                            (loggedIn) => widget
+                                                                .authAction(
+                                                                    context,
+                                                                    loggedIn,
+                                                                    () {}),
+                                                        viewUser:
+                                                            docSnapshot.data ==
+                                                                    null
+                                                                ? null
+                                                                : attendee,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                        padding: EdgeInsets.zero,
+                                        child: Container(
+                                          width: 40,
+                                          height: 40,
+                                          clipBehavior: Clip.hardEdge,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(32),
+                                            border: Border.all(
+                                                color:
+                                                    snapshot.connectionState ==
+                                                            ConnectionState.done
+                                                        ? Colors.black
+                                                        : Colors.transparent,
+                                                width: 1.5,
+                                                strokeAlign: BorderSide
+                                                    .strokeAlignOutside),
+                                          ),
+                                          child: CachedNetworkImage(
+                                            fit: BoxFit.fill,
+                                            imageUrl: (snapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done &&
+                                                    snapshot.hasData)
+                                                ? snapshot.data.toString()
+                                                : placeholderImage,
+                                          ),
+                                        ),
                                       ),
-                                      child: CachedNetworkImage(
-                                        fit: BoxFit.fill,
-                                        imageUrl: (snapshot.connectionState ==
-                                                    ConnectionState.done &&
-                                                snapshot.hasData)
-                                            ? snapshot.data.toString()
-                                            : placeholderImage,
-                                      ),
-                                    ),
-                                  ),
+                                    );
+                                  },
                                 );
                               },
                             ),

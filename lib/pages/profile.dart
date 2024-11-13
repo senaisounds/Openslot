@@ -17,11 +17,14 @@ class ProfilePage extends StatefulWidget {
       {super.key,
       required this.user,
       required this.authAction,
+      this.viewUser,
       this.debug = false});
 
   final User? user;
 
   final Future<void> Function(bool)? authAction;
+
+  final String? viewUser;
 
   final bool debug;
 
@@ -69,7 +72,7 @@ class ProfilePageState extends State<ProfilePage> {
       backgroundColor: CupertinoColors.systemBackground,
       child: KeyboardActions(
         config: _buildConfig(context),
-        child: !loggedIn
+        child: !loggedIn && widget.viewUser == null
             ? Center(
                 child: CupertinoButton(
                   padding: EdgeInsets.zero,
@@ -79,7 +82,7 @@ class ProfilePageState extends State<ProfilePage> {
               )
             : StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance
-                    .doc('users/${widget.user!.uid}')
+                    .doc('users/${widget.viewUser ?? widget.user!.uid}')
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -123,100 +126,108 @@ class ProfilePageState extends State<ProfilePage> {
                       // Load profile image from firebase storage
                       CupertinoButton(
                         padding: EdgeInsets.zero,
-                        onPressed: () {
-                          if (slottedUser.photoUrl.isNotEmpty) {
-                            showCupertinoModalPopup(
-                              context: context,
-                              builder: (context) => CupertinoActionSheet(
-                                actions: [
-                                  CupertinoActionSheetAction(
-                                    onPressed: () async {
-                                      Navigator.pop(context);
-                                      final ImagePicker picker = ImagePicker();
-                                      final XFile? image =
-                                          await picker.pickImage(
-                                        source: ImageSource.gallery,
-                                        maxWidth: 1000,
-                                        maxHeight: 1000,
-                                      );
-                                      if (image != null) {
-                                        setState(() {
-                                          isLoading = true;
-                                        });
-                                        final storageRef = FirebaseStorage
-                                            .instance
-                                            .ref()
-                                            .child(
-                                                'profileImgs/${widget.user!.uid}.png');
-                                        await storageRef
-                                            .putFile(File(image.path));
-                                        final url =
-                                            await storageRef.getDownloadURL();
-                                        await FirebaseFirestore.instance
-                                            .doc('users/${widget.user!.uid}')
-                                            .update({'photoUrl': url});
-                                        setState(() {
-                                          isLoading = false;
-                                        });
-                                      }
-                                    },
-                                    child: const Text('Upload New Photo'),
-                                  ),
-                                  CupertinoActionSheetAction(
-                                    isDestructiveAction: true,
-                                    onPressed: () async {
-                                      Navigator.pop(context);
+                        onPressed: widget.viewUser != null
+                            ? null
+                            : () {
+                                if (slottedUser.photoUrl.isNotEmpty) {
+                                  showCupertinoModalPopup(
+                                    context: context,
+                                    builder: (context) => CupertinoActionSheet(
+                                      actions: [
+                                        CupertinoActionSheetAction(
+                                          onPressed: () async {
+                                            Navigator.pop(context);
+                                            final ImagePicker picker =
+                                                ImagePicker();
+                                            final XFile? image =
+                                                await picker.pickImage(
+                                              source: ImageSource.gallery,
+                                              maxWidth: 1000,
+                                              maxHeight: 1000,
+                                            );
+                                            if (image != null) {
+                                              setState(() {
+                                                isLoading = true;
+                                              });
+                                              final storageRef = FirebaseStorage
+                                                  .instance
+                                                  .ref()
+                                                  .child(
+                                                      'profileImgs/${widget.user!.uid}.png');
+                                              await storageRef
+                                                  .putFile(File(image.path));
+                                              final url = await storageRef
+                                                  .getDownloadURL();
+                                              await FirebaseFirestore.instance
+                                                  .doc(
+                                                      'users/${widget.user!.uid}')
+                                                  .update({'photoUrl': url});
+                                              setState(() {
+                                                isLoading = false;
+                                              });
+                                            }
+                                          },
+                                          child: const Text('Upload New Photo'),
+                                        ),
+                                        CupertinoActionSheetAction(
+                                          isDestructiveAction: true,
+                                          onPressed: () async {
+                                            Navigator.pop(context);
+                                            setState(() {
+                                              isLoading = true;
+                                            });
+                                            final storageRef = FirebaseStorage
+                                                .instance
+                                                .ref()
+                                                .child(
+                                                    'profileImgs/${widget.user!.uid}.png');
+                                            await storageRef.delete();
+                                            await FirebaseFirestore.instance
+                                                .doc(
+                                                    'users/${widget.user!.uid}')
+                                                .update({'photoUrl': ''});
+                                            setState(() {
+                                              isLoading = false;
+                                            });
+                                          },
+                                          child: const Text('Delete Photo'),
+                                        ),
+                                      ],
+                                      cancelButton: CupertinoActionSheetAction(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cancel'),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ImagePicker()
+                                      .pickImage(
+                                    source: ImageSource.gallery,
+                                    maxWidth: 1000,
+                                    maxHeight: 1000,
+                                  )
+                                      .then((image) async {
+                                    if (image != null) {
                                       setState(() {
                                         isLoading = true;
                                       });
                                       final storageRef =
                                           FirebaseStorage.instance.ref().child(
                                               'profileImgs/${widget.user!.uid}.png');
-                                      await storageRef.delete();
+                                      await storageRef
+                                          .putFile(File(image.path));
+                                      final url =
+                                          await storageRef.getDownloadURL();
                                       await FirebaseFirestore.instance
                                           .doc('users/${widget.user!.uid}')
-                                          .update({'photoUrl': ''});
+                                          .update({'photoUrl': url});
                                       setState(() {
                                         isLoading = false;
                                       });
-                                    },
-                                    child: const Text('Delete Photo'),
-                                  ),
-                                ],
-                                cancelButton: CupertinoActionSheetAction(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Cancel'),
-                                ),
-                              ),
-                            );
-                          } else {
-                            ImagePicker()
-                                .pickImage(
-                              source: ImageSource.gallery,
-                              maxWidth: 1000,
-                              maxHeight: 1000,
-                            )
-                                .then((image) async {
-                              if (image != null) {
-                                setState(() {
-                                  isLoading = true;
-                                });
-                                final storageRef = FirebaseStorage.instance
-                                    .ref()
-                                    .child(
-                                        'profileImgs/${widget.user!.uid}.png');
-                                await storageRef.putFile(File(image.path));
-                                final url = await storageRef.getDownloadURL();
-                                await FirebaseFirestore.instance
-                                    .doc('users/${widget.user!.uid}')
-                                    .update({'photoUrl': url});
-                                setState(() {
-                                  isLoading = false;
-                                });
-                              }
-                            });
-                          }
-                        },
+                                    }
+                                  });
+                                }
+                              },
                         child: Center(
                           child: Stack(
                             alignment: Alignment.center,
@@ -300,6 +311,7 @@ class ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 32),
                       CupertinoTextField(
+                        enabled: widget.viewUser == null,
                         onChanged: (value) {
                           if (_bioDebounce?.isActive ?? false) {
                             _bioDebounce?.cancel();
@@ -374,26 +386,71 @@ class ProfilePageState extends State<ProfilePage> {
                                     ],
                                   ),
                                 ),
-                                Row(
-                                  children: [
-                                    CupertinoButton(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8),
-                                      onPressed: () {
-                                        showCupertinoDialog(
-                                          context: context,
-                                          builder: (context) {
-                                            final controller =
-                                                TextEditingController(
-                                                    text: slottedUser.twitter);
-                                            return CupertinoAlertDialog(
-                                              title: const Text('Edit Twitter'),
-                                              content: CupertinoTextField(
-                                                controller: controller,
-                                                placeholder: '@username',
-                                                prefix: const Text('@'),
-                                                autofocus: true,
-                                              ),
+                                if (widget.viewUser == null)
+                                  Row(
+                                    children: [
+                                      CupertinoButton(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8),
+                                        onPressed: () {
+                                          showCupertinoDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              final controller =
+                                                  TextEditingController(
+                                                      text:
+                                                          slottedUser.twitter);
+                                              return CupertinoAlertDialog(
+                                                title:
+                                                    const Text('Edit Twitter'),
+                                                content: CupertinoTextField(
+                                                  controller: controller,
+                                                  placeholder: '@username',
+                                                  prefix: const Text('@'),
+                                                  autofocus: true,
+                                                ),
+                                                actions: [
+                                                  CupertinoDialogAction(
+                                                    child: const Text('Cancel'),
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                  ),
+                                                  CupertinoDialogAction(
+                                                    child: const Text('Save'),
+                                                    onPressed: () {
+                                                      FirebaseFirestore.instance
+                                                          .doc(
+                                                              'users/${widget.user!.uid}')
+                                                          .update({
+                                                        'twitter':
+                                                            controller.text,
+                                                      });
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                        child: const Icon(
+                                          CupertinoIcons.pencil,
+                                          color:
+                                              CupertinoColors.systemBackground,
+                                        ),
+                                      ),
+                                      CupertinoButton(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8),
+                                        onPressed: () {
+                                          showCupertinoDialog(
+                                            context: context,
+                                            builder: (context) =>
+                                                CupertinoAlertDialog(
+                                              title:
+                                                  const Text('Remove Twitter'),
+                                              content: const Text(
+                                                  'Are you sure you want to remove your Twitter account?'),
                                               actions: [
                                                 CupertinoDialogAction(
                                                   child: const Text('Cancel'),
@@ -401,39 +458,51 @@ class ProfilePageState extends State<ProfilePage> {
                                                       Navigator.pop(context),
                                                 ),
                                                 CupertinoDialogAction(
-                                                  child: const Text('Save'),
+                                                  isDestructiveAction: true,
+                                                  child: const Text('Remove'),
                                                   onPressed: () {
                                                     FirebaseFirestore.instance
                                                         .doc(
                                                             'users/${widget.user!.uid}')
                                                         .update({
-                                                      'twitter':
-                                                          controller.text,
+                                                      'twitter': '',
                                                     });
                                                     Navigator.pop(context);
                                                   },
                                                 ),
                                               ],
-                                            );
-                                          },
-                                        );
-                                      },
-                                      child: const Icon(
-                                        CupertinoIcons.pencil,
-                                        color: CupertinoColors.systemBackground,
+                                            ),
+                                          );
+                                        },
+                                        child: const Icon(
+                                          CupertinoIcons.xmark,
+                                          color:
+                                              CupertinoColors.systemBackground,
+                                        ),
                                       ),
-                                    ),
-                                    CupertinoButton(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8),
-                                      onPressed: () {
-                                        showCupertinoDialog(
-                                          context: context,
-                                          builder: (context) =>
-                                              CupertinoAlertDialog(
-                                            title: const Text('Remove Twitter'),
-                                            content: const Text(
-                                                'Are you sure you want to remove your Twitter account?'),
+                                    ],
+                                  ),
+                              ],
+                            )
+                          else
+                            widget.viewUser != null
+                                ? const SizedBox()
+                                : CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () {
+                                      showCupertinoDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          final controller =
+                                              TextEditingController();
+                                          return CupertinoAlertDialog(
+                                            title: const Text('Add Twitter'),
+                                            content: CupertinoTextField(
+                                              controller: controller,
+                                              placeholder: '@username',
+                                              prefix: const Text('@'),
+                                              autofocus: true,
+                                            ),
                                             actions: [
                                               CupertinoDialogAction(
                                                 child: const Text('Cancel'),
@@ -441,90 +510,44 @@ class ProfilePageState extends State<ProfilePage> {
                                                     Navigator.pop(context),
                                               ),
                                               CupertinoDialogAction(
-                                                isDestructiveAction: true,
-                                                child: const Text('Remove'),
+                                                child: const Text('Save'),
                                                 onPressed: () {
                                                   FirebaseFirestore.instance
                                                       .doc(
                                                           'users/${widget.user!.uid}')
                                                       .update({
-                                                    'twitter': '',
+                                                    'twitter': controller.text,
                                                   });
                                                   Navigator.pop(context);
                                                 },
                                               ),
                                             ],
-                                          ),
-                                        );
-                                      },
-                                      child: const Icon(
-                                        CupertinoIcons.xmark,
-                                        color: CupertinoColors.systemBackground,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            )
-                          else
-                            CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: () {
-                                showCupertinoDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    final controller = TextEditingController();
-                                    return CupertinoAlertDialog(
-                                      title: const Text('Add Twitter'),
-                                      content: CupertinoTextField(
-                                        controller: controller,
-                                        placeholder: '@username',
-                                        prefix: const Text('@'),
-                                        autofocus: true,
-                                      ),
-                                      actions: [
-                                        CupertinoDialogAction(
-                                          child: const Text('Cancel'),
-                                          onPressed: () =>
-                                              Navigator.pop(context),
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Image.asset(
+                                          'lib/assets/images/twitter-white.png',
+                                          width: 48,
+                                          height: 48,
                                         ),
-                                        CupertinoDialogAction(
-                                          child: const Text('Save'),
-                                          onPressed: () {
-                                            FirebaseFirestore.instance
-                                                .doc(
-                                                    'users/${widget.user!.uid}')
-                                                .update({
-                                              'twitter': controller.text,
-                                            });
-                                            Navigator.pop(context);
-                                          },
+                                        const SizedBox(width: 16),
+                                        const Text(
+                                          'Add Twitter',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: CupertinoColors
+                                                .systemBackground,
+                                          ),
                                         ),
                                       ],
-                                    );
-                                  },
-                                );
-                              },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Image.asset(
-                                    'lib/assets/images/twitter-white.png',
-                                    width: 48,
-                                    height: 48,
-                                  ),
-                                  const SizedBox(width: 16),
-                                  const Text(
-                                    'Add Twitter',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: CupertinoColors.systemBackground,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
                           const SizedBox(height: 24),
                           if (slottedUser.instagram != '')
                             Row(
@@ -564,28 +587,71 @@ class ProfilePageState extends State<ProfilePage> {
                                     ],
                                   ),
                                 ),
-                                Row(
-                                  children: [
-                                    CupertinoButton(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8),
-                                      onPressed: () {
-                                        showCupertinoDialog(
-                                          context: context,
-                                          builder: (context) {
-                                            final controller =
-                                                TextEditingController(
-                                                    text:
-                                                        slottedUser.instagram);
-                                            return CupertinoAlertDialog(
-                                              title:
-                                                  const Text('Edit Instagram'),
-                                              content: CupertinoTextField(
-                                                controller: controller,
-                                                placeholder: '@username',
-                                                prefix: const Text('@'),
-                                                autofocus: true,
-                                              ),
+                                if (widget.viewUser == null)
+                                  Row(
+                                    children: [
+                                      CupertinoButton(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8),
+                                        onPressed: () {
+                                          showCupertinoDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              final controller =
+                                                  TextEditingController(
+                                                      text: slottedUser
+                                                          .instagram);
+                                              return CupertinoAlertDialog(
+                                                title: const Text(
+                                                    'Edit Instagram'),
+                                                content: CupertinoTextField(
+                                                  controller: controller,
+                                                  placeholder: '@username',
+                                                  prefix: const Text('@'),
+                                                  autofocus: true,
+                                                ),
+                                                actions: [
+                                                  CupertinoDialogAction(
+                                                    child: const Text('Cancel'),
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                  ),
+                                                  CupertinoDialogAction(
+                                                    child: const Text('Save'),
+                                                    onPressed: () {
+                                                      FirebaseFirestore.instance
+                                                          .doc(
+                                                              'users/${widget.user!.uid}')
+                                                          .update({
+                                                        'instagram':
+                                                            controller.text,
+                                                      });
+                                                      Navigator.pop(context);
+                                                    },
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                        child: const Icon(
+                                          CupertinoIcons.pencil,
+                                          color:
+                                              CupertinoColors.systemBackground,
+                                        ),
+                                      ),
+                                      CupertinoButton(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8),
+                                        onPressed: () {
+                                          showCupertinoDialog(
+                                            context: context,
+                                            builder: (context) =>
+                                                CupertinoAlertDialog(
+                                              title: const Text(
+                                                  'Remove Instagram'),
+                                              content: const Text(
+                                                  'Are you sure you want to remove your Instagram account?'),
                                               actions: [
                                                 CupertinoDialogAction(
                                                   child: const Text('Cancel'),
@@ -593,40 +659,51 @@ class ProfilePageState extends State<ProfilePage> {
                                                       Navigator.pop(context),
                                                 ),
                                                 CupertinoDialogAction(
-                                                  child: const Text('Save'),
+                                                  isDestructiveAction: true,
+                                                  child: const Text('Remove'),
                                                   onPressed: () {
                                                     FirebaseFirestore.instance
                                                         .doc(
                                                             'users/${widget.user!.uid}')
                                                         .update({
-                                                      'instagram':
-                                                          controller.text,
+                                                      'instagram': '',
                                                     });
                                                     Navigator.pop(context);
                                                   },
                                                 ),
                                               ],
-                                            );
-                                          },
-                                        );
-                                      },
-                                      child: const Icon(
-                                        CupertinoIcons.pencil,
-                                        color: CupertinoColors.systemBackground,
+                                            ),
+                                          );
+                                        },
+                                        child: const Icon(
+                                          CupertinoIcons.xmark,
+                                          color:
+                                              CupertinoColors.systemBackground,
+                                        ),
                                       ),
-                                    ),
-                                    CupertinoButton(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8),
-                                      onPressed: () {
-                                        showCupertinoDialog(
-                                          context: context,
-                                          builder: (context) =>
-                                              CupertinoAlertDialog(
-                                            title:
-                                                const Text('Remove Instagram'),
-                                            content: const Text(
-                                                'Are you sure you want to remove your Instagram account?'),
+                                    ],
+                                  ),
+                              ],
+                            )
+                          else
+                            widget.viewUser != null
+                                ? const SizedBox()
+                                : CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () {
+                                      showCupertinoDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          final controller =
+                                              TextEditingController();
+                                          return CupertinoAlertDialog(
+                                            title: const Text('Add Instagram'),
+                                            content: CupertinoTextField(
+                                              controller: controller,
+                                              placeholder: '@username',
+                                              prefix: const Text('@'),
+                                              autofocus: true,
+                                            ),
                                             actions: [
                                               CupertinoDialogAction(
                                                 child: const Text('Cancel'),
@@ -634,90 +711,45 @@ class ProfilePageState extends State<ProfilePage> {
                                                     Navigator.pop(context),
                                               ),
                                               CupertinoDialogAction(
-                                                isDestructiveAction: true,
-                                                child: const Text('Remove'),
+                                                child: const Text('Save'),
                                                 onPressed: () {
                                                   FirebaseFirestore.instance
                                                       .doc(
                                                           'users/${widget.user!.uid}')
                                                       .update({
-                                                    'instagram': '',
+                                                    'instagram':
+                                                        controller.text,
                                                   });
                                                   Navigator.pop(context);
                                                 },
                                               ),
                                             ],
-                                          ),
-                                        );
-                                      },
-                                      child: const Icon(
-                                        CupertinoIcons.xmark,
-                                        color: CupertinoColors.systemBackground,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            )
-                          else
-                            CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: () {
-                                showCupertinoDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    final controller = TextEditingController();
-                                    return CupertinoAlertDialog(
-                                      title: const Text('Add Instagram'),
-                                      content: CupertinoTextField(
-                                        controller: controller,
-                                        placeholder: '@username',
-                                        prefix: const Text('@'),
-                                        autofocus: true,
-                                      ),
-                                      actions: [
-                                        CupertinoDialogAction(
-                                          child: const Text('Cancel'),
-                                          onPressed: () =>
-                                              Navigator.pop(context),
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Image.asset(
+                                          'lib/assets/images/instagram-white.png',
+                                          width: 48,
+                                          height: 48,
                                         ),
-                                        CupertinoDialogAction(
-                                          child: const Text('Save'),
-                                          onPressed: () {
-                                            FirebaseFirestore.instance
-                                                .doc(
-                                                    'users/${widget.user!.uid}')
-                                                .update({
-                                              'instagram': controller.text,
-                                            });
-                                            Navigator.pop(context);
-                                          },
+                                        const SizedBox(width: 16),
+                                        const Text(
+                                          'Add Instagram',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: CupertinoColors
+                                                .systemBackground,
+                                          ),
                                         ),
                                       ],
-                                    );
-                                  },
-                                );
-                              },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Image.asset(
-                                    'lib/assets/images/instagram-white.png',
-                                    width: 48,
-                                    height: 48,
-                                  ),
-                                  const SizedBox(width: 16),
-                                  const Text(
-                                    'Add Instagram',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: CupertinoColors.systemBackground,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
                       const SizedBox(height: 32),

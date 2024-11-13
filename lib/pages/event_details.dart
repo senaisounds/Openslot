@@ -256,6 +256,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       middle: Padding(
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
                         child: Text(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           event.name,
                           style: const TextStyle(
                             color: slottedOrange,

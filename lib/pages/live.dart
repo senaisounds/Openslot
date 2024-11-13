@@ -11,6 +11,7 @@ import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/event_details.dart';
+import 'package:slotted/pages/profile.dart';
 import 'package:torch_light/torch_light.dart';
 
 const placeholderImage =
@@ -121,8 +122,8 @@ class LivePageState extends State<LivePage> {
         context: context,
         builder: (context) {
           return CupertinoAlertDialog(
-            title:
-                Text(isCurrentPerformer ? "Edit Performer?" : "Next Performer"),
+            title: Text(
+                isCurrentPerformer ? "Change Performer?" : "Next Performer"),
             content: Column(
               children: [
                 const SizedBox(height: 8),
@@ -156,6 +157,31 @@ class LivePageState extends State<LivePage> {
                 CupertinoDialogAction(
                   child: Text(isCurrentPerformer ? "Cancel" : "Yes"),
                   onPressed: () => Navigator.of(context).pop(true),
+                )
+              ],
+              if (performer != username) ...[
+                CupertinoDialogAction(
+                  child: const Text("View Profile"),
+                  onPressed: () => Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => CupertinoPageScaffold(
+                        resizeToAvoidBottomInset: false,
+                        backgroundColor: CupertinoColors.systemBackground,
+                        navigationBar: const CupertinoNavigationBar(
+                          middle: Text("Performer's Profile"),
+                          backgroundColor:
+                              CupertinoColors.secondarySystemBackground,
+                        ),
+                        child: ProfilePage(
+                          debug: widget.debug,
+                          user: widget.user,
+                          authAction: (loggedIn) =>
+                              widget.authAction(context, loggedIn, () {}),
+                          viewUser: performer,
+                        ),
+                      ),
+                    ),
+                  ),
                 )
               ],
               if (!isCurrentPerformer) ...[
@@ -344,13 +370,13 @@ class LivePageState extends State<LivePage> {
                           .doc('users/${event.performer}')
                           .get(),
                   builder: (context, snapshot) {
-                    final username = event.performer != null
+                    final username = snapshot.hasError ? '' : event.performer != null
                         ? snapshot.data?.exists ?? false
                             ? snapshot.data?.get('username') as String? ??
                                 event.performer!
                             : event.performer!
                         : 'No Performer';
-                    final photoUrl = event.performer != null
+                    final photoUrl = snapshot.hasError ? '' : event.performer != null
                         ? snapshot.data?.exists ?? false
                             ? snapshot.data?.get('photoUrl') as String? ??
                                 placeholderImage
@@ -460,6 +486,8 @@ class LivePageState extends State<LivePage> {
                         const Text("EXAMPLE"),
                         const SizedBox(height: 12),
                         Text(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           event.name,
                           style: const TextStyle(
                               fontSize: 20, fontWeight: FontWeight.w800),
@@ -691,7 +719,7 @@ class LivePageState extends State<LivePage> {
                                                     .doc('users/$performerId')
                                                     .get(),
                                                 builder: (context, snapshot) {
-                                                  final username = snapshot
+                                                  final username = snapshot.hasError ? '' :snapshot
                                                               .data?.exists ??
                                                           false
                                                       ? snapshot.data?.get(
@@ -720,7 +748,70 @@ class LivePageState extends State<LivePage> {
                                                                 performerId,
                                                                 username);
                                                           }
-                                                        : null,
+                                                        : (snapshot.data?.exists ??
+                                                                    false) !=
+                                                                true
+                                                            ? () =>
+                                                                showCupertinoDialog(
+                                                                  context:
+                                                                      context,
+                                                                  builder:
+                                                                      (context) =>
+                                                                          CupertinoAlertDialog(
+                                                                    title:
+                                                                        const Text(
+                                                                            '🧍'),
+                                                                    content: Text(
+                                                                        '$performerId does not have an account'),
+                                                                    actions: [
+                                                                      CupertinoDialogAction(
+                                                                        child: const Text(
+                                                                            'Dismiss'),
+                                                                        onPressed:
+                                                                            () =>
+                                                                                Navigator.of(context).pop(),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                )
+                                                            : () =>
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .push(
+                                                                  CupertinoPageRoute(
+                                                                    builder:
+                                                                        (context) =>
+                                                                            CupertinoPageScaffold(
+                                                                      resizeToAvoidBottomInset:
+                                                                          false,
+                                                                      backgroundColor:
+                                                                          CupertinoColors
+                                                                              .systemBackground,
+                                                                      navigationBar:
+                                                                          const CupertinoNavigationBar(
+                                                                        middle:
+                                                                            Text("Performer's Profile"),
+                                                                        backgroundColor:
+                                                                            CupertinoColors.secondarySystemBackground,
+                                                                      ),
+                                                                      child:
+                                                                          ProfilePage(
+                                                                        debug: widget
+                                                                            .debug,
+                                                                        user: widget
+                                                                            .user,
+                                                                        authAction: (loggedIn) => widget.authAction(
+                                                                            context,
+                                                                            loggedIn,
+                                                                            () {}),
+                                                                        viewUser: snapshot.data ==
+                                                                                null
+                                                                            ? null
+                                                                            : performerId,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
                                                     padding:
                                                         const EdgeInsets.all(
                                                             16),
@@ -815,7 +906,7 @@ class LivePageState extends State<LivePage> {
                                                     .doc('users/$performerId')
                                                     .get(),
                                                 builder: (context, snapshot) {
-                                                  final username = snapshot
+                                                  final username = snapshot.hasError ? '' : snapshot
                                                               .data?.exists ??
                                                           false
                                                       ? snapshot.data?.get(
@@ -844,7 +935,70 @@ class LivePageState extends State<LivePage> {
                                                                 performerId,
                                                                 username);
                                                           }
-                                                        : null,
+                                                        : (snapshot.data?.exists ??
+                                                                    false) !=
+                                                                true
+                                                            ? () =>
+                                                                showCupertinoDialog(
+                                                                  context:
+                                                                      context,
+                                                                  builder:
+                                                                      (context) =>
+                                                                          CupertinoAlertDialog(
+                                                                    title:
+                                                                        const Text(
+                                                                            '🧍'),
+                                                                    content: Text(
+                                                                        '$performerId does not have an account'),
+                                                                    actions: [
+                                                                      CupertinoDialogAction(
+                                                                        child: const Text(
+                                                                            'Dismiss'),
+                                                                        onPressed:
+                                                                            () =>
+                                                                                Navigator.of(context).pop(),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                )
+                                                            : () =>
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .push(
+                                                                  CupertinoPageRoute(
+                                                                    builder:
+                                                                        (context) =>
+                                                                            CupertinoPageScaffold(
+                                                                      resizeToAvoidBottomInset:
+                                                                          false,
+                                                                      backgroundColor:
+                                                                          CupertinoColors
+                                                                              .systemBackground,
+                                                                      navigationBar:
+                                                                          const CupertinoNavigationBar(
+                                                                        middle:
+                                                                            Text("Performer's Profile"),
+                                                                        backgroundColor:
+                                                                            CupertinoColors.secondarySystemBackground,
+                                                                      ),
+                                                                      child:
+                                                                          ProfilePage(
+                                                                        debug: widget
+                                                                            .debug,
+                                                                        user: widget
+                                                                            .user,
+                                                                        authAction: (loggedIn) => widget.authAction(
+                                                                            context,
+                                                                            loggedIn,
+                                                                            () {}),
+                                                                        viewUser: snapshot.data ==
+                                                                                null
+                                                                            ? null
+                                                                            : performerId,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
                                                     padding:
                                                         const EdgeInsets.all(
                                                             16),

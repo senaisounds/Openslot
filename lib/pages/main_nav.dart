@@ -378,15 +378,16 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         bool loggedIn = snapshot.data != null;
         if (snapshot.data?.uid != null) {
           // Use a delayed future to run this code once after launch
-          String? currentUid = snapshot.data?.uid;  // Capture current UID
+          String? currentUid = snapshot.data?.uid; // Capture current UID
           Future.delayed(const Duration(seconds: 2), () {
-            if (!mounted) return;  // Check if widget is still mounted
-            if (snapshot.data?.uid != currentUid) return; // Check if user changed
-            
+            if (!mounted) return; // Check if widget is still mounted
+            if (snapshot.data?.uid != currentUid)
+              return; // Check if user changed
+
             // Track if we've already run this code
             if (!_hasCheckedUser) {
               _hasCheckedUser = true;
-              
+
               FirebaseFirestore.instance
                   .doc('users/${snapshot.data!.uid}')
                   .get()
@@ -435,6 +436,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                                     'username': usernameController.text,
                                     'joined': Timestamp.now(),
                                     'isHost': true,
+                                    'photoUrl': null,
                                   }, SetOptions(merge: true)).then((_) {
                                     isDialogShowing = false;
                                     Navigator.pop(context);
