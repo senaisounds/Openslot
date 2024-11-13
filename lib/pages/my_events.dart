@@ -888,7 +888,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                         !event.waitlist.contains(slottedUser?.id)) ...[
                       const SizedBox(height: 12),
                       Text(
-                        '${event.slots - event.attendees.length} of ${event.slots} slots',
+                        '${max(0, event.slots - event.attendees.length)} / ${event.slots} slots',
                         style: const TextStyle(
                           color: CupertinoColors.label,
                           fontWeight: FontWeight.w600,

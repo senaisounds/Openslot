@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -461,7 +462,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                             // if (!event.attendees.contains(user?.uid) &&
                             //     !event.waitlist.contains(user?.uid))
                             Text(
-                              '${event.openSlots} of ${event.slots} slots',
+                              '${max(0, event.openSlots)} / ${event.slots} slots',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,

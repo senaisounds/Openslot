@@ -370,18 +370,22 @@ class LivePageState extends State<LivePage> {
                           .doc('users/${event.performer}')
                           .get(),
                   builder: (context, snapshot) {
-                    final username = snapshot.hasError ? '' : event.performer != null
-                        ? snapshot.data?.exists ?? false
-                            ? snapshot.data?.get('username') as String? ??
-                                event.performer!
-                            : event.performer!
-                        : 'No Performer';
-                    final photoUrl = snapshot.hasError ? '' : event.performer != null
-                        ? snapshot.data?.exists ?? false
-                            ? snapshot.data?.get('photoUrl') as String? ??
-                                placeholderImage
-                            : placeholderImage
-                        : '';
+                    final username = snapshot.hasError
+                        ? ''
+                        : event.performer != null
+                            ? snapshot.data?.exists ?? false
+                                ? snapshot.data?.get('username') as String? ??
+                                    event.performer!
+                                : event.performer!
+                            : 'No Performer';
+                    final photoUrl = snapshot.hasError
+                        ? ''
+                        : event.performer != null
+                            ? snapshot.data?.exists ?? false
+                                ? snapshot.data?.get('photoUrl') as String? ??
+                                    placeholderImage
+                                : placeholderImage
+                            : '';
 
                     final progress = event.performerStart != null
                         ? 1 -
@@ -580,8 +584,8 @@ class LivePageState extends State<LivePage> {
                                           title: const Text("Add Performer"),
                                           content: Column(
                                             children: [
-                                              const Text(
-                                                  "Enter performer's name"),
+                                              Text(
+                                                  "\n${event.slots - event.attendees.length <= 0 ? 'Current available slots = 0, adding a performer will increase available slots +1' : 'Enter performer\'s name'}"),
                                               const SizedBox(height: 8),
                                               CupertinoTextField(
                                                 autofocus: true,
@@ -611,17 +615,36 @@ class LivePageState extends State<LivePage> {
                                                             .reservationTimestamps[
                                                         newName] = DateTime.now();
                                                   });
-                                                  await FirebaseFirestore
-                                                      .instance
-                                                      .doc(
-                                                          'events/${widget.event.id}')
-                                                      .update({
-                                                    'attendees':
-                                                        widget.event.attendees,
-                                                    'reservationTimestamps': widget
-                                                        .event
-                                                        .reservationTimestamps,
-                                                  });
+                                                  if (event.slots -
+                                                          event.attendees
+                                                              .length <=
+                                                      0) {
+                                                    await FirebaseFirestore
+                                                        .instance
+                                                        .doc(
+                                                            'events/${widget.event.id}')
+                                                        .update({
+                                                      'slots': event.slots + 1,
+                                                      'attendees': widget
+                                                          .event.attendees,
+                                                      'reservationTimestamps':
+                                                          widget.event
+                                                              .reservationTimestamps,
+                                                    });
+                                                  } else {
+                                                    await FirebaseFirestore
+                                                        .instance
+                                                        .doc(
+                                                            'events/${widget.event.id}')
+                                                        .update({
+                                                      'attendees': widget
+                                                          .event.attendees,
+                                                      'reservationTimestamps':
+                                                          widget.event
+                                                              .reservationTimestamps,
+                                                    });
+                                                  }
+
                                                   Navigator.of(context).pop();
                                                 } else {
                                                   // Show an error message if the name is empty or already exists
@@ -719,14 +742,16 @@ class LivePageState extends State<LivePage> {
                                                     .doc('users/$performerId')
                                                     .get(),
                                                 builder: (context, snapshot) {
-                                                  final username = snapshot.hasError ? '' :snapshot
-                                                              .data?.exists ??
-                                                          false
-                                                      ? snapshot.data?.get(
-                                                                  'username')
-                                                              as String? ??
-                                                          performerId
-                                                      : performerId;
+                                                  final username = snapshot
+                                                          .hasError
+                                                      ? ''
+                                                      : snapshot.data?.exists ??
+                                                              false
+                                                          ? snapshot.data?.get(
+                                                                      'username')
+                                                                  as String? ??
+                                                              performerId
+                                                          : performerId;
                                                   final photoUrl = snapshot
                                                               .data?.exists ??
                                                           false
@@ -906,14 +931,16 @@ class LivePageState extends State<LivePage> {
                                                     .doc('users/$performerId')
                                                     .get(),
                                                 builder: (context, snapshot) {
-                                                  final username = snapshot.hasError ? '' : snapshot
-                                                              .data?.exists ??
-                                                          false
-                                                      ? snapshot.data?.get(
-                                                                  'username')
-                                                              as String? ??
-                                                          performerId
-                                                      : performerId;
+                                                  final username = snapshot
+                                                          .hasError
+                                                      ? ''
+                                                      : snapshot.data?.exists ??
+                                                              false
+                                                          ? snapshot.data?.get(
+                                                                      'username')
+                                                                  as String? ??
+                                                              performerId
+                                                          : performerId;
                                                   final photoUrl = snapshot
                                                               .data?.exists ??
                                                           false
@@ -1105,8 +1132,9 @@ class LivePageState extends State<LivePage> {
                                                 : _startPerforming
                                             : null)
                                         : !event.ended
-                                            ? event.date
-                                                    .isBefore(DateTime.now())
+                                            ? event.date.isBefore(
+                                                        DateTime.now()) &&
+                                                    event.attendees.isNotEmpty
                                                 ? () async {
                                                     await FirebaseFirestore
                                                         .instance
