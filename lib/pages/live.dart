@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
+import 'package:slotted/pages/attendees_page.dart';
 import 'package:slotted/pages/event_details.dart';
 import 'package:slotted/pages/profile.dart';
 import 'package:torch_light/torch_light.dart';
@@ -257,6 +258,15 @@ class LivePageState extends State<LivePage> {
     await FirebaseFirestore.instance.doc('events/${widget.event.id}').update({
       'live': false,
       'ended': true,
+      'performer': null,
+      'performerStart': null,
+    });
+
+    setState(() {
+      widget.event.live = false;
+      widget.event.ended = true;
+      widget.event.performer = null;
+      widget.event.performerStart = null;
     });
   }
 
@@ -570,121 +580,153 @@ class LivePageState extends State<LivePage> {
                                 color: CupertinoColors.secondaryLabel),
                             child: Column(
                               children: [
-                                if (event.host == widget.user?.uid)
-                                  CupertinoButton(
-                                    padding: const EdgeInsets.all(8),
-                                    onPressed: () async {
-                                      final TextEditingController controller =
-                                          TextEditingController();
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    if (event.host == widget.user?.uid &&
+                                        !event.ended)
+                                      CupertinoButton(
+                                        padding: const EdgeInsets.all(8),
+                                        onPressed: () async {
+                                          final TextEditingController
+                                              controller =
+                                              TextEditingController();
 
-                                      await showCupertinoDialog(
-                                        context: context,
-                                        builder: (context) =>
-                                            CupertinoAlertDialog(
-                                          title: const Text("Add Performer"),
-                                          content: Column(
-                                            children: [
-                                              Text(
-                                                  "\n${event.slots - event.attendees.length <= 0 ? 'Current available slots = 0, adding a performer will increase available slots +1' : 'Enter performer\'s name'}"),
-                                              const SizedBox(height: 8),
-                                              CupertinoTextField(
-                                                autofocus: true,
-                                                controller: controller,
-                                                placeholder: "Name",
+                                          await showCupertinoDialog(
+                                            context: context,
+                                            builder: (context) =>
+                                                CupertinoAlertDialog(
+                                              title:
+                                                  const Text("Add Performer"),
+                                              content: Column(
+                                                children: [
+                                                  Text(
+                                                      "\n${event.slots - event.attendees.length <= 0 ? 'Current available slots = 0, adding a performer will increase available slots +1' : 'Enter performer\'s name'}"),
+                                                  const SizedBox(height: 8),
+                                                  CupertinoTextField(
+                                                    autofocus: true,
+                                                    controller: controller,
+                                                    placeholder: "Name",
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                          actions: [
-                                            CupertinoDialogAction(
-                                              child: const Text("Cancel"),
-                                              onPressed: () =>
-                                                  Navigator.of(context).pop(),
-                                            ),
-                                            CupertinoDialogAction(
-                                              child: const Text("Add"),
-                                              onPressed: () async {
-                                                final newName =
-                                                    controller.text.trim();
-                                                if (newName.isNotEmpty &&
-                                                    !widget.event.attendees
-                                                        .contains(newName)) {
-                                                  setState(() {
-                                                    widget.event.attendees
-                                                        .add(newName);
-                                                    widget.event
-                                                            .reservationTimestamps[
-                                                        newName] = DateTime.now();
-                                                  });
-                                                  if (event.slots -
-                                                          event.attendees
-                                                              .length <=
-                                                      0) {
-                                                    await FirebaseFirestore
-                                                        .instance
-                                                        .doc(
-                                                            'events/${widget.event.id}')
-                                                        .update({
-                                                      'slots': event.slots + 1,
-                                                      'attendees': widget
-                                                          .event.attendees,
-                                                      'reservationTimestamps':
-                                                          widget.event
-                                                              .reservationTimestamps,
-                                                    });
-                                                  } else {
-                                                    await FirebaseFirestore
-                                                        .instance
-                                                        .doc(
-                                                            'events/${widget.event.id}')
-                                                        .update({
-                                                      'attendees': widget
-                                                          .event.attendees,
-                                                      'reservationTimestamps':
-                                                          widget.event
-                                                              .reservationTimestamps,
-                                                    });
-                                                  }
+                                              actions: [
+                                                CupertinoDialogAction(
+                                                  child: const Text("Cancel"),
+                                                  onPressed: () =>
+                                                      Navigator.of(context)
+                                                          .pop(),
+                                                ),
+                                                CupertinoDialogAction(
+                                                  child: const Text("Add"),
+                                                  onPressed: () async {
+                                                    final newName =
+                                                        controller.text.trim();
+                                                    if (newName.isNotEmpty &&
+                                                        !widget.event.attendees
+                                                            .contains(
+                                                                newName)) {
+                                                      setState(() {
+                                                        widget.event.attendees
+                                                            .add(newName);
+                                                        widget.event.reservationTimestamps[
+                                                                newName] =
+                                                            DateTime.now();
+                                                      });
+                                                      if (event.slots -
+                                                              event.attendees
+                                                                  .length <=
+                                                          0) {
+                                                        await FirebaseFirestore
+                                                            .instance
+                                                            .doc(
+                                                                'events/${widget.event.id}')
+                                                            .update({
+                                                          'slots':
+                                                              event.slots + 1,
+                                                          'attendees': widget
+                                                              .event.attendees,
+                                                          'reservationTimestamps':
+                                                              widget.event
+                                                                  .reservationTimestamps,
+                                                        });
+                                                      } else {
+                                                        await FirebaseFirestore
+                                                            .instance
+                                                            .doc(
+                                                                'events/${widget.event.id}')
+                                                            .update({
+                                                          'attendees': widget
+                                                              .event.attendees,
+                                                          'reservationTimestamps':
+                                                              widget.event
+                                                                  .reservationTimestamps,
+                                                        });
+                                                      }
 
-                                                  Navigator.of(context).pop();
-                                                } else {
-                                                  // Show an error message if the name is empty or already exists
-                                                  showCupertinoDialog(
-                                                    context: context,
-                                                    builder: (context) =>
-                                                        CupertinoAlertDialog(
-                                                      title:
-                                                          const Text("Error"),
-                                                      content: const Text(
-                                                          "This performer is already added or the name is empty."),
-                                                      actions: [
-                                                        CupertinoDialogAction(
-                                                          child:
-                                                              const Text("OK"),
-                                                          onPressed: () =>
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop(),
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                    } else {
+                                                      // Show an error message if the name is empty or already exists
+                                                      showCupertinoDialog(
+                                                        context: context,
+                                                        builder: (context) =>
+                                                            CupertinoAlertDialog(
+                                                          title: const Text(
+                                                              "Error"),
+                                                          content: const Text(
+                                                              "This performer is already added or the name is empty."),
+                                                          actions: [
+                                                            CupertinoDialogAction(
+                                                              child: const Text(
+                                                                  "OK"),
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .pop(),
+                                                            ),
+                                                          ],
                                                         ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                }
-                                              },
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                              ],
                                             ),
+                                          );
+                                        },
+                                        child: const Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(CupertinoIcons.add_circled),
+                                            SizedBox(width: 8),
+                                            Text("Add Performer"),
                                           ],
                                         ),
-                                      );
-                                    },
-                                    child: const Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(CupertinoIcons.add_circled),
-                                        SizedBox(width: 8),
-                                        Text("Add Performer"),
-                                      ],
+                                      ),
+                                    CupertinoButton(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8),
+                                      onPressed: () =>
+                                          Navigator.of(context).push(
+                                        CupertinoPageRoute(
+                                          builder: (context) => AttendeesPage(
+                                            eventName: event.name,
+                                            attendees: event.attendees,
+                                            eventId: event.id,
+                                            debug: widget.debug,
+                                            user: widget.user,
+                                            authAction: widget.authAction,
+                                          ),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                          CupertinoIcons.person_2_fill),
                                     ),
-                                  ),
+                                  ],
+                                ),
                                 Expanded(
                                   child: widget.user?.uid == event.host
                                       ? ReorderableListView.builder(
@@ -909,11 +951,6 @@ class LivePageState extends State<LivePage> {
                                                 widget.event.attendees[index];
                                             return Dismissible(
                                               key: ValueKey(performerId),
-                                              direction:
-                                                  DismissDirection.startToEnd,
-                                              onDismissed: (direction) {
-                                                _removePerformer(performerId);
-                                              },
                                               background: Container(
                                                 color:
                                                     CupertinoColors.systemRed,
@@ -1142,6 +1179,10 @@ class LivePageState extends State<LivePage> {
                                                             'events/${event.id}')
                                                         .update({
                                                       'live': true,
+                                                    });
+                                                    setState(() {
+                                                      event.live = true;
+                                                      widget.event.live = true;
                                                     });
                                                   }
                                                 : null

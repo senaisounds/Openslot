@@ -13,6 +13,7 @@ import 'package:slotted/common/date_components.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
+import 'package:slotted/pages/attendees_page.dart';
 import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/pages/event_details.dart';
 import 'package:slotted/pages/live.dart';
@@ -437,12 +438,27 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(height: 14),
             if (event.attendees.isNotEmpty) ...[
-              const Text(
-                'Attendees',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: CupertinoColors.label,
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => AttendeesPage(
+                      eventName: event.name,
+                      attendees: event.attendees,
+                      eventId: event.id,
+                      debug: widget.debug,
+                      user: widget.user,
+                      authAction: widget.authAction,
+                    ),
+                  ),
+                ),
+                child: const Text(
+                  'Attendees',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: CupertinoColors.label,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -482,63 +498,85 @@ class _MyHomePageState extends State<MyHomePage> {
                                       offset: Offset(index * -20.0,
                                           0), // Adjust the overlap by changing this value
                                       child: CupertinoButton(
-                                        onPressed: (docSnapshot.data?.exists ??
-                                                    false) !=
-                                                true
-                                            ? () => showCupertinoDialog(
-                                                  context: context,
-                                                  builder: (context) =>
-                                                      CupertinoAlertDialog(
-                                                    title: const Text('🧍'),
-                                                    content: Text(
-                                                        '$attendee does not have an account'),
-                                                    actions: [
-                                                      CupertinoDialogAction(
-                                                        child: const Text(
-                                                            'Dismiss'),
-                                                        onPressed: () =>
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop(),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                )
-                                            : () => Navigator.of(context).push(
-                                                  CupertinoPageRoute(
-                                                    builder: (context) =>
-                                                        CupertinoPageScaffold(
-                                                      resizeToAvoidBottomInset:
-                                                          false,
-                                                      backgroundColor:
-                                                          CupertinoColors
-                                                              .systemBackground,
-                                                      navigationBar:
-                                                          const CupertinoNavigationBar(
-                                                        middle: Text(
-                                                            "Performer's Profile"),
-                                                        backgroundColor:
-                                                            CupertinoColors
-                                                                .secondarySystemBackground,
-                                                      ),
-                                                      child: ProfilePage(
-                                                        debug: widget.debug,
-                                                        user: widget.user,
-                                                        authAction:
-                                                            (loggedIn) => widget
-                                                                .authAction(
-                                                                    context,
-                                                                    loggedIn,
-                                                                    () {}),
-                                                        viewUser:
-                                                            docSnapshot.data ==
-                                                                    null
-                                                                ? null
-                                                                : attendee,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
+                                        onPressed: () =>
+                                            Navigator.of(context).push(
+                                          CupertinoPageRoute(
+                                            builder: (context) => AttendeesPage(
+                                              eventName: event.name,
+                                              attendees: event.attendees,
+                                              eventId: event.id,
+                                              scrollToUser: attendee,
+                                              debug: widget.debug,
+                                              user: widget.user,
+                                              authAction: widget.authAction,
+                                            ),
+                                          ),
+                                        ),
+                                        //                                 (docSnapshot.data?.exists ??
+                                        //                                     false) !=
+                                        //                                 true
+                                        //                             ? () =>  Navigator.of(context).push(
+                                        //   CupertinoPageRoute(
+                                        //     builder: (context) => AttendeesPage(event: event),
+                                        //   ),
+                                        // )
+
+                                        // showCupertinoDialog(
+                                        //       context: context,
+                                        //       builder: (context) =>
+                                        //           CupertinoAlertDialog(
+                                        //         title: const Text('🧍'),
+                                        //         content: Text(
+                                        //             '$attendee does not have an account'),
+                                        //         actions: [
+                                        //           CupertinoDialogAction(
+                                        //             child: const Text(
+                                        //                 'Dismiss'),
+                                        //             onPressed: () =>
+                                        //                 Navigator.of(
+                                        //                         context)
+                                        //                     .pop(),
+                                        //           ),
+                                        //         ],
+                                        //       ),
+                                        //     )
+                                        // : () =>
+
+                                        // Navigator.of(context).push(
+                                        //       CupertinoPageRoute(
+                                        //         builder: (context) =>
+                                        //             CupertinoPageScaffold(
+                                        //           resizeToAvoidBottomInset:
+                                        //               false,
+                                        //           backgroundColor:
+                                        //               CupertinoColors
+                                        //                   .systemBackground,
+                                        //           navigationBar:
+                                        //               const CupertinoNavigationBar(
+                                        //             middle: Text(
+                                        //                 "Performer's Profile"),
+                                        //             backgroundColor:
+                                        //                 CupertinoColors
+                                        //                     .secondarySystemBackground,
+                                        //           ),
+                                        //           child: ProfilePage(
+                                        //             debug: widget.debug,
+                                        //             user: widget.user,
+                                        //             authAction:
+                                        //                 (loggedIn) => widget
+                                        //                     .authAction(
+                                        //                         context,
+                                        //                         loggedIn,
+                                        //                         () {}),
+                                        //             viewUser:
+                                        //                 docSnapshot.data ==
+                                        //                         null
+                                        //                     ? null
+                                        //                     : attendee,
+                                        //           ),
+                                        //         ),
+                                        //       ),
+                                        //     ),
                                         padding: EdgeInsets.zero,
                                         child: Container(
                                           width: 40,

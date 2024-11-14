@@ -14,6 +14,7 @@ import 'package:slotted/common/event_class.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
+import 'package:slotted/pages/attendees_page.dart';
 import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/pages/event_details.dart';
 import 'package:slotted/pages/live.dart';
@@ -498,12 +499,27 @@ class MyEventsPageState extends State<MyEventsPage> {
             ),
             const SizedBox(height: 14),
             if (event.attendees.isNotEmpty) ...[
-              const Text(
-                'Attendees',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: CupertinoColors.label,
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => AttendeesPage(
+                      eventName: event.name,
+                      attendees: event.attendees,
+                      eventId: event.id,
+                      debug: widget.debug,
+                      user: widget.user,
+                      authAction: widget.authAction,
+                    ),
+                  ),
+                ),
+                child: const Text(
+                  'Attendees',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: CupertinoColors.label,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
