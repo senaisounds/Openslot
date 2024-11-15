@@ -268,391 +268,403 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                         ),
                       ),
                     ),
-                    child: SafeArea(
-                      child: Center(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const SizedBox(
-                              height: 20,
-                            ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Text(
-                                  'Hosted by ${event.hostName}',
-                                  style: const TextStyle(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  '${_convertDateTimeToStringComponents(event.date).dayFull}, ${_convertDateTimeToStringComponents(event.date).monthFull} ${_convertDateTimeToStringComponents(event.date).dayNum} at ${_convertDateTimeToStringComponents(event.date).time}',
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 10),
-                                CupertinoButton(
-                                  onPressed: () async {
-                                    MapsLauncher.launchQuery(event.address)
-                                        .catchError((error) {
-                                      print('Launch error');
-                                      print(error.toString());
-                                      return true;
-                                    });
-                                  },
-                                  padding: EdgeInsets.zero,
-                                  child: Text(
-                                    event.address,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            CupertinoColors.systemBlue.withOpacity(0.1),
+                            CupertinoColors.systemPurple.withOpacity(0.1),
+                          ],
+                        ),
+                      ),
+                      child: SafeArea(
+                        child: Center(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                height: 20,
+                              ),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Text(
+                                    'Hosted by ${event.hostName}',
                                     style: const TextStyle(
-                                        decoration: TextDecoration.underline,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.white),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                if (event.rules.isNotEmpty) ...[
-                                  const SizedBox(height: 28),
-                                  const Text(
-                                    'Rules',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w800),
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                   const SizedBox(height: 10),
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: CupertinoColors.systemBackground
-                                          .withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(16),
+                                  Text(
+                                    '${_convertDateTimeToStringComponents(event.date).dayFull}, ${_convertDateTimeToStringComponents(event.date).monthFull} ${_convertDateTimeToStringComponents(event.date).dayNum} at ${_convertDateTimeToStringComponents(event.date).time}',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  CupertinoButton(
+                                    onPressed: () async {
+                                      MapsLauncher.launchQuery(event.address)
+                                          .catchError((error) {
+                                        print('Launch error');
+                                        print(error.toString());
+                                        return true;
+                                      });
+                                    },
+                                    padding: EdgeInsets.zero,
+                                    child: Text(
+                                      event.address,
+                                      style: const TextStyle(
+                                          decoration: TextDecoration.underline,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    height: 96,
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.8,
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.vertical,
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceEvenly,
-                                        children: event.rules
-                                            .split('\n')
-                                            .map((rule) => Text(
-                                                  rule,
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
+                                  ),
+                                  if (event.rules.isNotEmpty) ...[
+                                    const SizedBox(height: 28),
+                                    const Text(
+                                      'Rules',
+                                      style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: CupertinoColors.systemBackground
+                                            .withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      height: 96,
+                                      width:
+                                          MediaQuery.of(context).size.width * 0.8,
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.vertical,
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: event.rules
+                                              .split('\n')
+                                              .map((rule) => Text(
+                                                    rule,
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                    ),
+                                                  ))
+                                              .toList(),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                      height: 16,
+                                    ),
+                                  ],
+                                  if (event.rules.isEmpty)
+                                    const SizedBox(
+                                      height: 32,
+                                    ),
+                                ],
+                              ),
+                              SizedBox(
+                                width: MediaQuery.of(context).size.width,
+                                height: MediaQuery.of(context).size.width * 0.78,
+                                child: SafeArea(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Container(
+                                      clipBehavior: Clip.hardEdge,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          FlutterMap(
+                                            mapController: mapController,
+                                            options: MapOptions(
+                                              initialCenter: event.location,
+                                              initialZoom: 16,
+                                              minZoom: 2,
+                                              maxZoom: 19,
+                                              cameraConstraint:
+                                                  CameraConstraint.contain(
+                                                bounds: LatLngBounds(
+                                                  const LatLng(-90, -180),
+                                                  const LatLng(90, 180),
+                                                ),
+                                              ),
+                                              interactionOptions:
+                                                  const InteractionOptions(
+                                                      flags: InteractiveFlag.all &
+                                                          ~InteractiveFlag.rotate,
+                                                      enableMultiFingerGestureRace:
+                                                          false),
+                                            ),
+                                            children: [
+                                              TileLayer(
+                                                  retinaMode:
+                                                      RetinaMode.isHighDensity(
+                                                          context),
+                                                  userAgentPackageName:
+                                                      'com.M3.Open-Mic',
+                                                  urlTemplate:
+                                                      'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png?api_key={api_key}',
+                                                  additionalOptions: const {
+                                                    'api_key':
+                                                        'bca0bb22-6d70-4b47-83ab-f11382d719e3'
+                                                  }),
+                                              MarkerLayer(
+                                                markers: <Marker>[
+                                                  Marker(
+                                                    width: 56.0,
+                                                    height: 56.0,
+                                                    point: event.location,
+                                                    alignment: const Alignment(
+                                                        0.0, -0.2),
+                                                    child: GestureDetector(
+                                                      onTap: () => mapController
+                                                          .moveAndRotate(
+                                                              event.location,
+                                                              mapController.camera
+                                                                      .zoom +
+                                                                  3,
+                                                              0),
+                                                      child: Image.asset(
+                                                        'lib/assets/images/s_pin.png',
+                                                      ),
+                                                    ),
                                                   ),
-                                                ))
-                                            .toList(),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                          Positioned(
+                                            top: 16,
+                                            right: 16,
+                                            child: CupertinoButton(
+                                                color: CupertinoColors
+                                                    .systemBackground,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                padding: const EdgeInsets.all(4),
+                                                child: const SizedBox(
+                                                  height: 44,
+                                                  width: 44,
+                                                  child: Icon(
+                                                    CupertinoIcons.location,
+                                                    color: slottedOrange,
+                                                    size: 30,
+                                                  ),
+                                                ),
+                                                onPressed: () => mapController
+                                                    .move(event.location, 16)),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(
-                                    height: 16,
-                                  ),
-                                ],
-                                if (event.rules.isEmpty)
-                                  const SizedBox(
-                                    height: 32,
-                                  ),
-                              ],
-                            ),
-                            SizedBox(
-                              width: MediaQuery.of(context).size.width,
-                              height: MediaQuery.of(context).size.width * 0.78,
-                              child: SafeArea(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(24),
-                                  child: Container(
-                                    clipBehavior: Clip.hardEdge,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: Stack(
-                                      children: [
-                                        FlutterMap(
-                                          mapController: mapController,
-                                          options: MapOptions(
-                                            initialCenter: event.location,
-                                            initialZoom: 16,
-                                            minZoom: 2,
-                                            maxZoom: 19,
-                                            cameraConstraint:
-                                                CameraConstraint.contain(
-                                              bounds: LatLngBounds(
-                                                const LatLng(-90, -180),
-                                                const LatLng(90, 180),
-                                              ),
-                                            ),
-                                            interactionOptions:
-                                                const InteractionOptions(
-                                                    flags: InteractiveFlag.all &
-                                                        ~InteractiveFlag.rotate,
-                                                    enableMultiFingerGestureRace:
-                                                        false),
-                                          ),
-                                          children: [
-                                            TileLayer(
-                                                retinaMode:
-                                                    RetinaMode.isHighDensity(
-                                                        context),
-                                                userAgentPackageName:
-                                                    'com.M3.Open-Mic',
-                                                urlTemplate:
-                                                    'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png?api_key={api_key}',
-                                                additionalOptions: const {
-                                                  'api_key':
-                                                      'bca0bb22-6d70-4b47-83ab-f11382d719e3'
-                                                }),
-                                            MarkerLayer(
-                                              markers: <Marker>[
-                                                Marker(
-                                                  width: 56.0,
-                                                  height: 56.0,
-                                                  point: event.location,
-                                                  alignment: const Alignment(
-                                                      0.0, -0.2),
-                                                  child: GestureDetector(
-                                                    onTap: () => mapController
-                                                        .moveAndRotate(
-                                                            event.location,
-                                                            mapController.camera
-                                                                    .zoom +
-                                                                3,
-                                                            0),
-                                                    child: Image.asset(
-                                                      'lib/assets/images/s_pin.png',
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                        Positioned(
-                                          top: 16,
-                                          right: 16,
-                                          child: CupertinoButton(
-                                              color: CupertinoColors
-                                                  .systemBackground,
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              padding: const EdgeInsets.all(4),
-                                              child: const SizedBox(
-                                                height: 44,
-                                                width: 44,
-                                                child: Icon(
-                                                  CupertinoIcons.location,
-                                                  color: slottedOrange,
-                                                  size: 30,
-                                                ),
-                                              ),
-                                              onPressed: () => mapController
-                                                  .move(event.location, 16)),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                 ),
                               ),
-                            ),
-                            const Expanded(
-                              child: SizedBox(),
-                            ),
-                            // if (!event.attendees.contains(user?.uid) &&
-                            //     !event.waitlist.contains(user?.uid))
-                            Text(
-                              '${max(0, event.openSlots)} / ${event.slots} slots',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 18,
+                              const Expanded(
+                                child: SizedBox(),
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              height: 66,
-                              width: double.infinity,
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(22, 0, 22, 0),
-                                child: CupertinoButton(
-                                  color: event.live
-                                      ? CupertinoColors.activeGreen
-                                      : event.host == slottedUser?.id
-                                          ? slottedOrange
-                                          : event.attendees.contains(user?.uid)
-                                              ? CupertinoColors
-                                                  .secondarySystemBackground
-                                              : event.waitlist
-                                                      .contains(user?.uid)
-                                                  ? CupertinoColors
-                                                      .secondarySystemBackground
-                                                  : slottedOrange,
-                                  padding: EdgeInsets.zero,
-                                  onPressed: () => actionPending
-                                      ? null
-                                      : event.live
-                                          ? Navigator.of(context).pop()
-                                          : event.host == slottedUser?.id ||
-                                                  event.date
-                                                      .isBefore(DateTime.now())
-                                              ? Navigator.of(context).pop()
-                                              : (slottedUser == null
-                                                  ? () async {
-                                                      setState(() {
-                                                        actionPending = true;
-                                                      });
-                                                      await widget.authAction(
-                                                          context, false, () {
+                              // if (!event.attendees.contains(user?.uid) &&
+                              //     !event.waitlist.contains(user?.uid))
+                              Text(
+                                '${max(0, event.openSlots)} / ${event.slots} slots',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                height: 66,
+                                width: double.infinity,
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(22, 0, 22, 0),
+                                  child: CupertinoButton(
+                                    color: event.live
+                                        ? CupertinoColors.activeGreen
+                                        : event.host == slottedUser?.id
+                                            ? slottedOrange
+                                            : event.attendees.contains(user?.uid)
+                                                ? CupertinoColors
+                                                    .secondarySystemBackground
+                                                : event.waitlist
+                                                        .contains(user?.uid)
+                                                    ? CupertinoColors
+                                                        .secondarySystemBackground
+                                                    : slottedOrange,
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () => actionPending
+                                        ? null
+                                        : event.live
+                                            ? Navigator.of(context).pop()
+                                            : event.host == slottedUser?.id ||
+                                                    event.date
+                                                        .isBefore(DateTime.now())
+                                                ? Navigator.of(context).pop()
+                                                : (slottedUser == null
+                                                    ? () async {
                                                         setState(() {
-                                                          actionPending = false;
+                                                          actionPending = true;
                                                         });
-                                                      });
-                                                    }()
-                                                  : _reserveAction(event,
-                                                      slottedUser, user!)),
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: actionPending
-                                      ? CupertinoActivityIndicator(
-                                          radius: 14,
-                                          color: event.attendees
-                                                  .contains(user?.uid)
-                                              ? slottedOrange
-                                              : event.waitlist
-                                                      .contains(user?.uid)
-                                                  ? slottedOrange
-                                                  : CupertinoColors
-                                                      .secondarySystemBackground,
-                                        )
-                                      : event.live
-                                          ? const Text('Live',
-                                              style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 20,
-                                                  height: 1.2),
-                                              textAlign: TextAlign.center)
-                                          : event.host == slottedUser?.id ||
-                                                  event.date
-                                                      .isBefore(DateTime.now())
-                                              ? const Text('View',
-                                                  style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 20,
-                                                      height: 1.2),
-                                                  textAlign: TextAlign.center)
-                                              : event.attendees
-                                                      .contains(user?.uid)
-                                                  ? const Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Text(
-                                                          'Reserved',
-                                                          style: TextStyle(
-                                                            color:
-                                                                slottedOrange,
-                                                            fontSize: 19,
-                                                            fontWeight:
-                                                                FontWeight.w800,
-                                                          ),
-                                                        ),
-                                                        SizedBox(width: 12),
-                                                        Icon(
-                                                          CupertinoIcons
-                                                              .check_mark_circled_solid,
-                                                          size: 20,
-                                                          color: slottedOrange,
-                                                          weight: 30,
-                                                        )
-                                                      ],
-                                                    )
-                                                  : event.waitlist
-                                                          .contains(user?.uid)
-                                                      ? const Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            Text(
-                                                              'Waitlisted',
-                                                              style: TextStyle(
-                                                                color:
-                                                                    slottedOrange,
-                                                                fontSize: 19,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w800,
-                                                              ),
-                                                            ),
-                                                            SizedBox(width: 12),
-                                                            Icon(
-                                                              CupertinoIcons
-                                                                  .check_mark_circled_solid,
-                                                              size: 20,
+                                                        await widget.authAction(
+                                                            context, false, () {
+                                                          setState(() {
+                                                            actionPending = false;
+                                                          });
+                                                        });
+                                                      }()
+                                                    : _reserveAction(event,
+                                                        slottedUser, user!)),
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: actionPending
+                                        ? CupertinoActivityIndicator(
+                                            radius: 14,
+                                            color: event.attendees
+                                                    .contains(user?.uid)
+                                                ? slottedOrange
+                                                : event.waitlist
+                                                        .contains(user?.uid)
+                                                    ? slottedOrange
+                                                    : CupertinoColors
+                                                        .secondarySystemBackground,
+                                          )
+                                        : event.live
+                                            ? const Text('Live',
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 20,
+                                                    height: 1.2),
+                                                textAlign: TextAlign.center)
+                                            : event.host == slottedUser?.id ||
+                                                    event.date
+                                                        .isBefore(DateTime.now())
+                                                ? const Text('View',
+                                                    style: TextStyle(
+                                                        color: Colors.black,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 20,
+                                                        height: 1.2),
+                                                    textAlign: TextAlign.center)
+                                                : event.attendees
+                                                        .contains(user?.uid)
+                                                    ? const Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Text(
+                                                            'Reserved',
+                                                            style: TextStyle(
                                                               color:
                                                                   slottedOrange,
-                                                              weight: 30,
-                                                            )
-                                                          ],
-                                                        )
-                                                      : slottedUser == null
-                                                          ? const Text(
-                                                              'Sign in to reserve',
-                                                              style: TextStyle(
-                                                                color:
-                                                                    CupertinoColors
-                                                                        .label,
-                                                                fontSize: 19,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w800,
-                                                              ),
-                                                            )
-                                                          : event.openSlots > 0
-                                                              ? Text(
-                                                                  'Reserve - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
-                                                                  style:
-                                                                      const TextStyle(
-                                                                    color: CupertinoColors
-                                                                        .label,
-                                                                    fontSize:
-                                                                        20,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w800,
-                                                                  ),
-                                                                )
-                                                              : Text(
-                                                                  'Waitlist - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
-                                                                  style:
-                                                                      const TextStyle(
-                                                                    color: CupertinoColors
-                                                                        .label,
-                                                                    fontSize:
-                                                                        20,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w800,
-                                                                  ),
+                                                              fontSize: 19,
+                                                              fontWeight:
+                                                                  FontWeight.w800,
+                                                            ),
+                                                          ),
+                                                          SizedBox(width: 12),
+                                                          Icon(
+                                                            CupertinoIcons
+                                                                .check_mark_circled_solid,
+                                                            size: 20,
+                                                            color: slottedOrange,
+                                                            weight: 30,
+                                                          )
+                                                        ],
+                                                      )
+                                                    : event.waitlist
+                                                            .contains(user?.uid)
+                                                        ? const Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              Text(
+                                                                'Waitlisted',
+                                                                style: TextStyle(
+                                                                  color:
+                                                                      slottedOrange,
+                                                                  fontSize: 19,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w800,
                                                                 ),
+                                                              ),
+                                                              SizedBox(width: 12),
+                                                              Icon(
+                                                                CupertinoIcons
+                                                                    .check_mark_circled_solid,
+                                                                size: 20,
+                                                                color:
+                                                                    slottedOrange,
+                                                                weight: 30,
+                                                              )
+                                                            ],
+                                                          )
+                                                        : slottedUser == null
+                                                            ? const Text(
+                                                                'Sign in to reserve',
+                                                                style: TextStyle(
+                                                                  color:
+                                                                      CupertinoColors
+                                                                          .label,
+                                                                  fontSize: 19,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w800,
+                                                                ),
+                                                              )
+                                                            : event.openSlots > 0
+                                                                ? Text(
+                                                                    'Reserve - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      color: CupertinoColors
+                                                                          .label,
+                                                                      fontSize:
+                                                                          20,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w800,
+                                                                    ),
+                                                                  )
+                                                                : Text(
+                                                                    'Waitlist - ${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'FREE'}',
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      color: CupertinoColors
+                                                                          .label,
+                                                                      fontSize:
+                                                                          20,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w800,
+                                                                    ),
+                                                                  ),
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(
-                              height: 32,
-                            )
-                          ],
+                              const SizedBox(
+                                height: 32,
+                              )
+                            ],
+                          ),
                         ),
                       ),
                     ),

@@ -18,6 +18,7 @@ import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/pages/event_details.dart';
 import 'package:slotted/pages/live.dart';
 import 'package:slotted/pages/profile.dart';
+import 'package:flutter/services.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage(
@@ -115,140 +116,208 @@ class _MyHomePageState extends State<MyHomePage> {
       child: CupertinoPageScaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: CupertinoColors.systemBackground,
-        child: StreamBuilder<DocumentSnapshot>(
-          stream: widget.user == null
-              ? null
-              : FirebaseFirestore.instance
-                  .doc('users/${widget.user!.uid}')
-                  .snapshots(),
-          builder: (context, snapshot) {
-            final SlottedUser? slottedUser =
-                snapshot.data == null || widget.user == null
-                    ? null
-                    : SlottedUser.fromDocument(snapshot.data!);
-            return StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance.collection('events').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(
-                    child: CupertinoActivityIndicator(
-                      color: slottedOrange,
-                      radius: 16,
-                    ),
-                  );
-                }
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                CupertinoColors.systemBlue.withOpacity(0.1),
+                CupertinoColors.systemPurple.withOpacity(0.1),
+              ],
+            ),
+          ),
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: widget.user == null
+                ? null
+                : FirebaseFirestore.instance
+                    .doc('users/${widget.user!.uid}')
+                    .snapshots(),
+            builder: (context, snapshot) {
+              final SlottedUser? slottedUser =
+                  snapshot.data == null || widget.user == null
+                      ? null
+                      : SlottedUser.fromDocument(snapshot.data!);
+              return StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance.collection('events').snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(
+                      child: CupertinoActivityIndicator(
+                        color: slottedOrange,
+                        radius: 16,
+                      ),
+                    );
+                  }
 
-                final events = _convertQuerySnapshotToEvents(snapshot.data!)
-                  ..sort((event_0, event_1) {
-                    return event_0.date.compareTo(event_1.date);
-                  });
+                  final events = _convertQuerySnapshotToEvents(snapshot.data!)
+                    ..sort((event_0, event_1) {
+                      return event_0.date.compareTo(event_1.date);
+                    });
 
-                final filteredEvents = events.where((event) {
-                  final lowerQuery = query.toLowerCase();
-                  return event.name.toLowerCase().contains(lowerQuery) ||
-                      event.address.toLowerCase().contains(lowerQuery) ||
-                      event.hostName.toLowerCase().contains(lowerQuery);
-                }).toList();
+                  final filteredEvents = events.where((event) {
+                    final lowerQuery = query.toLowerCase();
+                    return event.name.toLowerCase().contains(lowerQuery) ||
+                        event.address.toLowerCase().contains(lowerQuery) ||
+                        event.hostName.toLowerCase().contains(lowerQuery);
+                  }).toList();
 
-                final now = DateTime.now();
-                final todayEvents = filteredEvents.where((event) {
-                  return (event.date.day == now.day &&
-                          event.date.month == now.month &&
-                          event.date.year == now.year &&
-                          !event.ended) ||
-                      event.live;
-                }).toList();
+                  final now = DateTime.now();
+                  final todayEvents = filteredEvents.where((event) {
+                    return (event.date.day == now.day &&
+                            event.date.month == now.month &&
+                            event.date.year == now.year &&
+                            !event.ended) ||
+                        event.live;
+                  }).toList();
 
-                final tomorrow = now.add(const Duration(days: 1));
-                final tomorrowEvents = filteredEvents.where((event) {
-                  return event.date.day == tomorrow.day &&
-                      event.date.month == tomorrow.month &&
-                      event.date.year == tomorrow.year &&
-                      !event.ended;
-                }).toList();
+                  final tomorrow = now.add(const Duration(days: 1));
+                  final tomorrowEvents = filteredEvents.where((event) {
+                    return event.date.day == tomorrow.day &&
+                        event.date.month == tomorrow.month &&
+                        event.date.year == tomorrow.year &&
+                        !event.ended;
+                  }).toList();
 
-                final upcomingEvents = filteredEvents.where((event) {
-                  return !todayEvents.contains(event) &&
-                      !tomorrowEvents.contains(event) &&
-                      !event.ended;
-                }).toList();
+                  final upcomingEvents = filteredEvents.where((event) {
+                    return !todayEvents.contains(event) &&
+                        !tomorrowEvents.contains(event) &&
+                        !event.ended;
+                  }).toList();
 
-                final endedEvents =
-                    filteredEvents.where((event) => event.ended).toList();
+                  final endedEvents =
+                      filteredEvents.where((event) => event.ended).toList();
 
-                return ListView(
-                  controller: eventsScrollController,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: CupertinoTextField(
-                        onTap: () {
-                          setState(() {});
-                        },
-                        onChanged: (query) {
-                          setState(() {
-                            this.query = query;
-                          });
-                        },
-                        clearButtonMode: OverlayVisibilityMode.editing,
-                        focusNode: searchFocus,
-                        placeholder: 'Search',
-                        prefix: const Padding(
-                          padding: EdgeInsets.only(left: 8),
-                          child: Icon(
-                            CupertinoIcons.search,
-                            color: CupertinoColors.systemGrey,
-                          ),
-                        ),
+                  return Column(
+                    children: [
+                      Padding(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: CupertinoColors.systemBackground,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSearching
-                                ? slottedOrange
-                                : CupertinoColors.systemGrey,
-                            width: 1.5,
-                          ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: CupertinoTextField(
+                                onTap: () {
+                                  setState(() {});
+                                },
+                                onChanged: (query) {
+                                  setState(() {
+                                    this.query = query;
+                                  });
+                                },
+                                clearButtonMode: OverlayVisibilityMode.editing,
+                                focusNode: searchFocus,
+                                placeholder: 'Search',
+                                prefix: const Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: Icon(
+                                    CupertinoIcons.search,
+                                    color: CupertinoColors.systemGrey,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: CupertinoColors.systemBackground,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSearching
+                                        ? slottedOrange
+                                        : CupertinoColors.systemGrey,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () {
+                                showCupertinoModalPopup(
+                                  context: context,
+                                  builder: (context) => CupertinoActionSheet(
+                                    title: const Text('Filter by Category'),
+                                    actions: [
+                                      CupertinoActionSheetAction(
+                                        onPressed: () {
+                                          // Handle Comedy filter
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text('Comedy'),
+                                      ),
+                                      CupertinoActionSheetAction(
+                                        onPressed: () {
+                                          // Handle DJ filter
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text('DJ'),
+                                      ),
+                                      CupertinoActionSheetAction(
+                                        onPressed: () {
+                                          // Handle Poetry filter
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text('Poetry'),
+                                      ),
+                                    ],
+                                    cancelButton: CupertinoActionSheetAction(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Cancel'),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: const Icon(
+                                CupertinoIcons.slider_horizontal_3,
+                                color: slottedOrange,
+                                size: 24,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          'lib/assets/images/default_featured.jpg', // Replace with your image path
-                          fit: BoxFit.cover,
+                      Expanded(
+                        child: ListView(
+                          controller: eventsScrollController,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.asset(
+                                  'lib/assets/images/default_featured.jpg',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            if (todayEvents.isNotEmpty) ...[
+                              _buildHeader('Today'),
+                              ...todayEvents.map((event) =>
+                                  _buildListItem(context, event, slottedUser)),
+                            ],
+                            if (tomorrowEvents.isNotEmpty) ...[
+                              _buildHeader('Tomorrow'),
+                              ...tomorrowEvents.map((event) =>
+                                  _buildListItem(context, event, slottedUser)),
+                            ],
+                            if (upcomingEvents.isNotEmpty) ...[
+                              _buildHeader('Upcoming'),
+                              ...upcomingEvents.map((event) =>
+                                  _buildListItem(context, event, slottedUser)),
+                            ],
+                            if (endedEvents.isNotEmpty) ...[
+                              _buildHeader('Ended'),
+                              ...endedEvents.map((event) =>
+                                  _buildListItem(context, event, slottedUser)),
+                            ],
+                          ],
                         ),
                       ),
-                    ),
-                    if (todayEvents.isNotEmpty) ...[
-                      _buildHeader('Today'),
-                      ...todayEvents.map((event) =>
-                          _buildListItem(context, event, slottedUser)),
                     ],
-                    if (tomorrowEvents.isNotEmpty) ...[
-                      _buildHeader('Tomorrow'),
-                      ...tomorrowEvents.map((event) =>
-                          _buildListItem(context, event, slottedUser)),
-                    ],
-                    if (upcomingEvents.isNotEmpty) ...[
-                      _buildHeader('Upcoming'),
-                      ...upcomingEvents.map((event) =>
-                          _buildListItem(context, event, slottedUser)),
-                    ],
-                    if (endedEvents.isNotEmpty) ...[
-                      _buildHeader('Ended'),
-                      ...endedEvents.map((event) =>
-                          _buildListItem(context, event, slottedUser)),
-                    ],
-                  ],
-                );
-              },
-            );
-          },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -302,72 +371,31 @@ class _MyHomePageState extends State<MyHomePage> {
             authAction: widget.authAction,
             reserveAction: widget.reserveAction,
           ),
-          // event.live || event.ended || event.host != slottedUser?.id
-          //     ? LivePage(
-          //         event: event,
-          //         debug: widget.debug,
-          //         user: widget.user,
-          //         authAction: widget.authAction,
-          //         reserveAction: widget.reserveAction,
-          //       )
-          //     : EventDetailsPage(
-          //         initialEvent: event,
-          //         debug: widget.debug,
-          //         authAction: widget.authAction,
-          //       ),
         ),
       ),
-      // color: CupertinoColors.systemBackground,
-      // color: slottedOrange,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          // Shimmering slottedOrange and systemGrey gradient
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            stops: const [0.0, 0.4, 0.8, 1.0],
             colors: event.ended
                 ? [
-                    CupertinoColors.systemGrey
-                        .withRed(CupertinoColors.systemGrey.red + 1)
-                        .withGreen(CupertinoColors.systemGrey.green + 1)
-                        .withBlue(CupertinoColors.systemGrey.blue + 1)
-                        .withOpacity(0.9),
+                    CupertinoColors.systemGrey.withOpacity(0.9),
                     CupertinoColors.systemGrey.withOpacity(0.7),
-                    CupertinoColors.systemGrey
-                        .withRed(CupertinoColors.systemGrey.red + 1)
-                        .withGreen(CupertinoColors.systemGrey.green + 1)
-                        .withBlue(CupertinoColors.systemGrey.blue + 1)
-                        .withOpacity(0.9),
-                    CupertinoColors.systemGrey.withOpacity(0.8),
                   ]
                 : [
-                    slottedOrange
-                        .withRed(slottedOrange.red + 1)
-                        .withGreen(slottedOrange.green + 1)
-                        .withBlue(slottedOrange.blue + 1)
-                        .withOpacity(0.9),
-                    slottedOrange.withOpacity(0.7),
-                    slottedOrange
-                        .withRed(slottedOrange.red + 1)
-                        .withGreen(slottedOrange.green + 1)
-                        .withBlue(slottedOrange.blue + 1)
-                        .withOpacity(0.9),
-                    slottedOrange.withOpacity(0.8),
-                    // CupertinoColors.black.withOpacity(0.5),
-                    // slottedOrange.withOpacity(0.4),
-                    // CupertinoColors.white.withOpacity(0.8),
-                    // slottedOrange.withOpacity(0.8),
+                    CupertinoColors.systemBlue.withOpacity(0.9),
+                    CupertinoColors.systemPurple.withOpacity(0.7),
                   ],
           ),
           borderRadius: BorderRadius.circular(12),
-          // color: slottedOrange.withOpacity(1),
           boxShadow: [
             BoxShadow(
               color: event.ended
                   ? CupertinoColors.systemGrey.withOpacity(0.4)
-                  : slottedOrange.withOpacity(0.4),
+                  : CupertinoColors.systemPurple.withOpacity(0.4),
               spreadRadius: 3,
               blurRadius: 9,
             ),
@@ -461,7 +489,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.fromLTRB(0, 0, 0, 6),
                 height: 54,
@@ -475,146 +502,126 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    children: event.attendees
-                        .sublist(0, min(10, event.attendees.length))
-                        .asMap()
-                        .map(
-                          (index, attendee) => MapEntry(
-                            index,
-                            FutureBuilder<DocumentSnapshot>(
-                              future: FirebaseFirestore.instance
-                                  .doc('users/$attendee')
-                                  .get(),
-                              initialData: null,
-                              builder: (context, docSnapshot) {
-                                return FutureBuilder<String>(
-                                  future: FirebaseStorage.instance
-                                      .ref('profileImgs')
-                                      .child('$attendee.png')
-                                      .getDownloadURL(),
-                                  initialData: placeholderImage,
-                                  builder: (context, snapshot) {
-                                    return Transform.translate(
-                                      offset: Offset(index * -20.0,
-                                          0), // Adjust the overlap by changing this value
-                                      child: CupertinoButton(
-                                        onPressed: () =>
-                                            Navigator.of(context).push(
-                                          CupertinoPageRoute(
-                                            builder: (context) => AttendeesPage(
-                                              eventName: event.name,
-                                              attendees: event.attendees,
-                                              eventId: event.id,
-                                              scrollToUser: attendee,
-                                              debug: widget.debug,
-                                              user: widget.user,
-                                              authAction: widget.authAction,
+                    children: [
+                      ...event.attendees
+                          .sublist(0, min(5, event.attendees.length))
+                          .asMap()
+                          .map(
+                            (index, attendee) => MapEntry(
+                              index,
+                              FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .doc('users/$attendee')
+                                    .get(),
+                                initialData: null,
+                                builder: (context, docSnapshot) {
+                                  return FutureBuilder<String>(
+                                    future: FirebaseStorage.instance
+                                        .ref('profileImgs')
+                                        .child('$attendee.png')
+                                        .getDownloadURL(),
+                                    initialData: placeholderImage,
+                                    builder: (context, snapshot) {
+                                      return Transform.translate(
+                                        offset: Offset(index * -24,
+                                            0), // Positive offset makes right overlap left
+                                        child: CupertinoButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).push(
+                                            CupertinoPageRoute(
+                                              builder: (context) =>
+                                                  AttendeesPage(
+                                                eventName: event.name,
+                                                attendees: event.attendees,
+                                                eventId: event.id,
+                                                scrollToUser: attendee,
+                                                debug: widget.debug,
+                                                user: widget.user,
+                                                authAction: widget.authAction,
+                                              ),
+                                            ),
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                          child: Container(
+                                            padding: EdgeInsets.zero,
+                                            width: 36,
+                                            height: 36,
+                                            clipBehavior: Clip.hardEdge,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(32),
+                                              border: Border.all(
+                                                  color: Colors.black,
+                                                  width: 1.5,
+                                                  strokeAlign: BorderSide
+                                                      .strokeAlignOutside),
+                                            ),
+                                            child: CachedNetworkImage(
+                                              fit: BoxFit.fill,
+                                              imageUrl:
+                                                  snapshot.connectionState ==
+                                                              ConnectionState
+                                                                  .done &&
+                                                          snapshot.hasData
+                                                      ? snapshot.data.toString()
+                                                      : placeholderImage,
                                             ),
                                           ),
                                         ),
-                                        //                                 (docSnapshot.data?.exists ??
-                                        //                                     false) !=
-                                        //                                 true
-                                        //                             ? () =>  Navigator.of(context).push(
-                                        //   CupertinoPageRoute(
-                                        //     builder: (context) => AttendeesPage(event: event),
-                                        //   ),
-                                        // )
-
-                                        // showCupertinoDialog(
-                                        //       context: context,
-                                        //       builder: (context) =>
-                                        //           CupertinoAlertDialog(
-                                        //         title: const Text('🧍'),
-                                        //         content: Text(
-                                        //             '$attendee does not have an account'),
-                                        //         actions: [
-                                        //           CupertinoDialogAction(
-                                        //             child: const Text(
-                                        //                 'Dismiss'),
-                                        //             onPressed: () =>
-                                        //                 Navigator.of(
-                                        //                         context)
-                                        //                     .pop(),
-                                        //           ),
-                                        //         ],
-                                        //       ),
-                                        //     )
-                                        // : () =>
-
-                                        // Navigator.of(context).push(
-                                        //       CupertinoPageRoute(
-                                        //         builder: (context) =>
-                                        //             CupertinoPageScaffold(
-                                        //           resizeToAvoidBottomInset:
-                                        //               false,
-                                        //           backgroundColor:
-                                        //               CupertinoColors
-                                        //                   .systemBackground,
-                                        //           navigationBar:
-                                        //               const CupertinoNavigationBar(
-                                        //             middle: Text(
-                                        //                 "Performer's Profile"),
-                                        //             backgroundColor:
-                                        //                 CupertinoColors
-                                        //                     .secondarySystemBackground,
-                                        //           ),
-                                        //           child: ProfilePage(
-                                        //             debug: widget.debug,
-                                        //             user: widget.user,
-                                        //             authAction:
-                                        //                 (loggedIn) => widget
-                                        //                     .authAction(
-                                        //                         context,
-                                        //                         loggedIn,
-                                        //                         () {}),
-                                        //             viewUser:
-                                        //                 docSnapshot.data ==
-                                        //                         null
-                                        //                     ? null
-                                        //                     : attendee,
-                                        //           ),
-                                        //         ),
-                                        //       ),
-                                        //     ),
-                                        padding: EdgeInsets.zero,
-                                        child: Container(
-                                          width: 40,
-                                          height: 40,
-                                          clipBehavior: Clip.hardEdge,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(32),
-                                            border: Border.all(
-                                                color:
-                                                    snapshot.connectionState ==
-                                                            ConnectionState.done
-                                                        ? Colors.black
-                                                        : Colors.transparent,
-                                                width: 1.5,
-                                                strokeAlign: BorderSide
-                                                    .strokeAlignOutside),
-                                          ),
-                                          child: CachedNetworkImage(
-                                            fit: BoxFit.fill,
-                                            imageUrl: (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState.done &&
-                                                    snapshot.hasData)
-                                                ? snapshot.data.toString()
-                                                : placeholderImage,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          )
+                          .values
+                          .toList(),
+                      if (event.attendees.length > 5)
+                        Transform.translate(
+                          offset: const Offset(-24 * 5, 0),
+                          child: CupertinoButton(
+                            onPressed: () => Navigator.of(context).push(
+                              CupertinoPageRoute(
+                                builder: (context) => AttendeesPage(
+                                  eventName: event.name,
+                                  attendees: event.attendees,
+                                  eventId: event.id,
+                                  debug: widget.debug,
+                                  user: widget.user,
+                                  authAction: widget.authAction,
+                                ),
+                              ),
+                            ),
+                            padding: EdgeInsets.zero,
+                            child: Container(
+                              padding: EdgeInsets.zero,
+                              width: 36,
+                              height: 36,
+                              clipBehavior: Clip.hardEdge,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(32),
+                                border: Border.all(
+                                  color: Colors.black,
+                                  width: 1.5,
+                                  strokeAlign: BorderSide.strokeAlignOutside,
+                                ),
+                                color: CupertinoColors.systemGrey5,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '+${event.attendees.length - 5}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: CupertinoColors.label,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        )
-                        .values
-                        .toList(),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -648,7 +655,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: event.live ||
                               event.ended ||
                               event.date.isBefore(DateTime.now())
-                          ? () => Navigator.of(context).push(
+                          ? () {
+                              HapticFeedback.mediumImpact();
+                              Navigator.of(context).push(
                                 CupertinoPageRoute(
                                   builder: (context) => LivePage(
                                     event: event,
@@ -658,21 +667,29 @@ class _MyHomePageState extends State<MyHomePage> {
                                     reserveAction: widget.reserveAction,
                                   ),
                                 ),
-                              )
+                              );
+                            }
                           : event.host == slottedUser?.id
-                              ? () => Navigator.of(context).push(
+                              ? () {
+                                  HapticFeedback.mediumImpact();
+                                  Navigator.of(context).push(
                                     CupertinoPageRoute(
                                       builder: (context) => EditEventPage(
                                         user: slottedUser,
                                         event: event,
                                       ),
                                     ),
-                                  )
+                                  );
+                                }
                               : slottedUser == null
-                                  ? () =>
-                                      widget.authAction(context, false, () {})
-                                  : () =>
-                                      widget.reserveAction(event, slottedUser),
+                                  ? () {
+                                      HapticFeedback.mediumImpact();
+                                      widget.authAction(context, false, () {});
+                                    }
+                                  : () {
+                                      HapticFeedback.mediumImpact();
+                                      widget.reserveAction(event, slottedUser);
+                                    },
                       child: Container(
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
@@ -883,46 +900,46 @@ class _MyHomePageState extends State<MyHomePage> {
     );
 
     return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        child: slottedUser?.id == event.host
-            ? Dismissible(
-                key: Key(event.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 30, 0),
-                  alignment: Alignment.centerRight,
-                  // color: CupertinoColors.systemRed,
-                  child: const Icon(
-                    CupertinoIcons.trash,
-                    color: CupertinoColors.systemRed,
-                  ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: slottedUser?.id == event.host
+          ? Dismissible(
+              key: Key(event.id),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                padding: const EdgeInsets.fromLTRB(0, 0, 30, 0),
+                alignment: Alignment.centerRight,
+                child: const Icon(
+                  CupertinoIcons.trash,
+                  color: CupertinoColors.systemRed,
                 ),
-                confirmDismiss: (direction) {
-                  return showCupertinoDialog(
-                    context: context,
-                    builder: (context) => CupertinoAlertDialog(
-                      title: const Text('Delete Event'),
-                      content: const Text(
-                          'Are you sure you want to delete this event?'),
-                      actions: [
-                        CupertinoDialogAction(
-                          child: const Text('Cancel'),
-                          onPressed: () => Navigator.of(context).pop(false),
-                        ),
-                        CupertinoDialogAction(
-                          child: const Text('Delete'),
-                          onPressed: () async {
-                            widget.deleteEvent(event.id);
-                            Navigator.of(context).pop(true);
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: cellChild,
-              )
-            : cellChild);
+              ),
+              confirmDismiss: (direction) {
+                return showCupertinoDialog(
+                  context: context,
+                  builder: (context) => CupertinoAlertDialog(
+                    title: const Text('Delete Event'),
+                    content: const Text(
+                        'Are you sure you want to delete this event?'),
+                    actions: [
+                      CupertinoDialogAction(
+                        child: const Text('Cancel'),
+                        onPressed: () => Navigator.of(context).pop(false),
+                      ),
+                      CupertinoDialogAction(
+                        child: const Text('Delete'),
+                        onPressed: () async {
+                          widget.deleteEvent(event.id);
+                          Navigator.of(context).pop(true);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: cellChild,
+            )
+          : cellChild,
+    );
   }
 
   DateComponents _convertDateTimeToStringComponents(DateTime date) {

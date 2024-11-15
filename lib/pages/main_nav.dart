@@ -21,6 +21,7 @@ import 'package:slotted/pages/profile.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
 import 'package:slotted/widgets/code_verification_page.dart';
 import 'package:http/http.dart' as http;
+import 'notifications_page.dart';
 
 // Create class MainNav that manages a tab controller screen with 5 routes. The middle route must point to MyHomePage.
 class MainNav extends StatefulWidget {
@@ -485,7 +486,15 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                 middle: _buildNavigationTitle(),
                 leading: loggedIn
                     ? CupertinoButton(
-                        onPressed: isLoading ? null : () {},
+                        onPressed: isLoading
+                            ? null
+                            : () => Navigator.of(context).push(
+                                  CupertinoPageRoute(
+                                    builder: (context) => NotificationsPage(
+                                      user: snapshot.data,
+                                    ),
+                                  ),
+                                ),
                         padding: EdgeInsets.zero,
                         child: const Icon(CupertinoIcons.bell, size: 30),
                       )
@@ -507,64 +516,76 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                         ),
                 ),
               ),
-              child: CupertinoTabScaffold(
-                resizeToAvoidBottomInset: false,
-                tabBar: CupertinoTabBar(
-                  height: 64,
-                  backgroundColor: CupertinoColors.secondarySystemBackground,
-                  activeColor: slottedOrange,
-                  currentIndex: _tabController.index,
-                  onTap: (index) {
-                    _tabController.index = index;
-                    setState(() {
-                      switch (_tabController.index) {
-                        case 0:
-                          titleString = 'My Events';
-                        case 1:
-                          titleString = 'Slotted';
-                        case 2:
-                          titleString = 'Profile';
-                        default:
-                          titleString = 'Slotted';
-                      }
-                    });
-                  },
-                  iconSize: iconSize,
-                  items: [
-                    const BottomNavigationBarItem(
-                      icon: Icon(CupertinoIcons.list_bullet),
-                      // label: 'My Events',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(40),
-                          border: Border.all(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      CupertinoColors.systemBlue.withOpacity(0.1),
+                      CupertinoColors.systemPurple.withOpacity(0.1),
+                    ],
+                  ),
+                ),
+                child: CupertinoTabScaffold(
+                  resizeToAvoidBottomInset: false,
+                  tabBar: CupertinoTabBar(
+                    height: 64,
+                    backgroundColor: CupertinoColors.secondarySystemBackground,
+                    activeColor: slottedOrange,
+                    currentIndex: _tabController.index,
+                    onTap: (index) {
+                      _tabController.index = index;
+                      setState(() {
+                        switch (_tabController.index) {
+                          case 0:
+                            titleString = 'My Events';
+                          case 1:
+                            titleString = 'Slotted';
+                          case 2:
+                            titleString = 'Profile';
+                          default:
+                            titleString = 'Slotted';
+                        }
+                      });
+                    },
+                    iconSize: iconSize,
+                    items: [
+                      const BottomNavigationBarItem(
+                        icon: Icon(CupertinoIcons.list_bullet),
+                        // label: 'My Events',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(40),
+                            border: Border.all(
+                              color: _tabController.index == 1
+                                  ? slottedOrange.withOpacity(0.93)
+                                  : CupertinoColors.systemGrey.withOpacity(0.7),
+                              width: 3,
+                            ),
+                          ),
+                          child: Image.asset(
+                            'lib/assets/images/s_logo.png',
+                            width: iconSize * 1.2,
+                            height: iconSize * 1.2,
                             color: _tabController.index == 1
                                 ? slottedOrange.withOpacity(0.93)
                                 : CupertinoColors.systemGrey.withOpacity(0.7),
-                            width: 3,
                           ),
                         ),
-                        child: Image.asset(
-                          'lib/assets/images/s_logo.png',
-                          width: iconSize * 1.2,
-                          height: iconSize * 1.2,
-                          color: _tabController.index == 1
-                              ? slottedOrange.withOpacity(0.93)
-                              : CupertinoColors.systemGrey.withOpacity(0.7),
-                        ),
                       ),
-                    ),
-                    const BottomNavigationBarItem(
-                      icon: Icon(CupertinoIcons.person),
-                      // label: 'Profile',
-                    ),
-                  ],
+                      const BottomNavigationBarItem(
+                        icon: Icon(CupertinoIcons.person),
+                        // label: 'Profile',
+                      ),
+                    ],
+                  ),
+                  tabBuilder: (context, index) {
+                    return tabViews[index];
+                  },
                 ),
-                tabBuilder: (context, index) {
-                  return tabViews[index];
-                },
               ),
             ),
             if (isLoading)

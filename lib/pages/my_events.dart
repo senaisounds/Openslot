@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/date_components.dart';
 import 'package:slotted/common/event_class.dart';
@@ -52,283 +53,295 @@ class MyEventsPageState extends State<MyEventsPage> {
     return CupertinoPageScaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: CupertinoColors.systemBackground,
-      child: StreamBuilder<DocumentSnapshot>(
-        stream: widget.user == null
-            ? null
-            : FirebaseFirestore.instance
-                .doc('users/${widget.user!.uid}')
-                .snapshots(),
-        builder: (context, snapshot) {
-          final SlottedUser? slottedUser = snapshot.data != null
-              ? SlottedUser.fromDocument(snapshot.data!)
-              : null;
-          return Center(
-            child: snapshot.connectionState == ConnectionState.waiting
-                ? Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      // color: CupertinoColors.black.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const CircularProgressIndicator(
-                      strokeCap: StrokeCap.round,
-                      backgroundColor: CupertinoColors.systemOrange,
-                      strokeAlign: -8,
-                      strokeWidth: 5,
-                      color: slottedOrange,
-                    ),
-                  )
-                : widget.user == null
-                    ? CupertinoButton(
-                        child: const Text('Sign In'),
-                        onPressed: () =>
-                            widget.authAction(context, loggedIn, () {}),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (slottedUser!.isHost) ...[
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 32),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: CupertinoColors.black,
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: slottedOrange,
-                                        spreadRadius: 3,
-                                        blurRadius: 9,
-                                      ),
-                                    ],
-                                  ),
-                                  child: CupertinoSegmentedControl(
-                                    selectedColor: Colors.transparent,
-                                    borderColor: Colors.transparent,
-                                    pressedColor: Colors.transparent,
-                                    unselectedColor: Colors.transparent,
-                                    children: {
-                                      0: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 0, vertical: 12),
-                                        child: Text(
-                                          'Attending',
-                                          style: TextStyle(
-                                              color: eventMode == 1 &&
-                                                      slottedUser.isHost
-                                                  ? CupertinoColors
-                                                      .systemBackground
-                                                  : slottedOrange,
-                                              fontWeight: eventMode == 1 &&
-                                                      slottedUser.isHost
-                                                  ? FontWeight.w400
-                                                  : FontWeight.w700,
-                                              fontSize: eventMode == 1 &&
-                                                      slottedUser.isHost
-                                                  ? 17
-                                                  : 18),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                      1: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 0, vertical: 12),
-                                        child: Text(
-                                          'Hosting',
-                                          style: TextStyle(
-                                              color: eventMode == 1 &&
-                                                      slottedUser.isHost
-                                                  ? slottedOrange
-                                                  : CupertinoColors
-                                                      .systemBackground,
-                                              fontWeight: eventMode == 1 &&
-                                                      slottedUser.isHost
-                                                  ? FontWeight.w700
-                                                  : FontWeight.w400,
-                                              fontSize: eventMode == 1 &&
-                                                      slottedUser.isHost
-                                                  ? 18
-                                                  : 17),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    },
-                                    onValueChanged: (value) {
-                                      if (value == eventMode) return;
-                                      setState(() {
-                                        eventMode = value;
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              if (slottedUser.isHost) ...[
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              CupertinoColors.systemBlue.withOpacity(0.1),
+              CupertinoColors.systemPurple.withOpacity(0.1),
+            ],
+          ),
+        ),
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: widget.user == null
+              ? null
+              : FirebaseFirestore.instance
+                  .doc('users/${widget.user!.uid}')
+                  .snapshots(),
+          builder: (context, snapshot) {
+            final SlottedUser? slottedUser = snapshot.data != null
+                ? SlottedUser.fromDocument(snapshot.data!)
+                : null;
+            return Center(
+              child: snapshot.connectionState == ConnectionState.waiting
+                  ? Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        // color: CupertinoColors.black.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const CircularProgressIndicator(
+                        strokeCap: StrokeCap.round,
+                        backgroundColor: CupertinoColors.systemOrange,
+                        strokeAlign: -8,
+                        strokeWidth: 5,
+                        color: slottedOrange,
+                      ),
+                    )
+                  : widget.user == null
+                      ? CupertinoButton(
+                          child: const Text('Sign In'),
+                          onPressed: () =>
+                              widget.authAction(context, loggedIn, () {}),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (slottedUser!.isHost) ...[
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 30,
-                                  ),
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 32),
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: CupertinoColors.secondaryLabel,
+                                      color: CupertinoColors.black,
                                       borderRadius: BorderRadius.circular(12),
-                                      // boxShadow: const [
-                                      //   BoxShadow(
-                                      //     color: slottedOrange,
-                                      //     spreadRadius: 3,
-                                      //     blurRadius: 9,
-                                      //   ),
-                                      // ],
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: slottedOrange,
+                                          spreadRadius: 3,
+                                          blurRadius: 9,
+                                        ),
+                                      ],
                                     ),
-                                    child: CupertinoButton(
-                                      padding: EdgeInsets.zero,
-                                      onPressed: () =>
-                                          Navigator.of(context).push(
-                                        CupertinoPageRoute(
-                                          builder: (context) => EditEventPage(
-                                            user: slottedUser,
+                                    child: CupertinoSegmentedControl(
+                                      selectedColor: Colors.transparent,
+                                      borderColor: Colors.transparent,
+                                      pressedColor: Colors.transparent,
+                                      unselectedColor: Colors.transparent,
+                                      children: {
+                                        0: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 0, vertical: 12),
+                                          child: Text(
+                                            'Attending',
+                                            style: TextStyle(
+                                                color: eventMode == 1 &&
+                                                        slottedUser.isHost
+                                                    ? CupertinoColors
+                                                        .systemBackground
+                                                    : slottedOrange,
+                                                fontWeight: eventMode == 1 &&
+                                                        slottedUser.isHost
+                                                    ? FontWeight.w400
+                                                    : FontWeight.w700,
+                                                fontSize: eventMode == 1 &&
+                                                        slottedUser.isHost
+                                                    ? 17
+                                                    : 18),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        1: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 0, vertical: 12),
+                                          child: Text(
+                                            'Hosting',
+                                            style: TextStyle(
+                                                color: eventMode == 1 &&
+                                                        slottedUser.isHost
+                                                    ? slottedOrange
+                                                    : CupertinoColors
+                                                        .systemBackground,
+                                                fontWeight: eventMode == 1 &&
+                                                        slottedUser.isHost
+                                                    ? FontWeight.w700
+                                                    : FontWeight.w400,
+                                                fontSize: eventMode == 1 &&
+                                                        slottedUser.isHost
+                                                    ? 18
+                                                    : 17),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      },
+                                      onValueChanged: (value) {
+                                        if (value == eventMode) return;
+                                        setState(() {
+                                          eventMode = value;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                if (slottedUser.isHost) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 30,
+                                    ),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: CupertinoColors.secondaryLabel,
+                                        borderRadius: BorderRadius.circular(12),
+                                        // boxShadow: const [
+                                        //   BoxShadow(
+                                        //     color: slottedOrange,
+                                        //     spreadRadius: 3,
+                                        //     blurRadius: 9,
+                                        //   ),
+                                        // ],
+                                      ),
+                                      child: CupertinoButton(
+                                        padding: EdgeInsets.zero,
+                                        onPressed: () =>
+                                            Navigator.of(context).push(
+                                          CupertinoPageRoute(
+                                            builder: (context) => EditEventPage(
+                                              user: slottedUser,
+                                            ),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Create Event',
+                                          style: TextStyle(
+                                            color: slottedOrange,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 18,
                                           ),
                                         ),
                                       ),
-                                      child: const Text(
-                                        'Create Event',
-                                        style: TextStyle(
-                                          color: slottedOrange,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 18,
-                                        ),
-                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
+                                const SizedBox(height: 16),
                               ],
-                              const SizedBox(height: 16),
-                            ],
-                            Expanded(
-                              child: StreamBuilder<QuerySnapshot>(
-                                stream: eventMode == 1 && slottedUser.isHost
-                                    ? FirebaseFirestore.instance
-                                        .collection('events')
-                                        .where('host',
-                                            isEqualTo: widget.user!.uid)
-                                        .snapshots()
-                                    : FirebaseFirestore.instance
-                                        .collection('events')
-                                        .where('attendees',
-                                            arrayContains: widget.user!.uid)
-                                        .snapshots(),
-                                builder: (context, snapshot) {
-                                  if (!snapshot.hasData) {
-                                    return const Center(
-                                      child: CupertinoActivityIndicator(
-                                        color: slottedOrange,
-                                        radius: 16,
-                                      ),
-                                    );
-                                  }
-                                  if (snapshot.hasData) {
-                                    final events =
-                                        _convertQuerySnapshotToEvents(
-                                            snapshot.data!)
-                                          ..sort((event_0, event_1) {
-                                            return event_0.date
-                                                .compareTo(event_1.date);
-                                          });
-                                    final now = DateTime.now();
-                                    final todayEvents = events.where((event) {
-                                      return (event.date.day == now.day &&
-                                              event.date.month == now.month &&
-                                              event.date.year == now.year &&
-                                              !event.ended) ||
-                                          event.live;
-                                    }).toList();
-
-                                    final tomorrow =
-                                        now.add(const Duration(days: 1));
-                                    final tomorrowEvents =
-                                        events.where((event) {
-                                      return event.date.day == tomorrow.day &&
-                                          event.date.month == tomorrow.month &&
-                                          event.date.year == tomorrow.year &&
-                                          !event.ended;
-                                    }).toList();
-
-                                    final upcomingEvents =
-                                        events.where((event) {
-                                      return !todayEvents.contains(event) &&
-                                          !tomorrowEvents.contains(event) &&
-                                          !event.ended;
-                                    }).toList();
-
-                                    final endedEvents = events
-                                        .where((event) => event.ended)
-                                        .toList();
-
-                                    if (events.isEmpty) {
-                                      return const Text('No events found',
-                                          style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.w700,
-                                              color:
-                                                  CupertinoColors.systemGrey),
-                                          textAlign: TextAlign.center);
+                              Expanded(
+                                child: StreamBuilder<QuerySnapshot>(
+                                  stream: eventMode == 1 && slottedUser.isHost
+                                      ? FirebaseFirestore.instance
+                                          .collection('events')
+                                          .where('host',
+                                              isEqualTo: widget.user!.uid)
+                                          .snapshots()
+                                      : FirebaseFirestore.instance
+                                          .collection('events')
+                                          .where('attendees',
+                                              arrayContains: widget.user!.uid)
+                                          .snapshots(),
+                                  builder: (context, snapshot) {
+                                    if (!snapshot.hasData) {
+                                      return const Center(
+                                        child: CupertinoActivityIndicator(
+                                          color: slottedOrange,
+                                          radius: 16,
+                                        ),
+                                      );
                                     }
-                                    return ListView(
-                                      controller: eventsScrollController,
-                                      children: [
-                                        if (todayEvents.isNotEmpty) ...[
-                                          _buildHeader('Today'),
-                                          ...todayEvents.map((event) =>
-                                              _buildListItem(
-                                                  context, event, slottedUser)),
+                                    if (snapshot.hasData) {
+                                      final events =
+                                          _convertQuerySnapshotToEvents(
+                                              snapshot.data!)
+                                            ..sort((event_0, event_1) {
+                                              return event_0.date
+                                                  .compareTo(event_1.date);
+                                            });
+                                      final now = DateTime.now();
+                                      final todayEvents = events.where((event) {
+                                        return (event.date.day == now.day &&
+                                                event.date.month == now.month &&
+                                                event.date.year == now.year &&
+                                                !event.ended) ||
+                                            event.live;
+                                      }).toList();
+
+                                      final tomorrow =
+                                          now.add(const Duration(days: 1));
+                                      final tomorrowEvents =
+                                          events.where((event) {
+                                        return event.date.day == tomorrow.day &&
+                                            event.date.month == tomorrow.month &&
+                                            event.date.year == tomorrow.year &&
+                                            !event.ended;
+                                      }).toList();
+
+                                      final upcomingEvents =
+                                          events.where((event) {
+                                        return !todayEvents.contains(event) &&
+                                            !tomorrowEvents.contains(event) &&
+                                            !event.ended;
+                                      }).toList();
+
+                                      final endedEvents = events
+                                          .where((event) => event.ended)
+                                          .toList();
+
+                                      if (events.isEmpty) {
+                                        return const Text('No events found',
+                                            style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.w700,
+                                                color:
+                                                    CupertinoColors.systemGrey),
+                                            textAlign: TextAlign.center);
+                                      }
+                                      return ListView(
+                                        controller: eventsScrollController,
+                                        children: [
+                                          if (todayEvents.isNotEmpty) ...[
+                                            _buildHeader('Today'),
+                                            ...todayEvents.map((event) =>
+                                                _buildListItem(
+                                                    context, event, slottedUser)),
+                                          ],
+                                          if (tomorrowEvents.isNotEmpty) ...[
+                                            _buildHeader('Tomorrow'),
+                                            ...tomorrowEvents.map((event) =>
+                                                _buildListItem(
+                                                    context, event, slottedUser)),
+                                          ],
+                                          if (upcomingEvents.isNotEmpty) ...[
+                                            _buildHeader('Upcoming'),
+                                            ...upcomingEvents.map((event) =>
+                                                _buildListItem(
+                                                    context, event, slottedUser)),
+                                          ],
+                                          if (endedEvents.isNotEmpty) ...[
+                                            _buildHeader('Ended'),
+                                            ...endedEvents.map((event) =>
+                                                _buildListItem(
+                                                    context, event, slottedUser)),
+                                          ],
                                         ],
-                                        if (tomorrowEvents.isNotEmpty) ...[
-                                          _buildHeader('Tomorrow'),
-                                          ...tomorrowEvents.map((event) =>
-                                              _buildListItem(
-                                                  context, event, slottedUser)),
-                                        ],
-                                        if (upcomingEvents.isNotEmpty) ...[
-                                          _buildHeader('Upcoming'),
-                                          ...upcomingEvents.map((event) =>
-                                              _buildListItem(
-                                                  context, event, slottedUser)),
-                                        ],
-                                        if (endedEvents.isNotEmpty) ...[
-                                          _buildHeader('Ended'),
-                                          ...endedEvents.map((event) =>
-                                              _buildListItem(
-                                                  context, event, slottedUser)),
-                                        ],
-                                      ],
-                                    );
-                                    // return ListView.builder(
-                                    //   padding: const EdgeInsets.only(top: 4),
-                                    //   itemCount: events.length,
-                                    //   itemBuilder: (context, index) =>
-                                    //       _buildListItem(context, events[index],
-                                    //           slottedUser),
-                                    // );
-                                  } else if (snapshot.hasError) {
-                                    return Text('Error: ${snapshot.error}');
-                                  } else {
-                                    return const CupertinoActivityIndicator(
-                                      radius: 20,
-                                      color: slottedOrange,
-                                    );
-                                  }
-                                },
+                                      );
+                                      // return ListView.builder(
+                                      //   padding: const EdgeInsets.only(top: 4),
+                                      //   itemCount: events.length,
+                                      //   itemBuilder: (context, index) =>
+                                      //       _buildListItem(context, events[index],
+                                      //           slottedUser),
+                                      // );
+                                    } else if (snapshot.hasError) {
+                                      return Text('Error: ${snapshot.error}');
+                                    } else {
+                                      return const CupertinoActivityIndicator(
+                                        radius: 20,
+                                        color: slottedOrange,
+                                      );
+                                    }
+                                  },
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -380,46 +393,21 @@ class MyEventsPageState extends State<MyEventsPage> {
       ),
       // color: CupertinoColors.systemBackground,
       // color: slottedOrange,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          // Shimmering slottedOrange and systemGrey gradient
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            stops: const [0.0, 0.4, 0.8, 1.0],
             colors: event.ended
                 ? [
-                    CupertinoColors.systemGrey
-                        .withRed(CupertinoColors.systemGrey.red + 1)
-                        .withGreen(CupertinoColors.systemGrey.green + 1)
-                        .withBlue(CupertinoColors.systemGrey.blue + 1)
-                        .withOpacity(0.9),
+                    CupertinoColors.systemGrey.withOpacity(0.9),
                     CupertinoColors.systemGrey.withOpacity(0.7),
-                    CupertinoColors.systemGrey
-                        .withRed(CupertinoColors.systemGrey.red + 1)
-                        .withGreen(CupertinoColors.systemGrey.green + 1)
-                        .withBlue(CupertinoColors.systemGrey.blue + 1)
-                        .withOpacity(0.9),
-                    CupertinoColors.systemGrey.withOpacity(0.8),
                   ]
                 : [
-                    slottedOrange
-                        .withRed(slottedOrange.red + 1)
-                        .withGreen(slottedOrange.green + 1)
-                        .withBlue(slottedOrange.blue + 1)
-                        .withOpacity(0.9),
-                    slottedOrange.withOpacity(0.7),
-                    slottedOrange
-                        .withRed(slottedOrange.red + 1)
-                        .withGreen(slottedOrange.green + 1)
-                        .withBlue(slottedOrange.blue + 1)
-                        .withOpacity(0.9),
-                    slottedOrange.withOpacity(0.8),
-                    // CupertinoColors.black.withOpacity(0.5),
-                    // slottedOrange.withOpacity(0.4),
-                    // CupertinoColors.white.withOpacity(0.8),
-                    // slottedOrange.withOpacity(0.8),
+                    CupertinoColors.systemBlue.withOpacity(0.9),
+                    CupertinoColors.systemPurple.withOpacity(0.7),
                   ],
           ),
           borderRadius: BorderRadius.circular(12),
@@ -428,7 +416,7 @@ class MyEventsPageState extends State<MyEventsPage> {
             BoxShadow(
               color: event.ended
                   ? CupertinoColors.systemGrey.withOpacity(0.4)
-                  : slottedOrange.withOpacity(0.4),
+                  : CupertinoColors.systemPurple.withOpacity(0.4),
               spreadRadius: 3,
               blurRadius: 9,
             ),
@@ -522,7 +510,6 @@ class MyEventsPageState extends State<MyEventsPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.fromLTRB(0, 0, 0, 6),
                 height: 54,
@@ -536,124 +523,126 @@ class MyEventsPageState extends State<MyEventsPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    children: event.attendees
-                        .sublist(0, min(10, event.attendees.length))
-                        .asMap()
-                        .map(
-                          (index, attendee) => MapEntry(
-                            index,
-                            FutureBuilder<DocumentSnapshot>(
-                              future: FirebaseFirestore.instance
-                                  .doc('users/$attendee')
-                                  .get(),
-                              initialData: null,
-                              builder: (context, docSnapshot) {
-                                return FutureBuilder<String>(
-                                  future: FirebaseStorage.instance
-                                      .ref('profileImgs')
-                                      .child('$attendee.png')
-                                      .getDownloadURL(),
-                                  initialData: placeholderImage,
-                                  builder: (context, snapshot) {
-                                    return Transform.translate(
-                                      offset: Offset(index * -20.0,
-                                          0), // Adjust the overlap by changing this value
-                                      child: CupertinoButton(
-                                        onPressed: (docSnapshot.data?.exists ??
-                                                    false) !=
-                                                true
-                                            ? () => showCupertinoDialog(
-                                                  context: context,
-                                                  builder: (context) =>
-                                                      CupertinoAlertDialog(
-                                                    title: const Text('🧍'),
-                                                    content: Text(
-                                                        '$attendee does not have an account'),
-                                                    actions: [
-                                                      CupertinoDialogAction(
-                                                        child: const Text(
-                                                            'Dismiss'),
-                                                        onPressed: () =>
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop(),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                )
-                                            : () => Navigator.of(context).push(
-                                                  CupertinoPageRoute(
-                                                    builder: (context) =>
-                                                        CupertinoPageScaffold(
-                                                      resizeToAvoidBottomInset:
-                                                          false,
-                                                      backgroundColor:
-                                                          CupertinoColors
-                                                              .systemBackground,
-                                                      navigationBar:
-                                                          const CupertinoNavigationBar(
-                                                        middle: Text(
-                                                            "Performer's Profile"),
-                                                        backgroundColor:
-                                                            CupertinoColors
-                                                                .secondarySystemBackground,
-                                                      ),
-                                                      child: ProfilePage(
-                                                        debug: widget.debug,
-                                                        user: widget.user,
-                                                        authAction:
-                                                            (loggedIn) => widget
-                                                                .authAction(
-                                                                    context,
-                                                                    loggedIn,
-                                                                    () {}),
-                                                        viewUser:
-                                                            docSnapshot.data ==
-                                                                    null
-                                                                ? null
-                                                                : attendee,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                        padding: EdgeInsets.zero,
-                                        child: Container(
-                                          width: 40,
-                                          height: 40,
-                                          clipBehavior: Clip.hardEdge,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(32),
-                                            border: Border.all(
-                                                color:
-                                                    snapshot.connectionState ==
-                                                            ConnectionState.done
-                                                        ? Colors.black
-                                                        : Colors.transparent,
-                                                width: 1.5,
-                                                strokeAlign: BorderSide
-                                                    .strokeAlignOutside),
+                    children: [
+                      ...event.attendees
+                          .sublist(0, min(5, event.attendees.length))
+                          .asMap()
+                          .map(
+                            (index, attendee) => MapEntry(
+                              index,
+                              FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .doc('users/$attendee')
+                                    .get(),
+                                initialData: null,
+                                builder: (context, docSnapshot) {
+                                  return FutureBuilder<String>(
+                                    future: FirebaseStorage.instance
+                                        .ref('profileImgs')
+                                        .child('$attendee.png')
+                                        .getDownloadURL(),
+                                    initialData: placeholderImage,
+                                    builder: (context, snapshot) {
+                                      return Transform.translate(
+                                        offset: Offset(index * -24,
+                                            0), // Positive offset makes right overlap left
+                                        child: CupertinoButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).push(
+                                            CupertinoPageRoute(
+                                              builder: (context) =>
+                                                  AttendeesPage(
+                                                eventName: event.name,
+                                                attendees: event.attendees,
+                                                eventId: event.id,
+                                                scrollToUser: attendee,
+                                                debug: widget.debug,
+                                                user: widget.user,
+                                                authAction: widget.authAction,
+                                              ),
+                                            ),
                                           ),
-                                          child: CachedNetworkImage(
-                                            fit: BoxFit.fill,
-                                            imageUrl: (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState.done &&
-                                                    snapshot.hasData)
-                                                ? snapshot.data.toString()
-                                                : placeholderImage,
+                                          padding: EdgeInsets.zero,
+                                          child: Container(
+                                            padding: EdgeInsets.zero,
+                                            width: 36,
+                                            height: 36,
+                                            clipBehavior: Clip.hardEdge,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(32),
+                                              border: Border.all(
+                                                  color: Colors.black,
+                                                  width: 1.5,
+                                                  strokeAlign: BorderSide
+                                                      .strokeAlignOutside),
+                                            ),
+                                            child: CachedNetworkImage(
+                                              fit: BoxFit.fill,
+                                              imageUrl:
+                                                  snapshot.connectionState ==
+                                                              ConnectionState
+                                                                  .done &&
+                                                          snapshot.hasData
+                                                      ? snapshot.data.toString()
+                                                      : placeholderImage,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          )
+                          .values
+                          .toList(),
+                      if (event.attendees.length > 5)
+                        Transform.translate(
+                          offset: const Offset(-24 * 5, 0),
+                          child: CupertinoButton(
+                            onPressed: () => Navigator.of(context).push(
+                              CupertinoPageRoute(
+                                builder: (context) => AttendeesPage(
+                                  eventName: event.name,
+                                  attendees: event.attendees,
+                                  eventId: event.id,
+                                  debug: widget.debug,
+                                  user: widget.user,
+                                  authAction: widget.authAction,
+                                ),
+                              ),
+                            ),
+                            padding: EdgeInsets.zero,
+                            child: Container(
+                              padding: EdgeInsets.zero,
+                              width: 36,
+                              height: 36,
+                              clipBehavior: Clip.hardEdge,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(32),
+                                border: Border.all(
+                                  color: Colors.black,
+                                  width: 1.5,
+                                  strokeAlign: BorderSide.strokeAlignOutside,
+                                ),
+                                color: CupertinoColors.systemGrey5,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '+${event.attendees.length - 5}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: CupertinoColors.label,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        )
-                        .values
-                        .toList(),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -687,7 +676,9 @@ class MyEventsPageState extends State<MyEventsPage> {
                       onPressed: event.live ||
                               event.ended ||
                               event.date.isBefore(DateTime.now())
-                          ? () => Navigator.of(context).push(
+                          ? () {
+                              HapticFeedback.mediumImpact();
+                              Navigator.of(context).push(
                                 CupertinoPageRoute(
                                   builder: (context) => LivePage(
                                     event: event,
@@ -697,21 +688,29 @@ class MyEventsPageState extends State<MyEventsPage> {
                                     reserveAction: widget.reserveAction,
                                   ),
                                 ),
-                              )
+                              );
+                            }
                           : event.host == slottedUser?.id
-                              ? () => Navigator.of(context).push(
+                              ? () {
+                                  HapticFeedback.mediumImpact();
+                                  Navigator.of(context).push(
                                     CupertinoPageRoute(
                                       builder: (context) => EditEventPage(
                                         user: slottedUser,
                                         event: event,
                                       ),
                                     ),
-                                  )
+                                  );
+                                }
                               : slottedUser == null
-                                  ? () =>
-                                      widget.authAction(context, false, () {})
-                                  : () =>
-                                      widget.reserveAction(event, slottedUser),
+                                  ? () {
+                                      HapticFeedback.mediumImpact();
+                                      widget.authAction(context, false, () {});
+                                    }
+                                  : () {
+                                      HapticFeedback.mediumImpact();
+                                      widget.reserveAction(event, slottedUser);
+                                    },
                       child: Container(
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
@@ -766,13 +765,14 @@ class MyEventsPageState extends State<MyEventsPage> {
                                                   : event.waitlist.contains(
                                                           slottedUser.id)
                                                       ? CupertinoColors.label
-                                                      : event.attendees.length <
-                                                              event.slots
-                                                          ? slottedOrange
-                                                              .withBlue(slottedOrange.blue - 40)
-                                                              .withRed(slottedOrange.red - 40)
-                                                              .withGreen(slottedOrange.green - 40)
-                                                          : slottedOrange,
+                                                      : event.attendees
+                                                                  .length <
+                                                                  event.slots
+                                                              ? slottedOrange
+                                                                  .withBlue(slottedOrange.blue - 40)
+                                                                  .withRed(slottedOrange.red - 40)
+                                                                  .withGreen(slottedOrange.green - 40)
+                                                              : slottedOrange,
                               spreadRadius: 1,
                               blurRadius: 1,
                             ),

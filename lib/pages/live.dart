@@ -118,7 +118,8 @@ class LivePageState extends State<LivePage> {
 
   Future<void> _lineupPerformer(Event event, String? currentPerformer,
       String performer, String username) async {
-    bool isCurrentPerformer = currentPerformer == performer;
+    bool isCurrentPerformer =
+        currentPerformer == performer || currentPerformer == username;
     final confirmation = await showCupertinoDialog(
         context: context,
         builder: (context) {
@@ -178,7 +179,7 @@ class LivePageState extends State<LivePage> {
                           user: widget.user,
                           authAction: (loggedIn) =>
                               widget.authAction(context, loggedIn, () {}),
-                          viewUser: performer,
+                          viewUser: performer != widget.user?.uid ? performer : null,
                         ),
                       ),
                     ),
@@ -203,6 +204,10 @@ class LivePageState extends State<LivePage> {
             'performer': performer,
             'performerStart': null,
           });
+          setState(() {
+            widget.event.performer = performer;
+            widget.event.performerStart = null;
+          });
         }
         break;
       case null:
@@ -213,13 +218,23 @@ class LivePageState extends State<LivePage> {
             'performerStart':
                 event.performerStart != null ? DateTime.now() : null,
           });
+          setState(() {
+            widget.event.performer = null;
+            widget.event.performerStart =
+                event.performerStart != null ? DateTime.now() : null;
+          });
         }
+        break;
       case false:
         await FirebaseFirestore.instance
             .doc('events/${widget.event.id}')
             .update({
           'performer': null,
           'performerStart': null,
+        });
+        setState(() {
+          widget.event.performer = null;
+          widget.event.performerStart = null;
         });
         break;
       default:
@@ -335,6 +350,7 @@ class LivePageState extends State<LivePage> {
 
   @override
   Widget build(BuildContext context) {
+    final double pictureSize = 120.0;
     return StreamBuilder(
       initialData: widget.event,
       stream: FirebaseFirestore.instance
@@ -370,878 +386,928 @@ class LivePageState extends State<LivePage> {
               ),
             ),
           ),
-          child: SafeArea(
-            child: Stack(
-              children: [
-                FutureBuilder(
-                  future: event.performer == null
-                      ? null
-                      : FirebaseFirestore.instance
-                          .doc('users/${event.performer}')
-                          .get(),
-                  builder: (context, snapshot) {
-                    final username = snapshot.hasError
-                        ? ''
-                        : event.performer != null
-                            ? snapshot.data?.exists ?? false
-                                ? snapshot.data?.get('username') as String? ??
-                                    event.performer!
-                                : event.performer!
-                            : 'No Performer';
-                    final photoUrl = snapshot.hasError
-                        ? ''
-                        : event.performer != null
-                            ? snapshot.data?.exists ?? false
-                                ? snapshot.data?.get('photoUrl') as String? ??
-                                    placeholderImage
-                                : placeholderImage
-                            : '';
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  CupertinoColors.systemBlue.withOpacity(0.1),
+                  CupertinoColors.systemPurple.withOpacity(0.1),
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Stack(
+                children: [
+                  FutureBuilder(
+                    future: event.performer == null
+                        ? null
+                        : FirebaseFirestore.instance
+                            .doc('users/${event.performer}')
+                            .get(),
+                    builder: (context, snapshot) {
+                      final username = snapshot.hasError
+                          ? ''
+                          : event.performer != null
+                              ? snapshot.data?.exists ?? false
+                                  ? snapshot.data?.get('username') as String? ??
+                                      event.performer!
+                                  : event.performer!
+                              : 'No Performer';
+                      final photoUrl = snapshot.hasError
+                          ? ''
+                          : event.performer != null
+                              ? snapshot.data?.exists ?? false
+                                  ? snapshot.data?.get('photoUrl') as String? ??
+                                      placeholderImage
+                                  : placeholderImage
+                              : '';
 
-                    final progress = event.performerStart != null
-                        ? 1 -
-                            (DateTime.now()
-                                    .difference(event.performerStart!)
-                                    .inMilliseconds /
-                                (event.timeLimit * 60000))
-                        : 1.0;
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                decoration: photoUrl != ''
-                                    ? BoxDecoration(
-                                        image: DecorationImage(
-                                          colorFilter: const ColorFilter.mode(
-                                            CupertinoColors.secondaryLabel,
-                                            // slottedOrange,
-                                            BlendMode.darken,
-                                          ),
-                                          opacity: 0.5,
-                                          image: CachedNetworkImageProvider(
-                                            photoUrl,
-                                          ),
-                                          fit: BoxFit.cover,
-                                        ),
-                                        // color: CupertinoColors.black,
-                                        borderRadius:
-                                            BorderRadius.circular(120),
-                                      )
-                                    : null,
-                                width: 240,
-                                height: 240,
-                                child: CircularProgressIndicator(
-                                  value: event.performer == null ||
-                                          event.timeLimit == 0 ||
-                                          event.performerStart == null
-                                      ? 1
-                                      : progress,
-                                  strokeWidth: 6,
-                                  strokeCap: StrokeCap.round,
-                                  backgroundColor: Colors.transparent,
-                                  valueColor: AlwaysStoppedAnimation(
-                                      event.performer != null
-                                          ? slottedOrange
-                                          : CupertinoColors.secondaryLabel),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      event.performerStart == null
-                                          ? event.timeLimit == 0
-                                              ? '∞'
-                                              : "${event.timeLimit}:00"
-                                          : progress > 0
-                                              ? '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}'
-                                              : event.timeLimit == 0
-                                                  ? '∞'
-                                                  : '0:00',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 28,
-                                        color: event.performer != null
-                                            ? CupertinoColors.white
-                                            : CupertinoColors.systemGrey,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    if (event.performer != null)
-                                      Text(
-                                        username,
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    if (event.performer == null)
-                                      Text(
-                                        'No Performer',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 24,
-                                          color: event.performerStart != null
-                                              ? CupertinoColors.systemGreen
-                                              : CupertinoColors.systemGrey,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text("EXAMPLE"),
-                        const SizedBox(height: 12),
-                        Text(
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          event.name,
-                          style: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.w800),
-                        ),
-                        // const SizedBox(height: ),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.info),
-                              SizedBox(width: 8),
-                              Text("Details"),
-                            ],
-                          ),
-                          onPressed: () => Navigator.of(context).push(
-                            CupertinoPageRoute(
-                              builder: (context) => EventDetailsPage(
-                                initialEvent: event,
-                                debug: widget.debug,
-                                authAction: widget.authAction,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        if (event.rules.isNotEmpty) ...[
-                          const Text(
-                            'Rules',
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: CupertinoColors.systemBackground
-                                  .withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            height: 72,
-                            width: MediaQuery.of(context).size.width * 0.8,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.vertical,
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: event.rules
-                                    .split('\n')
-                                    .map((rule) => Text(
-                                          rule,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w600),
-                                        ))
-                                    .toList(),
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(
-                          height: 4,
-                        ),
-                        // ],
-                        // if (event.rules.isEmpty)
-                        Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                            clipBehavior: Clip.hardEdge,
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: CupertinoColors.secondaryLabel,
-                                ),
-                                color: CupertinoColors.secondaryLabel),
-                            child: Column(
+                      final progress = event.performerStart != null
+                          ? 1 -
+                              (DateTime.now()
+                                      .difference(event.performerStart!)
+                                      .inMilliseconds /
+                                  (event.timeLimit * 60000))
+                          : 1.0;
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Stack(
+                              alignment: Alignment.center,
                               children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    if (event.host == widget.user?.uid &&
-                                        !event.ended)
-                                      CupertinoButton(
-                                        padding: const EdgeInsets.all(8),
-                                        onPressed: () async {
-                                          final TextEditingController
-                                              controller =
-                                              TextEditingController();
-
-                                          await showCupertinoDialog(
-                                            context: context,
-                                            builder: (context) =>
-                                                CupertinoAlertDialog(
-                                              title:
-                                                  const Text("Add Performer"),
-                                              content: Column(
-                                                children: [
-                                                  Text(
-                                                      "\n${event.slots - event.attendees.length <= 0 ? 'Current available slots = 0, adding a performer will increase available slots +1' : 'Enter performer\'s name'}"),
-                                                  const SizedBox(height: 8),
-                                                  CupertinoTextField(
-                                                    autofocus: true,
-                                                    controller: controller,
-                                                    placeholder: "Name",
+                                Container(
+                                  decoration: photoUrl != ''
+                                      ? BoxDecoration(
+                                          image: DecorationImage(
+                                            colorFilter: const ColorFilter.mode(
+                                              CupertinoColors.secondaryLabel,
+                                              // slottedOrange,
+                                              BlendMode.darken,
+                                            ),
+                                            opacity: 0.5,
+                                            image: CachedNetworkImageProvider(
+                                              photoUrl,
+                                            ),
+                                            fit: BoxFit.cover,
+                                          ),
+                                          // color: CupertinoColors.black,
+                                          borderRadius:
+                                              BorderRadius.circular(120),
+                                        )
+                                      : null,
+                                  width: 240,
+                                  height: 240,
+                                  child: username.isNotEmpty &&
+                                          username.toLowerCase() != 'no performer'
+                                      ? Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            Text(
+                                              username.characters.first
+                                                  .toUpperCase(),
+                                              style: TextStyle(
+                                                fontSize: 240 * 0.78,
+                                                fontWeight: FontWeight.bold,
+                                                color: slottedOrange
+                                                    .withOpacity(0.0),
+                                                shadows: [
+                                                  Shadow(
+                                                    blurRadius: 12,
+                                                    color: slottedOrange
+                                                        .withOpacity(0.6),
+                                                    offset: const Offset(0, 0),
                                                   ),
                                                 ],
                                               ),
-                                              actions: [
-                                                CupertinoDialogAction(
-                                                  child: const Text("Cancel"),
-                                                  onPressed: () =>
-                                                      Navigator.of(context)
-                                                          .pop(),
-                                                ),
-                                                CupertinoDialogAction(
-                                                  child: const Text("Add"),
-                                                  onPressed: () async {
-                                                    final newName =
-                                                        controller.text.trim();
-                                                    if (newName.isNotEmpty &&
-                                                        !widget.event.attendees
-                                                            .contains(
-                                                                newName)) {
-                                                      setState(() {
-                                                        widget.event.attendees
-                                                            .add(newName);
-                                                        widget.event.reservationTimestamps[
-                                                                newName] =
-                                                            DateTime.now();
-                                                      });
-                                                      if (event.slots -
-                                                              event.attendees
-                                                                  .length <=
-                                                          0) {
-                                                        await FirebaseFirestore
-                                                            .instance
-                                                            .doc(
-                                                                'events/${widget.event.id}')
-                                                            .update({
-                                                          'slots':
-                                                              event.slots + 1,
-                                                          'attendees': widget
-                                                              .event.attendees,
-                                                          'reservationTimestamps':
-                                                              widget.event
-                                                                  .reservationTimestamps,
-                                                        });
-                                                      } else {
-                                                        await FirebaseFirestore
-                                                            .instance
-                                                            .doc(
-                                                                'events/${widget.event.id}')
-                                                            .update({
-                                                          'attendees': widget
-                                                              .event.attendees,
-                                                          'reservationTimestamps':
-                                                              widget.event
-                                                                  .reservationTimestamps,
-                                                        });
-                                                      }
-
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    } else {
-                                                      // Show an error message if the name is empty or already exists
-                                                      showCupertinoDialog(
-                                                        context: context,
-                                                        builder: (context) =>
-                                                            CupertinoAlertDialog(
-                                                          title: const Text(
-                                                              "Error"),
-                                                          content: const Text(
-                                                              "This performer is already added or the name is empty."),
-                                                          actions: [
-                                                            CupertinoDialogAction(
-                                                              child: const Text(
-                                                                  "OK"),
-                                                              onPressed: () =>
-                                                                  Navigator.of(
-                                                                          context)
-                                                                      .pop(),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      );
-                                                    }
-                                                  },
-                                                ),
-                                              ],
+                                              textAlign: TextAlign.center,
                                             ),
-                                          );
-                                        },
-                                        child: const Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(CupertinoIcons.add_circled),
-                                            SizedBox(width: 8),
-                                            Text("Add Performer"),
                                           ],
+                                        )
+                                      : CircularProgressIndicator(
+                                          value: event.performer == null ||
+                                                  event.timeLimit == 0 ||
+                                                  event.performerStart == null
+                                              ? 1
+                                              : progress,
+                                          strokeWidth: 6,
+                                          strokeCap: StrokeCap.round,
+                                          backgroundColor: Colors.transparent,
+                                          valueColor: AlwaysStoppedAnimation(
+                                              event.performer != null
+                                                  ? slottedOrange
+                                                  : CupertinoColors
+                                                      .secondaryLabel),
+                                        ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        event.performerStart == null
+                                            ? event.timeLimit == 0
+                                                ? '∞'
+                                                : "${event.timeLimit}:00"
+                                            : progress > 0
+                                                ? '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}'
+                                                : event.timeLimit == 0
+                                                    ? '∞'
+                                                    : '0:00',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 28,
+                                          color: event.performer != null
+                                              ? CupertinoColors.white
+                                              : CupertinoColors.systemGrey,
                                         ),
                                       ),
-                                    CupertinoButton(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 8),
-                                      onPressed: () =>
-                                          Navigator.of(context).push(
-                                        CupertinoPageRoute(
-                                          builder: (context) => AttendeesPage(
-                                            eventName: event.name,
-                                            attendees: event.attendees,
-                                            eventId: event.id,
-                                            debug: widget.debug,
-                                            user: widget.user,
-                                            authAction: widget.authAction,
+                                      const SizedBox(height: 12),
+                                      if (event.performer != null)
+                                        Text(
+                                          username,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                      ),
-                                      child: const Icon(
-                                          CupertinoIcons.person_2_fill),
-                                    ),
-                                  ],
-                                ),
-                                Expanded(
-                                  child: widget.user?.uid == event.host
-                                      ? ReorderableListView.builder(
-                                          onReorder: (oldIndex, newIndex) {
-                                            if (newIndex > oldIndex) {
-                                              newIndex -= 1;
-                                            }
-                                            setState(() {
-                                              final List<String>
-                                                  updatedAttendees = List.from(
-                                                      widget.event.attendees);
-                                              final String movedPerformer =
-                                                  updatedAttendees
-                                                      .removeAt(oldIndex);
-                                              updatedAttendees.insert(
-                                                  newIndex, movedPerformer);
-                                              widget.event.attendees =
-                                                  updatedAttendees;
-                                            });
-                                            // Perform async update after setState
-                                            FirebaseFirestore.instance
-                                                .doc(
-                                                    'events/${widget.event.id}')
-                                                .update({
-                                              'attendees':
-                                                  widget.event.attendees,
-                                            });
-                                          },
-                                          itemCount:
-                                              widget.event.attendees.length,
-                                          itemBuilder: (context, index) {
-                                            final performerId =
-                                                widget.event.attendees[index];
-                                            return Dismissible(
-                                              key: ValueKey(performerId),
-                                              direction:
-                                                  DismissDirection.startToEnd,
-                                              onDismissed: (direction) {
-                                                _removePerformer(performerId);
-                                              },
-                                              background: Container(
-                                                color:
-                                                    CupertinoColors.systemRed,
-                                                alignment: Alignment.centerLeft,
-                                                padding: const EdgeInsets.only(
-                                                    left: 20),
-                                                child: const Icon(
-                                                    CupertinoIcons.delete,
-                                                    color:
-                                                        CupertinoColors.white),
-                                              ),
-                                              child: FutureBuilder(
-                                                future: FirebaseFirestore
-                                                    .instance
-                                                    .doc('users/$performerId')
-                                                    .get(),
-                                                builder: (context, snapshot) {
-                                                  final username = snapshot
-                                                          .hasError
-                                                      ? ''
-                                                      : snapshot.data?.exists ??
-                                                              false
-                                                          ? snapshot.data?.get(
-                                                                      'username')
-                                                                  as String? ??
-                                                              performerId
-                                                          : performerId;
-                                                  final photoUrl = snapshot
-                                                              .data?.exists ??
-                                                          false
-                                                      ? snapshot.data?.get(
-                                                                  'photoUrl')
-                                                              as String? ??
-                                                          placeholderImage
-                                                      : placeholderImage;
-                                                  return CupertinoListTile(
-                                                    onTap: isHost &&
-                                                            !widget
-                                                                .event.ended &&
-                                                            widget.event.live
-                                                        ? () {
-                                                            _lineupPerformer(
-                                                                widget.event,
-                                                                widget.event
-                                                                    .performer,
-                                                                performerId,
-                                                                username);
-                                                          }
-                                                        : (snapshot.data?.exists ??
-                                                                    false) !=
-                                                                true
-                                                            ? () =>
-                                                                showCupertinoDialog(
-                                                                  context:
-                                                                      context,
-                                                                  builder:
-                                                                      (context) =>
-                                                                          CupertinoAlertDialog(
-                                                                    title:
-                                                                        const Text(
-                                                                            '🧍'),
-                                                                    content: Text(
-                                                                        '$performerId does not have an account'),
-                                                                    actions: [
-                                                                      CupertinoDialogAction(
-                                                                        child: const Text(
-                                                                            'Dismiss'),
-                                                                        onPressed:
-                                                                            () =>
-                                                                                Navigator.of(context).pop(),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                )
-                                                            : () =>
-                                                                Navigator.of(
-                                                                        context)
-                                                                    .push(
-                                                                  CupertinoPageRoute(
-                                                                    builder:
-                                                                        (context) =>
-                                                                            CupertinoPageScaffold(
-                                                                      resizeToAvoidBottomInset:
-                                                                          false,
-                                                                      backgroundColor:
-                                                                          CupertinoColors
-                                                                              .systemBackground,
-                                                                      navigationBar:
-                                                                          const CupertinoNavigationBar(
-                                                                        middle:
-                                                                            Text("Performer's Profile"),
-                                                                        backgroundColor:
-                                                                            CupertinoColors.secondarySystemBackground,
-                                                                      ),
-                                                                      child:
-                                                                          ProfilePage(
-                                                                        debug: widget
-                                                                            .debug,
-                                                                        user: widget
-                                                                            .user,
-                                                                        authAction: (loggedIn) => widget.authAction(
-                                                                            context,
-                                                                            loggedIn,
-                                                                            () {}),
-                                                                        viewUser: snapshot.data ==
-                                                                                null
-                                                                            ? null
-                                                                            : performerId,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            16),
-                                                    leading: CircleAvatar(
-                                                      backgroundImage:
-                                                          CachedNetworkImageProvider(
-                                                              photoUrl),
-                                                    ),
-                                                    title: Text(
-                                                      username,
-                                                      style: const TextStyle(
-                                                        fontSize: 18,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                    trailing: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        if (widget.event
-                                                                    .reservationTimestamps[
-                                                                performerId] !=
-                                                            null)
-                                                          Text(
-                                                            _formatTimeSince(widget
-                                                                    .event
-                                                                    .reservationTimestamps[
-                                                                performerId]!),
-                                                            style:
-                                                                const TextStyle(
-                                                              color:
-                                                                  CupertinoColors
-                                                                      .systemGrey,
-                                                              fontSize: 14,
-                                                            ),
-                                                          ),
-                                                        const SizedBox(
-                                                            width: 8),
-                                                        if (isHost)
-                                                          const Icon(
-                                                              CupertinoIcons
-                                                                  .bars),
-                                                        if (widget.event
-                                                                .performer ==
-                                                            performerId)
-                                                          const Text(
-                                                            "Performing",
-                                                            style: TextStyle(
-                                                              color:
-                                                                  slottedOrange,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            );
-                                          },
-                                        )
-                                      : ListView.builder(
-                                          itemCount:
-                                              widget.event.attendees.length,
-                                          itemBuilder: (context, index) {
-                                            final performerId =
-                                                widget.event.attendees[index];
-                                            return Dismissible(
-                                              key: ValueKey(performerId),
-                                              background: Container(
-                                                color:
-                                                    CupertinoColors.systemRed,
-                                                alignment: Alignment.centerLeft,
-                                                padding: const EdgeInsets.only(
-                                                    left: 20),
-                                                child: const Icon(
-                                                    CupertinoIcons.delete,
-                                                    color:
-                                                        CupertinoColors.white),
-                                              ),
-                                              child: FutureBuilder(
-                                                future: FirebaseFirestore
-                                                    .instance
-                                                    .doc('users/$performerId')
-                                                    .get(),
-                                                builder: (context, snapshot) {
-                                                  final username = snapshot
-                                                          .hasError
-                                                      ? ''
-                                                      : snapshot.data?.exists ??
-                                                              false
-                                                          ? snapshot.data?.get(
-                                                                      'username')
-                                                                  as String? ??
-                                                              performerId
-                                                          : performerId;
-                                                  final photoUrl = snapshot
-                                                              .data?.exists ??
-                                                          false
-                                                      ? snapshot.data?.get(
-                                                                  'photoUrl')
-                                                              as String? ??
-                                                          placeholderImage
-                                                      : placeholderImage;
-                                                  return CupertinoListTile(
-                                                    onTap: isHost &&
-                                                            !widget
-                                                                .event.ended &&
-                                                            widget.event.live
-                                                        ? () {
-                                                            _lineupPerformer(
-                                                                widget.event,
-                                                                widget.event
-                                                                    .performer,
-                                                                performerId,
-                                                                username);
-                                                          }
-                                                        : (snapshot.data?.exists ??
-                                                                    false) !=
-                                                                true
-                                                            ? () =>
-                                                                showCupertinoDialog(
-                                                                  context:
-                                                                      context,
-                                                                  builder:
-                                                                      (context) =>
-                                                                          CupertinoAlertDialog(
-                                                                    title:
-                                                                        const Text(
-                                                                            '🧍'),
-                                                                    content: Text(
-                                                                        '$performerId does not have an account'),
-                                                                    actions: [
-                                                                      CupertinoDialogAction(
-                                                                        child: const Text(
-                                                                            'Dismiss'),
-                                                                        onPressed:
-                                                                            () =>
-                                                                                Navigator.of(context).pop(),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                )
-                                                            : () =>
-                                                                Navigator.of(
-                                                                        context)
-                                                                    .push(
-                                                                  CupertinoPageRoute(
-                                                                    builder:
-                                                                        (context) =>
-                                                                            CupertinoPageScaffold(
-                                                                      resizeToAvoidBottomInset:
-                                                                          false,
-                                                                      backgroundColor:
-                                                                          CupertinoColors
-                                                                              .systemBackground,
-                                                                      navigationBar:
-                                                                          const CupertinoNavigationBar(
-                                                                        middle:
-                                                                            Text("Performer's Profile"),
-                                                                        backgroundColor:
-                                                                            CupertinoColors.secondarySystemBackground,
-                                                                      ),
-                                                                      child:
-                                                                          ProfilePage(
-                                                                        debug: widget
-                                                                            .debug,
-                                                                        user: widget
-                                                                            .user,
-                                                                        authAction: (loggedIn) => widget.authAction(
-                                                                            context,
-                                                                            loggedIn,
-                                                                            () {}),
-                                                                        viewUser: snapshot.data ==
-                                                                                null
-                                                                            ? null
-                                                                            : performerId,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            16),
-                                                    leading: CircleAvatar(
-                                                      backgroundImage:
-                                                          CachedNetworkImageProvider(
-                                                              photoUrl),
-                                                    ),
-                                                    title: Text(
-                                                      username,
-                                                      style: const TextStyle(
-                                                        fontSize: 18,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                    trailing: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        if (widget.event
-                                                                    .reservationTimestamps[
-                                                                performerId] !=
-                                                            null)
-                                                          Text(
-                                                            _formatTimeSince(widget
-                                                                    .event
-                                                                    .reservationTimestamps[
-                                                                performerId]!),
-                                                            style:
-                                                                const TextStyle(
-                                                              color:
-                                                                  CupertinoColors
-                                                                      .systemGrey,
-                                                              fontSize: 14,
-                                                            ),
-                                                          ),
-                                                        const SizedBox(
-                                                            width: 8),
-                                                        if (isHost)
-                                                          const Icon(
-                                                              CupertinoIcons
-                                                                  .bars),
-                                                        if (widget.event
-                                                                .performer ==
-                                                            performerId)
-                                                          const Text(
-                                                            "Performing",
-                                                            style: TextStyle(
-                                                              color:
-                                                                  slottedOrange,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            );
-                                          },
+                                      if (event.performer == null)
+                                        Text(
+                                          'No Performer',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 24,
+                                            color: event.performerStart != null
+                                                ? CupertinoColors.systemGreen
+                                                : CupertinoColors.systemGrey,
+                                          ),
                                         ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                        if (isHost)
-                          Container(
-                            width: MediaQuery.of(context).size.width * 0.9,
-                            height: 84,
-                            padding: const EdgeInsets.fromLTRB(8, 24, 8, 0),
-                            child: Row(
+                          const SizedBox(height: 12),
+                          const Text("EXAMPLE"),
+                          const SizedBox(height: 12),
+                          Text(
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            event.name,
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.w800),
+                          ),
+                          // const SizedBox(height: ),
+                          CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                if (event.live) ...[
+                                Icon(Icons.info),
+                                SizedBox(width: 8),
+                                Text("Details"),
+                              ],
+                            ),
+                            onPressed: () => Navigator.of(context).push(
+                              CupertinoPageRoute(
+                                builder: (context) => EventDetailsPage(
+                                  initialEvent: event,
+                                  debug: widget.debug,
+                                  authAction: widget.authAction,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          if (event.rules.isNotEmpty) ...[
+                            const Text(
+                              'Rules',
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: CupertinoColors.systemBackground
+                                    .withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              height: 72,
+                              width: MediaQuery.of(context).size.width * 0.8,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.vertical,
+                                child: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: event.rules
+                                      .split('\n')
+                                      .map((rule) => Text(
+                                            rule,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w600),
+                                          ))
+                                      .toList(),
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(
+                            height: 4,
+                          ),
+                          // ],
+                          // if (event.rules.isEmpty)
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                              clipBehavior: Clip.hardEdge,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: CupertinoColors.secondaryLabel,
+                                  ),
+                                  color: CupertinoColors.secondaryLabel),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      if (event.host == widget.user?.uid &&
+                                          !event.ended)
+                                        CupertinoButton(
+                                          padding: const EdgeInsets.all(8),
+                                          onPressed: () async {
+                                            final TextEditingController
+                                                controller =
+                                                TextEditingController();
+
+                                            await showCupertinoDialog(
+                                              context: context,
+                                              builder: (context) =>
+                                                  CupertinoAlertDialog(
+                                                title:
+                                                    const Text("Add Performer"),
+                                                content: Column(
+                                                  children: [
+                                                    Text(
+                                                        "\n${event.slots - event.attendees.length <= 0 ? 'Current available slots = 0, adding a performer will increase available slots +1' : 'Enter performer\'s name'}"),
+                                                    const SizedBox(height: 8),
+                                                    CupertinoTextField(
+                                                      autofocus: true,
+                                                      controller: controller,
+                                                      placeholder: "Name",
+                                                    ),
+                                                  ],
+                                                ),
+                                                actions: [
+                                                  CupertinoDialogAction(
+                                                    child: const Text("Cancel"),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                  ),
+                                                  CupertinoDialogAction(
+                                                    child: const Text("Add"),
+                                                    onPressed: () async {
+                                                      // Disable the button by popping the dialog
+                                                      Navigator.of(context).pop();
+
+                                                      final newName =
+                                                          controller.text.trim();
+                                                      if (newName.isNotEmpty &&
+                                                          !widget.event.attendees
+                                                              .contains(
+                                                                  newName)) {
+                                                        setState(() {
+                                                          widget.event.attendees
+                                                              .add(newName);
+                                                          widget.event.reservationTimestamps[
+                                                                  newName] =
+                                                              DateTime.now();
+                                                        });
+                                                        if (event.slots -
+                                                                event.attendees
+                                                                    .length <=
+                                                                0) {
+                                                          await FirebaseFirestore
+                                                              .instance
+                                                              .doc(
+                                                                  'events/${widget.event.id}')
+                                                              .update({
+                                                            'slots':
+                                                                event.slots + 1,
+                                                            'attendees': widget
+                                                                .event.attendees,
+                                                            'reservationTimestamps':
+                                                                widget.event
+                                                                    .reservationTimestamps,
+                                                          });
+                                                        } else {
+                                                          await FirebaseFirestore
+                                                              .instance
+                                                              .doc(
+                                                                  'events/${widget.event.id}')
+                                                              .update({
+                                                            'attendees': widget
+                                                                .event.attendees,
+                                                            'reservationTimestamps':
+                                                                widget.event
+                                                                    .reservationTimestamps,
+                                                          });
+                                                        }
+                                                      } else {
+                                                        // Show an error message if the name is empty or already exists
+                                                        showCupertinoDialog(
+                                                          context: context,
+                                                          builder: (context) =>
+                                                              CupertinoAlertDialog(
+                                                            title: const Text(
+                                                                "Error"),
+                                                            content: const Text(
+                                                                "This performer is already added or the name is empty."),
+                                                            actions: [
+                                                              CupertinoDialogAction(
+                                                                child: const Text(
+                                                                    "OK"),
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop(),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      }
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                          child: const Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(CupertinoIcons.add_circled),
+                                              SizedBox(width: 8),
+                                              Text("Add Performer"),
+                                            ],
+                                          ),
+                                        ),
+                                      CupertinoButton(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 8),
+                                        onPressed: () =>
+                                            Navigator.of(context).push(
+                                          CupertinoPageRoute(
+                                            builder: (context) => AttendeesPage(
+                                              eventName: event.name,
+                                              attendees: event.attendees,
+                                              eventId: event.id,
+                                              debug: widget.debug,
+                                              user: widget.user,
+                                              authAction: widget.authAction,
+                                            ),
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                            CupertinoIcons.person_2_fill),
+                                      ),
+                                    ],
+                                  ),
                                   Expanded(
-                                    // flex: 2,
+                                    child: widget.user?.uid == event.host &&
+                                            !event.ended
+                                        ? ReorderableListView.builder(
+                                            onReorder: (oldIndex, newIndex) {
+                                              if (newIndex > oldIndex) {
+                                                newIndex -= 1;
+                                              }
+                                              setState(() {
+                                                final List<String>
+                                                    updatedAttendees = List.from(
+                                                        widget.event.attendees);
+                                                final String movedPerformer =
+                                                    updatedAttendees
+                                                        .removeAt(oldIndex);
+                                                updatedAttendees.insert(
+                                                    newIndex, movedPerformer);
+                                                widget.event.attendees =
+                                                    updatedAttendees;
+                                              });
+                                              // Perform async update after setState
+                                              FirebaseFirestore.instance
+                                                  .doc(
+                                                      'events/${widget.event.id}')
+                                                  .update({
+                                                'attendees':
+                                                    widget.event.attendees,
+                                              });
+                                            },
+                                            itemCount:
+                                                widget.event.attendees.length,
+                                            itemBuilder: (context, index) {
+                                              final performerId =
+                                                  widget.event.attendees[index];
+                                              return Dismissible(
+                                                key: ValueKey(performerId),
+                                                direction:
+                                                    DismissDirection.startToEnd,
+                                                onDismissed: (direction) {
+                                                  _removePerformer(performerId);
+                                                },
+                                                background: Container(
+                                                  color:
+                                                      CupertinoColors.systemRed,
+                                                  alignment: Alignment.centerLeft,
+                                                  padding: const EdgeInsets.only(
+                                                      left: 20),
+                                                  child: const Icon(
+                                                      CupertinoIcons.delete,
+                                                      color:
+                                                          CupertinoColors.white),
+                                                ),
+                                                child: FutureBuilder(
+                                                  future: FirebaseFirestore
+                                                      .instance
+                                                      .doc('users/$performerId')
+                                                      .get(),
+                                                  builder: (context, snapshot) {
+                                                    final username = snapshot
+                                                            .hasError
+                                                        ? ''
+                                                        : snapshot.data?.exists ??
+                                                                false
+                                                            ? snapshot.data?.get(
+                                                                        'username')
+                                                                    as String? ??
+                                                                performerId
+                                                            : performerId;
+                                                    final photoUrl = snapshot
+                                                                .data?.exists ??
+                                                            false
+                                                        ? snapshot.data?.get(
+                                                                    'photoUrl')
+                                                                as String? ??
+                                                            placeholderImage
+                                                        : placeholderImage;
+                                                    return CupertinoListTile(
+                                                      onTap: isHost &&
+                                                              !widget
+                                                                  .event.ended &&
+                                                              widget.event.live
+                                                          ? () {
+                                                              _lineupPerformer(
+                                                                  widget.event,
+                                                                  widget.event
+                                                                      .performer,
+                                                                  performerId,
+                                                                  username);
+                                                            }
+                                                          : (snapshot.data?.exists ??
+                                                                      false) !=
+                                                                  true
+                                                              ? () =>
+                                                                  showCupertinoDialog(
+                                                                    context:
+                                                                        context,
+                                                                    builder:
+                                                                        (context) =>
+                                                                            CupertinoAlertDialog(
+                                                                      title:
+                                                                          const Text(
+                                                                              '🧍'),
+                                                                      content: Text(
+                                                                          '$performerId does not have an account'),
+                                                                      actions: [
+                                                                        CupertinoDialogAction(
+                                                                          child: const Text(
+                                                                              'Dismiss'),
+                                                                          onPressed:
+                                                                              () =>
+                                                                                  Navigator.of(context).pop(),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  )
+                                                              : () =>
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .push(
+                                                                    CupertinoPageRoute(
+                                                                      builder:
+                                                                          (context) =>
+                                                                              CupertinoPageScaffold(
+                                                                        resizeToAvoidBottomInset:
+                                                                            false,
+                                                                        backgroundColor:
+                                                                            CupertinoColors
+                                                                                .systemBackground,
+                                                                        navigationBar:
+                                                                            const CupertinoNavigationBar(
+                                                                          middle:
+                                                                              Text("Performer's Profile"),
+                                                                          backgroundColor:
+                                                                              CupertinoColors.secondarySystemBackground,
+                                                                        ),
+                                                                        child:
+                                                                            ProfilePage(
+                                                                          debug: widget
+                                                                              .debug,
+                                                                          user: widget
+                                                                              .user,
+                                                                          authAction: (loggedIn) => widget.authAction(
+                                                                              context,
+                                                                              loggedIn,
+                                                                              () {}),
+                                                                          viewUser: snapshot.data ==
+                                                                                  null
+                                                                              ? null
+                                                                              : performerId != widget.user?.uid ? performerId : null,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              16),
+                                                      leading: CircleAvatar(
+                                                        backgroundImage:
+                                                            CachedNetworkImageProvider(
+                                                                photoUrl),
+                                                      ),
+                                                      title: Text(
+                                                        username,
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                      trailing: Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          if (widget.event
+                                                                  .performer ==
+                                                              performerId) ...[
+                                                            const Text(
+                                                              "Performing",
+                                                              style: TextStyle(
+                                                                color:
+                                                                    slottedOrange,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 16,
+                                                            )
+                                                          ],
+                                                          if (widget.event
+                                                                      .reservationTimestamps[
+                                                                  performerId] !=
+                                                              null)
+                                                            Text(
+                                                              _formatTimeSince(widget
+                                                                      .event
+                                                                      .reservationTimestamps[
+                                                                  performerId]!),
+                                                              style:
+                                                                  const TextStyle(
+                                                                color:
+                                                                    CupertinoColors
+                                                                        .systemGrey,
+                                                                fontSize: 14,
+                                                              ),
+                                                            ),
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          if (isHost &&
+                                                              !event.ended)
+                                                            const Icon(
+                                                                CupertinoIcons
+                                                                    .bars),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              );
+                                            },
+                                          )
+                                        : ListView.builder(
+                                            itemCount:
+                                                widget.event.attendees.length,
+                                            itemBuilder: (context, index) {
+                                              final performerId =
+                                                  widget.event.attendees[index];
+                                              return Dismissible(
+                                                key: ValueKey(performerId),
+                                                background: Container(
+                                                  color:
+                                                      CupertinoColors.systemRed,
+                                                  alignment: Alignment.centerLeft,
+                                                  padding: const EdgeInsets.only(
+                                                      left: 20),
+                                                  child: const Icon(
+                                                      CupertinoIcons.delete,
+                                                      color:
+                                                          CupertinoColors.white),
+                                                ),
+                                                child: FutureBuilder(
+                                                  future: FirebaseFirestore
+                                                      .instance
+                                                      .doc('users/$performerId')
+                                                      .get(),
+                                                  builder: (context, snapshot) {
+                                                    final username = snapshot
+                                                            .hasError
+                                                        ? ''
+                                                        : snapshot.data?.exists ??
+                                                                false
+                                                            ? snapshot.data?.get(
+                                                                        'username')
+                                                                    as String? ??
+                                                                performerId
+                                                            : performerId;
+                                                    final photoUrl = snapshot
+                                                                .data?.exists ??
+                                                            false
+                                                        ? snapshot.data?.get(
+                                                                    'photoUrl')
+                                                                as String? ??
+                                                            placeholderImage
+                                                        : placeholderImage;
+                                                    return CupertinoListTile(
+                                                      onTap: isHost &&
+                                                              !widget
+                                                                  .event.ended &&
+                                                              widget.event.live
+                                                          ? () {
+                                                              _lineupPerformer(
+                                                                  widget.event,
+                                                                  widget.event
+                                                                      .performer,
+                                                                  performerId,
+                                                                  username);
+                                                            }
+                                                          : (snapshot.data?.exists ??
+                                                                      false) !=
+                                                                  true
+                                                              ? () =>
+                                                                  showCupertinoDialog(
+                                                                    context:
+                                                                        context,
+                                                                    builder:
+                                                                        (context) =>
+                                                                            CupertinoAlertDialog(
+                                                                      title:
+                                                                          const Text(
+                                                                              '🧍'),
+                                                                      content: Text(
+                                                                          '$performerId does not have an account'),
+                                                                      actions: [
+                                                                        CupertinoDialogAction(
+                                                                          child: const Text(
+                                                                              'Dismiss'),
+                                                                          onPressed:
+                                                                              () =>
+                                                                                  Navigator.of(context).pop(),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  )
+                                                              : () =>
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .push(
+                                                                    CupertinoPageRoute(
+                                                                      builder:
+                                                                          (context) =>
+                                                                              CupertinoPageScaffold(
+                                                                        resizeToAvoidBottomInset:
+                                                                            false,
+                                                                        backgroundColor:
+                                                                            CupertinoColors
+                                                                                .systemBackground,
+                                                                        navigationBar:
+                                                                            const CupertinoNavigationBar(
+                                                                          middle:
+                                                                              Text("Performer's Profile"),
+                                                                          backgroundColor:
+                                                                              CupertinoColors.secondarySystemBackground,
+                                                                        ),
+                                                                        child:
+                                                                            ProfilePage(
+                                                                          debug: widget
+                                                                              .debug,
+                                                                          user: widget
+                                                                              .user,
+                                                                          authAction: (loggedIn) => widget.authAction(
+                                                                              context,
+                                                                              loggedIn,
+                                                                              () {}),
+                                                                          viewUser: snapshot.data ==
+                                                                                  null
+                                                                              ? null
+                                                                              : performerId != widget.user?.uid ? performerId : null,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              16),
+                                                      leading: CircleAvatar(
+                                                        backgroundImage:
+                                                            CachedNetworkImageProvider(
+                                                                photoUrl),
+                                                      ),
+                                                      title: Text(
+                                                        username,
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                      trailing: Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          if (widget.event
+                                                                  .performer ==
+                                                              performerId) ...[
+                                                            const Text(
+                                                              "Performing",
+                                                              style: TextStyle(
+                                                                color:
+                                                                    slottedOrange,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 16,
+                                                            )
+                                                          ],
+                                                          if (widget.event
+                                                                      .reservationTimestamps[
+                                                                  performerId] !=
+                                                              null)
+                                                            Text(
+                                                              _formatTimeSince(widget
+                                                                      .event
+                                                                      .reservationTimestamps[
+                                                                  performerId]!),
+                                                              style:
+                                                                  const TextStyle(
+                                                                color:
+                                                                    CupertinoColors
+                                                                        .systemGrey,
+                                                                fontSize: 14,
+                                                              ),
+                                                            ),
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          if (isHost &&
+                                                              !event.ended)
+                                                            const Icon(
+                                                                CupertinoIcons
+                                                                    .bars),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (isHost)
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.9,
+                              height: 84,
+                              padding: const EdgeInsets.fromLTRB(8, 24, 8, 0),
+                              child: Row(
+                                children: [
+                                  if (event.live) ...[
+                                    Expanded(
+                                      // flex: 2,
+                                      child: CupertinoButton(
+                                        padding: EdgeInsets.zero,
+                                        minSize: 58,
+                                        borderRadius: BorderRadius.circular(20),
+                                        onPressed: () => _endEvent(),
+                                        color: CupertinoColors.systemRed,
+                                        child: const Icon(
+                                          CupertinoIcons.stop_circle_fill,
+                                          size: 32,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 24)
+                                  ],
+                                  Expanded(
+                                    flex: 4,
                                     child: CupertinoButton(
                                       padding: EdgeInsets.zero,
                                       minSize: 58,
                                       borderRadius: BorderRadius.circular(20),
-                                      onPressed: () => _endEvent(),
-                                      color: CupertinoColors.systemRed,
-                                      child: const Icon(
-                                        CupertinoIcons.stop_circle_fill,
-                                        size: 32,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 24)
-                                ],
-                                Expanded(
-                                  flex: 4,
-                                  child: CupertinoButton(
-                                    padding: EdgeInsets.zero,
-                                    minSize: 58,
-                                    borderRadius: BorderRadius.circular(20),
-                                    onPressed: event.live
-                                        ? (event.performer != null
-                                            ? event.performerStart != null
-                                                ? _stopPerforming
-                                                : _startPerforming
-                                            : null)
-                                        : !event.ended
-                                            ? event.date.isBefore(
-                                                        DateTime.now()) &&
-                                                    event.attendees.isNotEmpty
-                                                ? () async {
-                                                    await FirebaseFirestore
-                                                        .instance
-                                                        .doc(
-                                                            'events/${event.id}')
-                                                        .update({
-                                                      'live': true,
-                                                    });
-                                                    setState(() {
-                                                      event.live = true;
-                                                      widget.event.live = true;
-                                                    });
-                                                  }
-                                                : null
-                                            : null,
-                                    color: slottedOrange,
-                                    child: Text(
-                                      event.live
-                                          ? event.performer != null
+                                      onPressed: event.live
+                                          ? (event.performer != null
                                               ? event.performerStart != null
-                                                  ? "Stop Performing"
-                                                  : "Start Performing"
-                                              : "No Performer"
+                                                  ? _stopPerforming
+                                                  : _startPerforming
+                                              : null)
                                           : !event.ended
-                                              ? event.date
-                                                      .isBefore(DateTime.now())
-                                                  ? "Start Event"
-                                                  : "Upcoming"
-                                              : "Event Ended",
-                                      style: TextStyle(
-                                        color: event.live
+                                              ? event.date.isBefore(
+                                                          DateTime.now()) &&
+                                                      event.attendees.isNotEmpty
+                                                  ? () async {
+                                                      await FirebaseFirestore
+                                                          .instance
+                                                          .doc(
+                                                              'events/${event.id}')
+                                                          .update({
+                                                        'live': true,
+                                                      });
+                                                      setState(() {
+                                                        event.live = true;
+                                                        widget.event.live = true;
+                                                      });
+                                                    }
+                                                  : null
+                                              : null,
+                                      color: slottedOrange,
+                                      child: Text(
+                                        event.live
                                             ? event.performer != null
-                                                ? Colors.black
-                                                : CupertinoColors.systemGrey
+                                                ? event.performerStart != null
+                                                    ? "Stop Performing"
+                                                    : "Start Performing"
+                                                : "No Performer"
                                             : !event.ended
-                                                ? event.date.isBefore(
-                                                        DateTime.now())
-                                                    ? Colors.black
-                                                    : CupertinoColors.systemGrey
-                                                : CupertinoColors.systemGrey,
-                                        fontSize: 21,
-                                        fontWeight: FontWeight.w600,
+                                                ? event.date
+                                                        .isBefore(DateTime.now())
+                                                    ? "Start Event"
+                                                    : "Upcoming"
+                                                : "Event Ended",
+                                        style: TextStyle(
+                                          color: event.live
+                                              ? event.performer != null
+                                                  ? Colors.black
+                                                  : CupertinoColors.systemGrey
+                                              : !event.ended
+                                                  ? event.date.isBefore(
+                                                          DateTime.now())
+                                                      ? Colors.black
+                                                      : CupertinoColors.systemGrey
+                                                  : CupertinoColors.systemGrey,
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: _toggleFlashlight,
-                      child: Icon(
-                        _isFlashlightOn
-                            ? CupertinoIcons.lightbulb_fill
-                            : CupertinoIcons.lightbulb_slash,
-                        color: slottedOrange,
+                        ],
+                      );
+                    },
+                  ),
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12.0),
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: _toggleFlashlight,
+                        child: Icon(
+                          _isFlashlightOn
+                              ? CupertinoIcons.lightbulb_fill
+                              : CupertinoIcons.lightbulb_slash,
+                          color: slottedOrange,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
