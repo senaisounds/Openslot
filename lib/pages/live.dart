@@ -179,7 +179,8 @@ class LivePageState extends State<LivePage> {
                           user: widget.user,
                           authAction: (loggedIn) =>
                               widget.authAction(context, loggedIn, () {}),
-                          viewUser: performer != widget.user?.uid ? performer : null,
+                          viewUser:
+                              performer != widget.user?.uid ? performer : null,
                         ),
                       ),
                     ),
@@ -368,6 +369,30 @@ class LivePageState extends State<LivePage> {
                 .add(Duration(minutes: event.timeLimit))
                 .difference(DateTime.now())
             : Duration.zero;
+
+        setState(() {
+          widget.event.name = event.name;
+          widget.event.address = event.address;
+          widget.event.attendees = event.attendees;
+          widget.event.date = event.date;
+          widget.event.ended = event.ended;
+          widget.event.host = event.host;
+          widget.event.hostName = event.hostName;
+          widget.event.id = event.id;
+          widget.event.live = event.live;
+          widget.event.location = event.location;
+          widget.event.name = event.name;
+          widget.event.performer = event.performer;
+          widget.event.performerStart = event.performerStart;
+          widget.event.price = event.price;
+          widget.event.reservationTimestamps = event.reservationTimestamps;
+          widget.event.rules = event.rules;
+          widget.event.signupOnLocation = event.signupOnLocation;
+          widget.event.slots = event.slots;
+          widget.event.timeLimit = event.timeLimit;
+          widget.event.type = event.type;
+          widget.event.waitlist = event.waitlist;
+        });
         return CupertinoPageScaffold(
           resizeToAvoidBottomInset: false,
           navigationBar: CupertinoNavigationBar(
@@ -421,7 +446,7 @@ class LivePageState extends State<LivePage> {
                               ? snapshot.data?.exists ?? false
                                   ? snapshot.data?.get('photoUrl') as String? ??
                                       placeholderImage
-                                  : placeholderImage
+                                  : ''
                               : '';
 
                       final progress = event.performerStart != null
@@ -461,13 +486,17 @@ class LivePageState extends State<LivePage> {
                                   width: 240,
                                   height: 240,
                                   child: username.isNotEmpty &&
-                                          username.toLowerCase() != 'no performer'
+                                          username.toLowerCase() !=
+                                              'no performer'
                                       ? Stack(
                                           alignment: Alignment.center,
                                           children: [
                                             Text(
-                                              username.characters.first
-                                                  .toUpperCase(),
+                                              photoUrl != placeholderImage &&
+                                                      photoUrl != ''
+                                                  ? ''
+                                                  : username.characters.first
+                                                      .toUpperCase(),
                                               style: TextStyle(
                                                 fontSize: 240 * 0.78,
                                                 fontWeight: FontWeight.bold,
@@ -676,12 +705,15 @@ class LivePageState extends State<LivePage> {
                                                     child: const Text("Add"),
                                                     onPressed: () async {
                                                       // Disable the button by popping the dialog
-                                                      Navigator.of(context).pop();
+                                                      Navigator.of(context)
+                                                          .pop();
 
-                                                      final newName =
-                                                          controller.text.trim();
+                                                      final newName = controller
+                                                          .text
+                                                          .trim();
                                                       if (newName.isNotEmpty &&
-                                                          !widget.event.attendees
+                                                          !widget
+                                                              .event.attendees
                                                               .contains(
                                                                   newName)) {
                                                         setState(() {
@@ -694,7 +726,7 @@ class LivePageState extends State<LivePage> {
                                                         if (event.slots -
                                                                 event.attendees
                                                                     .length <=
-                                                                0) {
+                                                            0) {
                                                           await FirebaseFirestore
                                                               .instance
                                                               .doc(
@@ -703,7 +735,8 @@ class LivePageState extends State<LivePage> {
                                                             'slots':
                                                                 event.slots + 1,
                                                             'attendees': widget
-                                                                .event.attendees,
+                                                                .event
+                                                                .attendees,
                                                             'reservationTimestamps':
                                                                 widget.event
                                                                     .reservationTimestamps,
@@ -715,7 +748,8 @@ class LivePageState extends State<LivePage> {
                                                                   'events/${widget.event.id}')
                                                               .update({
                                                             'attendees': widget
-                                                                .event.attendees,
+                                                                .event
+                                                                .attendees,
                                                             'reservationTimestamps':
                                                                 widget.event
                                                                     .reservationTimestamps,
@@ -733,8 +767,9 @@ class LivePageState extends State<LivePage> {
                                                                 "This performer is already added or the name is empty."),
                                                             actions: [
                                                               CupertinoDialogAction(
-                                                                child: const Text(
-                                                                    "OK"),
+                                                                child:
+                                                                    const Text(
+                                                                        "OK"),
                                                                 onPressed: () =>
                                                                     Navigator.of(
                                                                             context)
@@ -791,7 +826,8 @@ class LivePageState extends State<LivePage> {
                                               }
                                               setState(() {
                                                 final List<String>
-                                                    updatedAttendees = List.from(
+                                                    updatedAttendees =
+                                                    List.from(
                                                         widget.event.attendees);
                                                 final String movedPerformer =
                                                     updatedAttendees
@@ -825,13 +861,15 @@ class LivePageState extends State<LivePage> {
                                                 background: Container(
                                                   color:
                                                       CupertinoColors.systemRed,
-                                                  alignment: Alignment.centerLeft,
-                                                  padding: const EdgeInsets.only(
-                                                      left: 20),
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 20),
                                                   child: const Icon(
                                                       CupertinoIcons.delete,
-                                                      color:
-                                                          CupertinoColors.white),
+                                                      color: CupertinoColors
+                                                          .white),
                                                 ),
                                                 child: FutureBuilder(
                                                   future: FirebaseFirestore
@@ -842,7 +880,8 @@ class LivePageState extends State<LivePage> {
                                                     final username = snapshot
                                                             .hasError
                                                         ? ''
-                                                        : snapshot.data?.exists ??
+                                                        : snapshot.data
+                                                                    ?.exists ??
                                                                 false
                                                             ? snapshot.data?.get(
                                                                         'username')
@@ -859,8 +898,8 @@ class LivePageState extends State<LivePage> {
                                                         : placeholderImage;
                                                     return CupertinoListTile(
                                                       onTap: isHost &&
-                                                              !widget
-                                                                  .event.ended &&
+                                                              !widget.event
+                                                                  .ended &&
                                                               widget.event.live
                                                           ? () {
                                                               _lineupPerformer(
@@ -880,18 +919,16 @@ class LivePageState extends State<LivePage> {
                                                                     builder:
                                                                         (context) =>
                                                                             CupertinoAlertDialog(
-                                                                      title:
-                                                                          const Text(
-                                                                              '🧍'),
+                                                                      title: const Text(
+                                                                          '🧍'),
                                                                       content: Text(
                                                                           '$performerId does not have an account'),
                                                                       actions: [
                                                                         CupertinoDialogAction(
-                                                                          child: const Text(
-                                                                              'Dismiss'),
-                                                                          onPressed:
-                                                                              () =>
-                                                                                  Navigator.of(context).pop(),
+                                                                          child:
+                                                                              const Text('Dismiss'),
+                                                                          onPressed: () =>
+                                                                              Navigator.of(context).pop(),
                                                                         ),
                                                                       ],
                                                                     ),
@@ -907,8 +944,7 @@ class LivePageState extends State<LivePage> {
                                                                         resizeToAvoidBottomInset:
                                                                             false,
                                                                         backgroundColor:
-                                                                            CupertinoColors
-                                                                                .systemBackground,
+                                                                            CupertinoColors.systemBackground,
                                                                         navigationBar:
                                                                             const CupertinoNavigationBar(
                                                                           middle:
@@ -918,18 +954,19 @@ class LivePageState extends State<LivePage> {
                                                                         ),
                                                                         child:
                                                                             ProfilePage(
-                                                                          debug: widget
-                                                                              .debug,
-                                                                          user: widget
-                                                                              .user,
+                                                                          debug:
+                                                                              widget.debug,
+                                                                          user:
+                                                                              widget.user,
                                                                           authAction: (loggedIn) => widget.authAction(
                                                                               context,
                                                                               loggedIn,
                                                                               () {}),
-                                                                          viewUser: snapshot.data ==
-                                                                                  null
+                                                                          viewUser: snapshot.data == null
                                                                               ? null
-                                                                              : performerId != widget.user?.uid ? performerId : null,
+                                                                              : performerId != widget.user?.uid
+                                                                                  ? performerId
+                                                                                  : null,
                                                                         ),
                                                                       ),
                                                                     ),
@@ -982,9 +1019,8 @@ class LivePageState extends State<LivePage> {
                                                                   performerId]!),
                                                               style:
                                                                   const TextStyle(
-                                                                color:
-                                                                    CupertinoColors
-                                                                        .systemGrey,
+                                                                color: CupertinoColors
+                                                                    .systemGrey,
                                                                 fontSize: 14,
                                                               ),
                                                             ),
@@ -1014,13 +1050,15 @@ class LivePageState extends State<LivePage> {
                                                 background: Container(
                                                   color:
                                                       CupertinoColors.systemRed,
-                                                  alignment: Alignment.centerLeft,
-                                                  padding: const EdgeInsets.only(
-                                                      left: 20),
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 20),
                                                   child: const Icon(
                                                       CupertinoIcons.delete,
-                                                      color:
-                                                          CupertinoColors.white),
+                                                      color: CupertinoColors
+                                                          .white),
                                                 ),
                                                 child: FutureBuilder(
                                                   future: FirebaseFirestore
@@ -1031,7 +1069,8 @@ class LivePageState extends State<LivePage> {
                                                     final username = snapshot
                                                             .hasError
                                                         ? ''
-                                                        : snapshot.data?.exists ??
+                                                        : snapshot.data
+                                                                    ?.exists ??
                                                                 false
                                                             ? snapshot.data?.get(
                                                                         'username')
@@ -1048,8 +1087,8 @@ class LivePageState extends State<LivePage> {
                                                         : placeholderImage;
                                                     return CupertinoListTile(
                                                       onTap: isHost &&
-                                                              !widget
-                                                                  .event.ended &&
+                                                              !widget.event
+                                                                  .ended &&
                                                               widget.event.live
                                                           ? () {
                                                               _lineupPerformer(
@@ -1069,18 +1108,16 @@ class LivePageState extends State<LivePage> {
                                                                     builder:
                                                                         (context) =>
                                                                             CupertinoAlertDialog(
-                                                                      title:
-                                                                          const Text(
-                                                                              '🧍'),
+                                                                      title: const Text(
+                                                                          '🧍'),
                                                                       content: Text(
                                                                           '$performerId does not have an account'),
                                                                       actions: [
                                                                         CupertinoDialogAction(
-                                                                          child: const Text(
-                                                                              'Dismiss'),
-                                                                          onPressed:
-                                                                              () =>
-                                                                                  Navigator.of(context).pop(),
+                                                                          child:
+                                                                              const Text('Dismiss'),
+                                                                          onPressed: () =>
+                                                                              Navigator.of(context).pop(),
                                                                         ),
                                                                       ],
                                                                     ),
@@ -1096,8 +1133,7 @@ class LivePageState extends State<LivePage> {
                                                                         resizeToAvoidBottomInset:
                                                                             false,
                                                                         backgroundColor:
-                                                                            CupertinoColors
-                                                                                .systemBackground,
+                                                                            CupertinoColors.systemBackground,
                                                                         navigationBar:
                                                                             const CupertinoNavigationBar(
                                                                           middle:
@@ -1107,18 +1143,19 @@ class LivePageState extends State<LivePage> {
                                                                         ),
                                                                         child:
                                                                             ProfilePage(
-                                                                          debug: widget
-                                                                              .debug,
-                                                                          user: widget
-                                                                              .user,
+                                                                          debug:
+                                                                              widget.debug,
+                                                                          user:
+                                                                              widget.user,
                                                                           authAction: (loggedIn) => widget.authAction(
                                                                               context,
                                                                               loggedIn,
                                                                               () {}),
-                                                                          viewUser: snapshot.data ==
-                                                                                  null
+                                                                          viewUser: snapshot.data == null
                                                                               ? null
-                                                                              : performerId != widget.user?.uid ? performerId : null,
+                                                                              : performerId != widget.user?.uid
+                                                                                  ? performerId
+                                                                                  : null,
                                                                         ),
                                                                       ),
                                                                     ),
@@ -1171,9 +1208,8 @@ class LivePageState extends State<LivePage> {
                                                                   performerId]!),
                                                               style:
                                                                   const TextStyle(
-                                                                color:
-                                                                    CupertinoColors
-                                                                        .systemGrey,
+                                                                color: CupertinoColors
+                                                                    .systemGrey,
                                                                 fontSize: 14,
                                                               ),
                                                             ),
@@ -1247,7 +1283,8 @@ class LivePageState extends State<LivePage> {
                                                       });
                                                       setState(() {
                                                         event.live = true;
-                                                        widget.event.live = true;
+                                                        widget.event.live =
+                                                            true;
                                                       });
                                                     }
                                                   : null
@@ -1261,8 +1298,8 @@ class LivePageState extends State<LivePage> {
                                                     : "Start Performing"
                                                 : "No Performer"
                                             : !event.ended
-                                                ? event.date
-                                                        .isBefore(DateTime.now())
+                                                ? event.date.isBefore(
+                                                        DateTime.now())
                                                     ? "Start Event"
                                                     : "Upcoming"
                                                 : "Event Ended",
@@ -1275,7 +1312,8 @@ class LivePageState extends State<LivePage> {
                                                   ? event.date.isBefore(
                                                           DateTime.now())
                                                       ? Colors.black
-                                                      : CupertinoColors.systemGrey
+                                                      : CupertinoColors
+                                                          .systemGrey
                                                   : CupertinoColors.systemGrey,
                                           fontSize: 21,
                                           fontWeight: FontWeight.w600,

@@ -343,7 +343,7 @@ class ProfilePageState extends State<ProfilePage> {
                               },
                               keyboardType: TextInputType.multiline,
                               focusNode: bioFocus,
-                              placeholder: 'Bio',
+                              placeholder: widget.viewUser == null ? 'Bio' : '',
                               cursorColor: slottedOrange,
                               placeholderStyle: const TextStyle(
                                 fontSize: 18,
