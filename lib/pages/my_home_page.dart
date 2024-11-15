@@ -8,17 +8,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:slotted/common/colors.dart';
-import 'package:slotted/common/event_class.dart';
+import 'package:slotted/common/event_class.dart' as EventClass;
 import 'package:slotted/common/date_components.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/attendees_page.dart';
 import 'package:slotted/pages/edit_event.dart';
-import 'package:slotted/pages/event_details.dart';
 import 'package:slotted/pages/live.dart';
-import 'package:slotted/pages/profile.dart';
 import 'package:flutter/services.dart';
+import 'package:device_calendar/device_calendar.dart' as DeviceCalendar;
+import 'package:timezone/timezone.dart' as tz;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage(
@@ -32,7 +32,7 @@ class MyHomePage extends StatefulWidget {
   final bool debug;
   final User? user;
   final Future<void> Function(BuildContext, bool, Function()) authAction;
-  final Future<void> Function(Event event, SlottedUser slottedUser)
+  final Future<void> Function(EventClass.Event event, SlottedUser slottedUser)
       reserveAction;
   final Future<void> Function(String) deleteEvent;
 
@@ -46,6 +46,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool actionPending = false;
   String headerTitle = 'UPCOMING';
   final ScrollController eventsScrollController = ScrollController();
+  final DeviceCalendar.DeviceCalendarPlugin _deviceCalendarPlugin =
+      DeviceCalendar.DeviceCalendarPlugin();
 
   KeyboardActionsConfig _buildConfig(BuildContext context) {
     return KeyboardActionsConfig(
@@ -280,7 +282,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           controller: eventsScrollController,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.asset(
@@ -337,7 +340,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  String? _getEventHeader(Event event) {
+  String? _getEventHeader(EventClass.Event event) {
     final now = DateTime.now();
     if (event.ended) {
       return 'Ended';
@@ -356,7 +359,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildListItem(
-      BuildContext context, Event event, SlottedUser? slottedUser) {
+      BuildContext context, EventClass.Event event, SlottedUser? slottedUser) {
     final dateComponents = _convertDateTimeToStringComponents(event.date);
 
     final cellChild = CupertinoButton(
@@ -438,26 +441,33 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: CupertinoColors.label),
-                      ),
-                      Text(
-                        dateComponents.dayFull, // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                            color: CupertinoColors.label),
-                      ),
-                      Text(
-                        dateComponents.time, // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                            color: CupertinoColors.label),
+                      GestureDetector(
+                        onTap: () => _addToCalendar(event),
+                        child: Column(
+                          children: [
+                            Text(
+                              '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  color: CupertinoColors.label),
+                            ),
+                            Text(
+                              dateComponents.dayFull, // Display date and time
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                  color: CupertinoColors.label),
+                            ),
+                            Text(
+                              dateComponents.time, // Display date and time
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                  color: CupertinoColors.label),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -960,16 +970,78 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  List<Event> _convertQuerySnapshotToEvents(QuerySnapshot snapshot) {
+  List<EventClass.Event> _convertQuerySnapshotToEvents(QuerySnapshot snapshot) {
     // Convert to a list of Event objects
     final snapshotDocuments =
         snapshot.docs.map((document) => document).toList();
 
     final events = snapshotDocuments.map((document) {
-      return Event.fromDocument(document);
+      return EventClass.Event.fromDocument(document);
     }).toList()
       ..removeWhere((event) => event.id == '');
 
     return events;
+  }
+
+  Future<void> _addToCalendar(EventClass.Event event) async {
+    try {
+      var permissionsGranted = await _deviceCalendarPlugin.hasPermissions();
+      if (permissionsGranted.isSuccess && !permissionsGranted.data!) {
+        permissionsGranted = await _deviceCalendarPlugin.requestPermissions();
+        if (!permissionsGranted.isSuccess || !permissionsGranted.data!) {
+          throw Exception('Calendar permissions not granted');
+        }
+      }
+
+      final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
+      print(calendarsResult);
+      if (!calendarsResult.isSuccess || calendarsResult.data!.isEmpty) {
+        throw Exception('No calendars found');
+      }
+
+      final calendar = calendarsResult.data!.first;
+      final eventToCreate = DeviceCalendar.Event(
+        calendar.id,
+        title: event.name,
+        description: 'Hosted by ${event.hostName}',
+        start: tz.TZDateTime.from(event.date, tz.local),
+      );
+
+      final createEventResult =
+          await _deviceCalendarPlugin.createOrUpdateEvent(eventToCreate);
+      if (!(createEventResult?.isSuccess ?? false) ||
+          createEventResult?.data == null) {
+        throw Exception('Failed to add event to calendar');
+      }
+
+      await showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Success'),
+          content: const Text('Event added to your calendar.'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      print(e);
+      // await showCupertinoDialog(
+      //   context: context,
+      //   builder: (context) => CupertinoAlertDialog(
+      //     title: const Text('Error'),
+      //     content: Text(e.toString()),
+      //     actions: [
+      //       CupertinoDialogAction(
+      //         child: const Text('OK'),
+      //         onPressed: () => Navigator.of(context).pop(),
+      //       ),
+      //     ],
+      //   ),
+      // );
+    }
   }
 }

@@ -482,7 +482,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
               resizeToAvoidBottomInset: false,
               navigationBar: CupertinoNavigationBar(
                 border: null,
-                backgroundColor: CupertinoColors.systemBackground,
+                backgroundColor: Colors.transparent,
                 middle: _buildNavigationTitle(),
                 leading: loggedIn
                     ? CupertinoButton(
@@ -531,8 +531,9 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   resizeToAvoidBottomInset: false,
                   tabBar: CupertinoTabBar(
                     height: 64,
-                    backgroundColor: CupertinoColors.secondarySystemBackground,
+                    backgroundColor: CupertinoColors.systemGrey.withOpacity(0.2),
                     activeColor: slottedOrange,
+                    inactiveColor: CupertinoColors.systemGrey,
                     currentIndex: _tabController.index,
                     onTap: (index) {
                       _tabController.index = index;
@@ -540,10 +541,13 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                         switch (_tabController.index) {
                           case 0:
                             titleString = 'My Events';
+                            break;
                           case 1:
                             titleString = 'Slotted';
+                            break;
                           case 2:
                             titleString = 'Profile';
+                            break;
                           default:
                             titleString = 'Slotted';
                         }
@@ -553,7 +557,6 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                     items: [
                       const BottomNavigationBarItem(
                         icon: Icon(CupertinoIcons.list_bullet),
-                        // label: 'My Events',
                       ),
                       BottomNavigationBarItem(
                         icon: Container(
@@ -578,12 +581,13 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                       ),
                       const BottomNavigationBarItem(
                         icon: Icon(CupertinoIcons.person),
-                        // label: 'Profile',
                       ),
                     ],
                   ),
                   tabBuilder: (context, index) {
-                    return tabViews[index];
+                    return SafeArea(
+                      child: tabViews[index],
+                    );
                   },
                 ),
               ),
@@ -602,7 +606,6 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    // color: CupertinoColors.black.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: const CircularProgressIndicator(

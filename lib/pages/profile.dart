@@ -102,13 +102,11 @@ class ProfilePageState extends State<ProfilePage> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            // color: CupertinoColors.black.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: const CircularProgressIndicator(
                             strokeCap: StrokeCap.round,
                             backgroundColor: CupertinoColors.systemOrange,
-                            // strokeAlign: -8,
                             strokeWidth: 5,
                             color: slottedOrange,
                           ),
@@ -134,7 +132,6 @@ class ProfilePageState extends State<ProfilePage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 24),
-                        // Load profile image from firebase storage
                         CupertinoButton(
                           padding: EdgeInsets.zero,
                           onPressed: widget.viewUser != null
@@ -274,7 +271,6 @@ class ProfilePageState extends State<ProfilePage> {
                                                   strokeCap: StrokeCap.round,
                                                   backgroundColor: CupertinoColors
                                                       .systemOrange,
-                                                  // strokeAlign: -8,
                                                   strokeWidth: 5,
                                                   color: slottedOrange,
                                                 ),
@@ -302,7 +298,6 @@ class ProfilePageState extends State<ProfilePage> {
                                   const CircularProgressIndicator(
                                     strokeCap: StrokeCap.round,
                                     backgroundColor: CupertinoColors.systemOrange,
-                                    // strokeAlign: -8,
                                     strokeWidth: 5,
                                     color: slottedOrange,
                                   ),
@@ -321,38 +316,51 @@ class ProfilePageState extends State<ProfilePage> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 32),
-                        CupertinoTextField(
-                          enabled: widget.viewUser == null,
-                          onChanged: (value) {
-                            if (_bioDebounce?.isActive ?? false) {
-                              _bioDebounce?.cancel();
-                            }
-                            _bioDebounce = Timer(const Duration(seconds: 1), () {
-                              FirebaseFirestore.instance
-                                  .doc('users/${widget.user!.uid}')
-                                  .update({
-                                'bio': value,
-                              });
-                            });
-                          },
-                          keyboardType: TextInputType.multiline,
-                          focusNode: bioFocus,
-                          placeholder: 'Bio',
-                          cursorColor: slottedOrange,
-                          placeholderStyle: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            color: CupertinoColors.systemGrey,
-                            height: 0.5, // This moves the placeholder to top
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.systemGrey6.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                // color: slottedOrange.withOpacity(0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: CupertinoTextField(
+                              enabled: widget.viewUser == null,
+                              onChanged: (value) {
+                                if (_bioDebounce?.isActive ?? false) {
+                                  _bioDebounce?.cancel();
+                                }
+                                _bioDebounce = Timer(const Duration(seconds: 1), () {
+                                  FirebaseFirestore.instance
+                                      .doc('users/${widget.user!.uid}')
+                                      .update({
+                                    'bio': value,
+                                  });
+                                });
+                              },
+                              keyboardType: TextInputType.multiline,
+                              focusNode: bioFocus,
+                              placeholder: 'Bio',
+                              cursorColor: slottedOrange,
+                              placeholderStyle: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: CupertinoColors.systemGrey,
+                                height: 0.5,
+                              ),
+                              controller: bioController,
+                              maxLines: 6,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: CupertinoColors.label,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          controller: bioController,
-                          maxLines: 6,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            color: CupertinoColors.label,
-                          ),
-                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 48),
                         // Insert twitter and instagram links
@@ -768,18 +776,6 @@ class ProfilePageState extends State<ProfilePage> {
                           ],
                         ),
                         const SizedBox(height: 32),
-                        // CupertinoButton(
-                        //   padding: const EdgeInsets.all(16),
-                        //   color: slottedOrange,
-                        //   onPressed: () => _signIn(context),
-                        //   child: const Text(
-                        //     'Sign Out',
-                        //     style: TextStyle(
-                        //       color: CupertinoColors.white,
-                        //       fontWeight: FontWeight.bold,
-                        //     ),
-                        //   ),
-                        // ),
                       ],
                     );
                   },

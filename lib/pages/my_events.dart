@@ -11,15 +11,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/date_components.dart';
-import 'package:slotted/common/event_class.dart';
+import 'package:slotted/common/event_class.dart' as EventClass;
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/attendees_page.dart';
 import 'package:slotted/pages/edit_event.dart';
-import 'package:slotted/pages/event_details.dart';
 import 'package:slotted/pages/live.dart';
-import 'package:slotted/pages/profile.dart';
+import 'package:device_calendar/device_calendar.dart' as DeviceCalendar;
+import 'package:timezone/timezone.dart' as tz;
 
 class MyEventsPage extends StatefulWidget {
   const MyEventsPage(
@@ -34,7 +34,7 @@ class MyEventsPage extends StatefulWidget {
   final bool debug;
 
   final Future<void> Function(BuildContext, bool, Function()) authAction;
-  final Future<void> Function(Event event, SlottedUser slottedUser)
+  final Future<void> Function(EventClass.Event event, SlottedUser slottedUser)
       reserveAction;
   final Future<void> Function(String eventId) deleteEvent;
 
@@ -46,6 +46,8 @@ class MyEventsPageState extends State<MyEventsPage> {
   int eventMode = 0;
   String headerTitle = 'UPCOMING';
   final ScrollController eventsScrollController = ScrollController();
+  final DeviceCalendar.DeviceCalendarPlugin _deviceCalendarPlugin =
+      DeviceCalendar.DeviceCalendarPlugin();
 
   @override
   Widget build(BuildContext context) {
@@ -104,8 +106,8 @@ class MyEventsPageState extends State<MyEventsPage> {
                             children: [
                               if (slottedUser!.isHost) ...[
                                 Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 32),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 32),
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: CupertinoColors.black,
@@ -264,7 +266,8 @@ class MyEventsPageState extends State<MyEventsPage> {
                                       final tomorrowEvents =
                                           events.where((event) {
                                         return event.date.day == tomorrow.day &&
-                                            event.date.month == tomorrow.month &&
+                                            event.date.month ==
+                                                tomorrow.month &&
                                             event.date.year == tomorrow.year &&
                                             !event.ended;
                                       }).toList();
@@ -295,26 +298,26 @@ class MyEventsPageState extends State<MyEventsPage> {
                                           if (todayEvents.isNotEmpty) ...[
                                             _buildHeader('Today'),
                                             ...todayEvents.map((event) =>
-                                                _buildListItem(
-                                                    context, event, slottedUser)),
+                                                _buildListItem(context, event,
+                                                    slottedUser)),
                                           ],
                                           if (tomorrowEvents.isNotEmpty) ...[
                                             _buildHeader('Tomorrow'),
                                             ...tomorrowEvents.map((event) =>
-                                                _buildListItem(
-                                                    context, event, slottedUser)),
+                                                _buildListItem(context, event,
+                                                    slottedUser)),
                                           ],
                                           if (upcomingEvents.isNotEmpty) ...[
                                             _buildHeader('Upcoming'),
                                             ...upcomingEvents.map((event) =>
-                                                _buildListItem(
-                                                    context, event, slottedUser)),
+                                                _buildListItem(context, event,
+                                                    slottedUser)),
                                           ],
                                           if (endedEvents.isNotEmpty) ...[
                                             _buildHeader('Ended'),
                                             ...endedEvents.map((event) =>
-                                                _buildListItem(
-                                                    context, event, slottedUser)),
+                                                _buildListItem(context, event,
+                                                    slottedUser)),
                                           ],
                                         ],
                                       );
@@ -361,7 +364,7 @@ class MyEventsPageState extends State<MyEventsPage> {
   }
 
   Widget _buildListItem(
-      BuildContext context, Event event, SlottedUser? slottedUser) {
+      BuildContext context, EventClass.Event event, SlottedUser? slottedUser) {
     final dateComponents = _convertDateTimeToStringComponents(event.date);
 
     final cellChild = CupertinoButton(
@@ -376,23 +379,8 @@ class MyEventsPageState extends State<MyEventsPage> {
             authAction: widget.authAction,
             reserveAction: widget.reserveAction,
           ),
-          // event.live || event.ended || event.host != slottedUser?.id
-          //     ? LivePage(
-          //         event: event,
-          //         debug: widget.debug,
-          //         user: widget.user,
-          //         authAction: widget.authAction,
-          //         reserveAction: widget.reserveAction,
-          //       )
-          //     : EventDetailsPage(
-          //         initialEvent: event,
-          //         debug: widget.debug,
-          //         authAction: widget.authAction,
-          //       ),
         ),
       ),
-      // color: CupertinoColors.systemBackground,
-      // color: slottedOrange,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(12),
@@ -411,7 +399,6 @@ class MyEventsPageState extends State<MyEventsPage> {
                   ],
           ),
           borderRadius: BorderRadius.circular(12),
-          // color: slottedOrange.withOpacity(1),
           boxShadow: [
             BoxShadow(
               color: event.ended
@@ -459,26 +446,33 @@ class MyEventsPageState extends State<MyEventsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: CupertinoColors.label),
-                      ),
-                      Text(
-                        dateComponents.dayFull, // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                            color: CupertinoColors.label),
-                      ),
-                      Text(
-                        dateComponents.time, // Display date and time
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                            color: CupertinoColors.label),
+                      GestureDetector(
+                        onTap: () => _addToCalendar(event),
+                        child: Column(
+                          children: [
+                            Text(
+                              '${dateComponents.monthShort} ${dateComponents.dayNum}', // Display date and time
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  color: CupertinoColors.label),
+                            ),
+                            Text(
+                              dateComponents.dayFull, // Display date and time
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                  color: CupertinoColors.label),
+                            ),
+                            Text(
+                              dateComponents.time, // Display date and time
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                  color: CupertinoColors.label),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -765,14 +759,13 @@ class MyEventsPageState extends State<MyEventsPage> {
                                                   : event.waitlist.contains(
                                                           slottedUser.id)
                                                       ? CupertinoColors.label
-                                                      : event.attendees
-                                                                  .length <
-                                                                  event.slots
-                                                              ? slottedOrange
-                                                                  .withBlue(slottedOrange.blue - 40)
-                                                                  .withRed(slottedOrange.red - 40)
-                                                                  .withGreen(slottedOrange.green - 40)
-                                                              : slottedOrange,
+                                                      : event.attendees.length <
+                                                              event.slots
+                                                          ? slottedOrange
+                                                              .withBlue(slottedOrange.blue - 40)
+                                                              .withRed(slottedOrange.red - 40)
+                                                              .withGreen(slottedOrange.green - 40)
+                                                          : slottedOrange,
                               spreadRadius: 1,
                               blurRadius: 1,
                             ),
@@ -922,46 +915,46 @@ class MyEventsPageState extends State<MyEventsPage> {
     );
 
     return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        child: slottedUser?.id == event.host
-            ? Dismissible(
-                key: Key(event.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 30, 0),
-                  alignment: Alignment.centerRight,
-                  // color: CupertinoColors.systemRed,
-                  child: const Icon(
-                    CupertinoIcons.trash,
-                    color: CupertinoColors.systemRed,
-                  ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: slottedUser?.id == event.host
+          ? Dismissible(
+              key: Key(event.id),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                padding: const EdgeInsets.fromLTRB(0, 0, 30, 0),
+                alignment: Alignment.centerRight,
+                child: const Icon(
+                  CupertinoIcons.trash,
+                  color: CupertinoColors.systemRed,
                 ),
-                confirmDismiss: (direction) {
-                  return showCupertinoDialog(
-                    context: context,
-                    builder: (context) => CupertinoAlertDialog(
-                      title: const Text('Delete Event'),
-                      content: const Text(
-                          'Are you sure you want to delete this event?'),
-                      actions: [
-                        CupertinoDialogAction(
-                          child: const Text('Cancel'),
-                          onPressed: () => Navigator.of(context).pop(false),
-                        ),
-                        CupertinoDialogAction(
-                          child: const Text('Delete'),
-                          onPressed: () async {
-                            widget.deleteEvent(event.id);
-                            Navigator.of(context).pop(true);
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: cellChild,
-              )
-            : cellChild);
+              ),
+              confirmDismiss: (direction) {
+                return showCupertinoDialog(
+                  context: context,
+                  builder: (context) => CupertinoAlertDialog(
+                    title: const Text('Delete Event'),
+                    content: const Text(
+                        'Are you sure you want to delete this event?'),
+                    actions: [
+                      CupertinoDialogAction(
+                        child: const Text('Cancel'),
+                        onPressed: () => Navigator.of(context).pop(false),
+                      ),
+                      CupertinoDialogAction(
+                        child: const Text('Delete'),
+                        onPressed: () async {
+                          widget.deleteEvent(event.id);
+                          Navigator.of(context).pop(true);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: cellChild,
+            )
+          : cellChild,
+    );
   }
 
   DateComponents _convertDateTimeToStringComponents(DateTime date) {
@@ -982,16 +975,78 @@ class MyEventsPageState extends State<MyEventsPage> {
     );
   }
 
-  List<Event> _convertQuerySnapshotToEvents(QuerySnapshot snapshot) {
+  List<EventClass.Event> _convertQuerySnapshotToEvents(QuerySnapshot snapshot) {
     // Convert to a list of Event objects
     final snapshotDocuments =
         snapshot.docs.map((document) => document).toList();
 
     final events = snapshotDocuments.map((document) {
-      return Event.fromDocument(document);
+      return EventClass.Event.fromDocument(document);
     }).toList()
       ..removeWhere((event) => event.id == '');
 
     return events;
+  }
+
+  Future<void> _addToCalendar(EventClass.Event event) async {
+    try {
+      var permissionsGranted = await _deviceCalendarPlugin.hasPermissions();
+      if (permissionsGranted.isSuccess && !permissionsGranted.data!) {
+        permissionsGranted = await _deviceCalendarPlugin.requestPermissions();
+        if (!permissionsGranted.isSuccess || !permissionsGranted.data!) {
+          throw Exception('Calendar permissions not granted');
+        }
+      }
+
+      final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
+      print(calendarsResult);
+      if (!calendarsResult.isSuccess || calendarsResult.data!.isEmpty) {
+        throw Exception('No calendars found');
+      }
+
+      final calendar = calendarsResult.data!.first;
+      final eventToCreate = DeviceCalendar.Event(
+        calendar.id,
+        title: event.name,
+        description: 'Hosted by ${event.hostName}',
+        start: tz.TZDateTime.from(event.date!, tz.local),
+      );
+
+      final createEventResult =
+          await _deviceCalendarPlugin.createOrUpdateEvent(eventToCreate);
+      if (!(createEventResult?.isSuccess ?? false) ||
+          createEventResult?.data == null) {
+        throw Exception('Failed to add event to calendar');
+      }
+
+      await showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Success'),
+          content: const Text('Event added to your calendar.'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      print(e);
+      // await showCupertinoDialog(
+      //   context: context,
+      //   builder: (context) => CupertinoAlertDialog(
+      //     title: const Text('Error'),
+      //     content: Text(e.toString()),
+      //     actions: [
+      //       CupertinoDialogAction(
+      //         child: const Text('OK'),
+      //         onPressed: () => Navigator.of(context).pop(),
+      //       ),
+      //     ],
+      //   ),
+      // );
+    }
   }
 }
