@@ -49,6 +49,18 @@ class MyEventsPageState extends State<MyEventsPage> {
   final DeviceCalendar.DeviceCalendarPlugin _deviceCalendarPlugin =
       DeviceCalendar.DeviceCalendarPlugin();
 
+  void _triggerImpactFeedback() {
+    HapticFeedback.mediumImpact();
+  }
+
+  void _triggerSelectionFeedback() {
+    HapticFeedback.selectionClick();
+  }
+
+  void _triggerErrorFeedback() {
+    HapticFeedback.heavyImpact();
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool loggedIn = widget.user != null;
@@ -671,7 +683,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                               event.ended ||
                               event.date.isBefore(DateTime.now())
                           ? () {
-                              HapticFeedback.mediumImpact();
+                              _triggerImpactFeedback();
                               Navigator.of(context).push(
                                 CupertinoPageRoute(
                                   builder: (context) => LivePage(
@@ -686,7 +698,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                             }
                           : event.host == slottedUser?.id
                               ? () {
-                                  HapticFeedback.mediumImpact();
+                                  _triggerImpactFeedback();
                                   Navigator.of(context).push(
                                     CupertinoPageRoute(
                                       builder: (context) => EditEventPage(
@@ -698,12 +710,18 @@ class MyEventsPageState extends State<MyEventsPage> {
                                 }
                               : slottedUser == null
                                   ? () {
-                                      HapticFeedback.mediumImpact();
+                                      _triggerImpactFeedback();
                                       widget.authAction(context, false, () {});
                                     }
-                                  : () {
-                                      HapticFeedback.mediumImpact();
-                                      widget.reserveAction(event, slottedUser);
+                                  : () async {
+                                      _triggerImpactFeedback();
+                                      try {
+                                        await widget.reserveAction(
+                                            event, slottedUser);
+                                        _triggerSelectionFeedback();
+                                      } catch (e) {
+                                        _triggerErrorFeedback();
+                                      }
                                     },
                       child: Container(
                         alignment: Alignment.center,

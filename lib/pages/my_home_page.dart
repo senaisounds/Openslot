@@ -109,9 +109,65 @@ class _MyHomePageState extends State<MyHomePage> {
   //   super.initState();
   // }
 
+  // Add this method to handle haptic feedback for reserve button
+  void _handleReserveButtonPress() {
+    HapticFeedback.mediumImpact();
+  }
+
+  void _handleReserveButtonRelease() {
+    HapticFeedback.lightImpact();
+  }
+
+  void _handleReserveFailure() {
+    HapticFeedback.heavyImpact();
+  }
+
+  // Modify the search field to handle scrolling
+  Widget _buildSearchField() {
+    final bool isSearching = searchFocus.hasFocus || query.isNotEmpty;
+    return CupertinoTextField(
+      onTap: () {
+        setState(() {});
+        // Check if featured image is visible and scroll if needed
+        if (eventsScrollController.hasClients &&
+            eventsScrollController.offset < 222) {
+          // Adjust value based on featured image height
+          eventsScrollController.animateTo(
+            222, // Adjust to match featured image height
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      },
+      onChanged: (query) {
+        setState(() {
+          this.query = query;
+        });
+      },
+      clearButtonMode: OverlayVisibilityMode.editing,
+      focusNode: searchFocus,
+      placeholder: 'Search',
+      prefix: const Padding(
+        padding: EdgeInsets.only(left: 8),
+        child: Icon(
+          CupertinoIcons.search,
+          color: CupertinoColors.systemGrey,
+        ),
+      ),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSearching ? slottedOrange : CupertinoColors.systemGrey,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bool isSearching = searchFocus.hasFocus || query.isNotEmpty;
     return KeyboardActions(
       config: _buildConfig(context),
       disableScroll: true,
@@ -198,37 +254,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: CupertinoTextField(
-                                onTap: () {
-                                  setState(() {});
-                                },
-                                onChanged: (query) {
-                                  setState(() {
-                                    this.query = query;
-                                  });
-                                },
-                                clearButtonMode: OverlayVisibilityMode.editing,
-                                focusNode: searchFocus,
-                                placeholder: 'Search',
-                                prefix: const Padding(
-                                  padding: EdgeInsets.only(left: 8),
-                                  child: Icon(
-                                    CupertinoIcons.search,
-                                    color: CupertinoColors.systemGrey,
-                                  ),
-                                ),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: CupertinoColors.systemBackground,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSearching
-                                        ? slottedOrange
-                                        : CupertinoColors.systemGrey,
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
+                              child: _buildSearchField(),
                             ),
                             const SizedBox(width: 8),
                             CupertinoButton(
@@ -666,7 +692,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               event.ended ||
                               event.date.isBefore(DateTime.now())
                           ? () {
-                              HapticFeedback.mediumImpact();
+                              _handleReserveButtonPress();
                               Navigator.of(context).push(
                                 CupertinoPageRoute(
                                   builder: (context) => LivePage(
@@ -678,10 +704,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                                 ),
                               );
+                              _handleReserveButtonRelease();
                             }
                           : event.host == slottedUser?.id
                               ? () {
-                                  HapticFeedback.mediumImpact();
+                                  _handleReserveButtonPress();
                                   Navigator.of(context).push(
                                     CupertinoPageRoute(
                                       builder: (context) => EditEventPage(
@@ -690,15 +717,26 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ),
                                     ),
                                   );
+                                  _handleReserveButtonRelease();
                                 }
                               : slottedUser == null
                                   ? () {
-                                      HapticFeedback.mediumImpact();
-                                      widget.authAction(context, false, () {});
+                                      _handleReserveButtonPress();
+                                      widget
+                                          .authAction(context, false, () {})
+                                          .catchError((_) {
+                                        _handleReserveFailure();
+                                      });
+                                      _handleReserveButtonRelease();
                                     }
                                   : () {
-                                      HapticFeedback.mediumImpact();
-                                      widget.reserveAction(event, slottedUser);
+                                      _handleReserveButtonPress();
+                                      widget
+                                          .reserveAction(event, slottedUser)
+                                          .catchError((_) {
+                                        _handleReserveFailure();
+                                      });
+                                      _handleReserveButtonRelease();
                                     },
                       child: Container(
                         alignment: Alignment.center,

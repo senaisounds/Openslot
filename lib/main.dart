@@ -38,12 +38,17 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with SingleTickerProviderStateMixin {
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _signInPhoneController = TextEditingController();
+
+  late AnimationController _controller;
+  late Animation<double> _fadeInAnimation;
+  late Animation<double> _fadeOutAnimation;
+  bool _showSplash = true;
 
   Future<void> showNotification(int id, String? title, String? body) async {
     print(id);
@@ -186,6 +191,35 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1800),
+      vsync: this,
+    );
+
+    _fadeInAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeIn),
+      ),
+    );
+
+    _fadeOutAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.85, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _showSplash = false;
+        });
+      }
+    });
+
+    _controller.forward();
+
     final DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
       requestAlertPermission: false,
@@ -220,6 +254,12 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -234,7 +274,74 @@ class _MyAppState extends State<MyApp> {
         brightness: Brightness.dark,
         primaryColor: slottedOrange,
       ),
-      home: MainNav(debug: widget.debug),
+      home: Stack(
+        children: [
+          MainNav(debug: widget.debug), // Load main app in background
+          if (_showSplash)
+            AnimatedSplashScreen(
+              fadeInAnimation: _fadeInAnimation,
+              fadeOutAnimation: _fadeOutAnimation,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class AnimatedSplashScreen extends StatelessWidget {
+  final Animation<double> fadeInAnimation;
+  final Animation<double> fadeOutAnimation;
+
+  const AnimatedSplashScreen({
+    required this.fadeInAnimation,
+    required this.fadeOutAnimation,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFF1E1E3F), // Solid base color to ensure full coverage
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1E1E3F),
+              Color(0xFF2D2B55),
+            ],
+          ),
+        ),
+        child: AnimatedBuilder(
+          animation: fadeInAnimation,
+          builder: (context, child) {
+            return Opacity(
+              opacity: fadeOutAnimation.value,
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (int i = 0; i < "SLOTTED".length; i++)
+                      Opacity(
+                        opacity: fadeInAnimation.value * (1 - (i * 0.12)),
+                        child: Text(
+                          "SLOTTED"[i],
+                          style: const TextStyle(
+                            color: CupertinoColors.white,
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 4,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
