@@ -45,7 +45,7 @@
 	<string>Location is used to find nearby events</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Photos are used to add a profile picture</string>
-	<key>NSCalendarUsageDescription</key>
+	<key>NSCalendarsUsageDescription</key>
 	<string>Calendar is used to add events</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
