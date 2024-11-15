@@ -90,7 +90,7 @@ class LivePageState extends State<LivePage> {
             onPressed: () async {
               final int timeLimit = int.tryParse(controller.text) ?? 0;
               await FirebaseFirestore.instance
-                  .doc('events/${widget.event.id}')
+                  .doc('events/${event.id}')
                   .update({
                 'timeLimit': timeLimit,
                 'performerStart':
@@ -200,7 +200,7 @@ class LivePageState extends State<LivePage> {
       case true:
         if (!isCurrentPerformer) {
           await FirebaseFirestore.instance
-              .doc('events/${widget.event.id}')
+              .doc('events/${event.id}')
               .update({
             'performer': performer,
             'performerStart': null,
@@ -214,7 +214,7 @@ class LivePageState extends State<LivePage> {
       case null:
         if (isCurrentPerformer) {
           await FirebaseFirestore.instance
-              .doc('events/${widget.event.id}')
+              .doc('events/${event.id}')
               .update({
             'performerStart':
                 event.performerStart != null ? DateTime.now() : null,
@@ -228,7 +228,7 @@ class LivePageState extends State<LivePage> {
         break;
       case false:
         await FirebaseFirestore.instance
-            .doc('events/${widget.event.id}')
+            .doc('events/${event.id}')
             .update({
           'performer': null,
           'performerStart': null,
@@ -286,7 +286,7 @@ class LivePageState extends State<LivePage> {
     });
   }
 
-  Future<void> _removePerformer(String performerId) async {
+  Future<void> _removePerformer(Event event, String performerId) async {
     final confirmation = await showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
@@ -306,13 +306,13 @@ class LivePageState extends State<LivePage> {
     );
 
     if (confirmation == true) {
-      widget.event.attendees.remove(performerId);
-      widget.event.reservationTimestamps.remove(performerId);
-      await FirebaseFirestore.instance.doc('events/${widget.event.id}').update({
-        'attendees': widget.event.attendees,
-        'reservationTimestamps': widget.event.reservationTimestamps,
+      final updatedAttendees = List<String>.from(event.attendees)..remove(performerId);
+      final updatedTimestamps = Map<String, DateTime>.from(event.reservationTimestamps)..remove(performerId);
+      
+      await FirebaseFirestore.instance.doc('events/${event.id}').update({
+        'attendees': updatedAttendees,
+        'reservationTimestamps': updatedTimestamps,
       });
-      setState(() {});
     }
   }
 
@@ -370,29 +370,6 @@ class LivePageState extends State<LivePage> {
                 .difference(DateTime.now())
             : Duration.zero;
 
-        setState(() {
-          widget.event.name = event.name;
-          widget.event.address = event.address;
-          widget.event.attendees = event.attendees;
-          widget.event.date = event.date;
-          widget.event.ended = event.ended;
-          widget.event.host = event.host;
-          widget.event.hostName = event.hostName;
-          widget.event.id = event.id;
-          widget.event.live = event.live;
-          widget.event.location = event.location;
-          widget.event.name = event.name;
-          widget.event.performer = event.performer;
-          widget.event.performerStart = event.performerStart;
-          widget.event.price = event.price;
-          widget.event.reservationTimestamps = event.reservationTimestamps;
-          widget.event.rules = event.rules;
-          widget.event.signupOnLocation = event.signupOnLocation;
-          widget.event.slots = event.slots;
-          widget.event.timeLimit = event.timeLimit;
-          widget.event.type = event.type;
-          widget.event.waitlist = event.waitlist;
-        });
         return CupertinoPageScaffold(
           resizeToAvoidBottomInset: false,
           navigationBar: CupertinoNavigationBar(
@@ -730,7 +707,7 @@ class LivePageState extends State<LivePage> {
                                                           await FirebaseFirestore
                                                               .instance
                                                               .doc(
-                                                                  'events/${widget.event.id}')
+                                                                  'events/${event.id}')
                                                               .update({
                                                             'slots':
                                                                 event.slots + 1,
@@ -745,7 +722,7 @@ class LivePageState extends State<LivePage> {
                                                           await FirebaseFirestore
                                                               .instance
                                                               .doc(
-                                                                  'events/${widget.event.id}')
+                                                                  'events/${event.id}')
                                                               .update({
                                                             'attendees': widget
                                                                 .event
@@ -820,43 +797,45 @@ class LivePageState extends State<LivePage> {
                                     child: widget.user?.uid == event.host &&
                                             !event.ended
                                         ? ReorderableListView.builder(
+                                            key: ValueKey(event.attendees.length), // Add key to force rebuild
                                             onReorder: (oldIndex, newIndex) {
                                               if (newIndex > oldIndex) {
                                                 newIndex -= 1;
                                               }
-                                              setState(() {
-                                                final List<String>
+                                              final List<String>
                                                     updatedAttendees =
                                                     List.from(
-                                                        widget.event.attendees);
+                                                        event.attendees);
                                                 final String movedPerformer =
                                                     updatedAttendees
                                                         .removeAt(oldIndex);
                                                 updatedAttendees.insert(
                                                     newIndex, movedPerformer);
+                                              setState(() {
+                                                
                                                 widget.event.attendees =
                                                     updatedAttendees;
                                               });
                                               // Perform async update after setState
                                               FirebaseFirestore.instance
                                                   .doc(
-                                                      'events/${widget.event.id}')
+                                                      'events/${event.id}')
                                                   .update({
                                                 'attendees':
-                                                    widget.event.attendees,
+                                                    updatedAttendees,
                                               });
                                             },
                                             itemCount:
-                                                widget.event.attendees.length,
+                                                event.attendees.length,
                                             itemBuilder: (context, index) {
                                               final performerId =
-                                                  widget.event.attendees[index];
+                                                event.attendees[index];
                                               return Dismissible(
                                                 key: ValueKey(performerId),
                                                 direction:
                                                     DismissDirection.startToEnd,
                                                 onDismissed: (direction) {
-                                                  _removePerformer(performerId);
+                                                  _removePerformer(event, performerId);
                                                 },
                                                 background: Container(
                                                   color:
@@ -898,13 +877,12 @@ class LivePageState extends State<LivePage> {
                                                         : placeholderImage;
                                                     return CupertinoListTile(
                                                       onTap: isHost &&
-                                                              !widget.event
-                                                                  .ended &&
-                                                              widget.event.live
+                                                              !event.ended &&
+                                                              event.live
                                                           ? () {
                                                               _lineupPerformer(
-                                                                  widget.event,
-                                                                  widget.event
+                                                                  event,
+                                                                  event
                                                                       .performer,
                                                                   performerId,
                                                                   username);
@@ -991,7 +969,7 @@ class LivePageState extends State<LivePage> {
                                                         mainAxisSize:
                                                             MainAxisSize.min,
                                                         children: [
-                                                          if (widget.event
+                                                          if (event
                                                                   .performer ==
                                                               performerId) ...[
                                                             const Text(
@@ -1040,11 +1018,12 @@ class LivePageState extends State<LivePage> {
                                             },
                                           )
                                         : ListView.builder(
+                                            key: ValueKey(event.attendees.length), // Add key to force rebuild
                                             itemCount:
-                                                widget.event.attendees.length,
+                                                event.attendees.length,
                                             itemBuilder: (context, index) {
                                               final performerId =
-                                                  widget.event.attendees[index];
+                                                  event.attendees[index];
                                               return Dismissible(
                                                 key: ValueKey(performerId),
                                                 background: Container(
@@ -1087,9 +1066,9 @@ class LivePageState extends State<LivePage> {
                                                         : placeholderImage;
                                                     return CupertinoListTile(
                                                       onTap: isHost &&
-                                                              !widget.event
+                                                              !event
                                                                   .ended &&
-                                                              widget.event.live
+                                                              event.live
                                                           ? () {
                                                               _lineupPerformer(
                                                                   widget.event,
@@ -1180,7 +1159,7 @@ class LivePageState extends State<LivePage> {
                                                         mainAxisSize:
                                                             MainAxisSize.min,
                                                         children: [
-                                                          if (widget.event
+                                                          if (event
                                                                   .performer ==
                                                               performerId) ...[
                                                             const Text(
@@ -1283,7 +1262,7 @@ class LivePageState extends State<LivePage> {
                                                       });
                                                       setState(() {
                                                         event.live = true;
-                                                        widget.event.live =
+                                                        event.live =
                                                             true;
                                                       });
                                                     }
