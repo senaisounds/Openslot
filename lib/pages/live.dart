@@ -82,10 +82,6 @@ class LivePageState extends State<LivePage> {
         ),
         actions: [
           CupertinoDialogAction(
-            child: const Text("Cancel"),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          CupertinoDialogAction(
             child: const Text("Set"),
             onPressed: () async {
               final int timeLimit = int.tryParse(controller.text) ?? 0;
@@ -98,6 +94,10 @@ class LivePageState extends State<LivePage> {
               });
               Navigator.of(context).pop();
             },
+          ),
+          CupertinoDialogAction(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),
@@ -135,21 +135,15 @@ class LivePageState extends State<LivePage> {
               ],
             ),
             actions: [
-              if ((event.performerStart != null && event.timeLimit != 0) ||
-                  !isCurrentPerformer)
-                CupertinoDialogAction(
-                  child: Text(isCurrentPerformer ? "Restart" : "No"),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
               if (isCurrentPerformer && event.performerStart == null) ...[
+                CupertinoDialogAction(
+                  child: const Text("Remove"),
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
                 CupertinoDialogAction(
                   child: Text(isCurrentPerformer ? "Cancel" : "Yes"),
                   onPressed: () => Navigator.of(context).pop(true),
                 ),
-                CupertinoDialogAction(
-                  child: const Text("Remove"),
-                  onPressed: () => Navigator.of(context).pop(false),
-                )
               ],
               if (isCurrentPerformer && event.performerStart != null) ...[
                 CupertinoDialogAction(
@@ -161,47 +155,55 @@ class LivePageState extends State<LivePage> {
                   onPressed: () => Navigator.of(context).pop(true),
                 )
               ],
-              if (performer != username) ...[
-                CupertinoDialogAction(
-                  child: const Text("View Profile"),
-                  onPressed: () => Navigator.of(context).push(
-                    CupertinoPageRoute(
-                      builder: (context) => CupertinoPageScaffold(
-                        resizeToAvoidBottomInset: false,
-                        backgroundColor: CupertinoColors.systemBackground,
-                        navigationBar: const CupertinoNavigationBar(
-                          middle: Text("Performer's Profile"),
-                          backgroundColor:
-                              CupertinoColors.secondarySystemBackground,
-                        ),
-                        child: ProfilePage(
-                          debug: widget.debug,
-                          user: widget.user,
-                          authAction: (loggedIn) =>
-                              widget.authAction(context, loggedIn, () {}),
-                          viewUser:
-                              performer != widget.user?.uid ? performer : null,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              ],
               if (!isCurrentPerformer) ...[
                 CupertinoDialogAction(
                   child: Text(isCurrentPerformer ? "Cancel" : "Yes"),
                   onPressed: () => Navigator.of(context).pop(true),
                 )
               ],
+              if ((event.performerStart != null && event.timeLimit != 0) ||
+                  !isCurrentPerformer)
+                CupertinoDialogAction(
+                  child: Text(isCurrentPerformer ? "Restart" : "No"),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              if (performer != username) ...[
+                CupertinoDialogAction(
+                  child: const Text("View Profile"),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) => CupertinoPageScaffold(
+                          resizeToAvoidBottomInset: false,
+                          backgroundColor: CupertinoColors.systemBackground,
+                          navigationBar: const CupertinoNavigationBar(
+                            middle: Text("Performer's Profile"),
+                            backgroundColor:
+                                CupertinoColors.secondarySystemBackground,
+                          ),
+                          child: ProfilePage(
+                            debug: widget.debug,
+                            user: widget.user,
+                            authAction: (loggedIn) =>
+                                widget.authAction(context, loggedIn, () {}),
+                            viewUser: performer != widget.user?.uid
+                                ? performer
+                                : null,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ]
             ],
           );
         });
     switch (confirmation) {
       case true:
         if (!isCurrentPerformer) {
-          await FirebaseFirestore.instance
-              .doc('events/${event.id}')
-              .update({
+          await FirebaseFirestore.instance.doc('events/${event.id}').update({
             'performer': performer,
             'performerStart': null,
           });
@@ -213,9 +215,7 @@ class LivePageState extends State<LivePage> {
         break;
       case null:
         if (isCurrentPerformer) {
-          await FirebaseFirestore.instance
-              .doc('events/${event.id}')
-              .update({
+          await FirebaseFirestore.instance.doc('events/${event.id}').update({
             'performerStart':
                 event.performerStart != null ? DateTime.now() : null,
           });
@@ -227,9 +227,7 @@ class LivePageState extends State<LivePage> {
         }
         break;
       case false:
-        await FirebaseFirestore.instance
-            .doc('events/${event.id}')
-            .update({
+        await FirebaseFirestore.instance.doc('events/${event.id}').update({
           'performer': null,
           'performerStart': null,
         });
@@ -256,12 +254,12 @@ class LivePageState extends State<LivePage> {
         ),
         actions: [
           CupertinoDialogAction(
-            child: const Text("Cancel"),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          CupertinoDialogAction(
             child: const Text("End"),
             onPressed: () => Navigator.of(context).pop(true),
+          ),
+          CupertinoDialogAction(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),
@@ -294,21 +292,24 @@ class LivePageState extends State<LivePage> {
         content: const Text("Are you sure you want to remove this performer?"),
         actions: [
           CupertinoDialogAction(
-            child: const Text("Cancel"),
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          CupertinoDialogAction(
             child: const Text("Remove"),
             onPressed: () => Navigator.of(context).pop(true),
           ),
+          CupertinoDialogAction(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.of(context).pop(false),
+          )
         ],
       ),
     );
 
     if (confirmation == true) {
-      final updatedAttendees = List<String>.from(event.attendees)..remove(performerId);
-      final updatedTimestamps = Map<String, DateTime>.from(event.reservationTimestamps)..remove(performerId);
-      
+      final updatedAttendees = List<String>.from(event.attendees)
+        ..remove(performerId);
+      final updatedTimestamps =
+          Map<String, DateTime>.from(event.reservationTimestamps)
+            ..remove(performerId);
+
       await FirebaseFirestore.instance.doc('events/${event.id}').update({
         'attendees': updatedAttendees,
         'reservationTimestamps': updatedTimestamps,
@@ -462,66 +463,134 @@ class LivePageState extends State<LivePage> {
                                       : null,
                                   width: 240,
                                   height: 240,
-                                  child: username.isNotEmpty &&
-                                          username.toLowerCase() !=
-                                              'no performer'
-                                      ? Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            Text(
-                                              photoUrl != placeholderImage &&
-                                                      photoUrl != ''
-                                                  ? ''
-                                                  : username.characters.first
-                                                      .toUpperCase(),
-                                              style: TextStyle(
-                                                fontSize: 240 * 0.78,
-                                                fontWeight: FontWeight.bold,
-                                                color: slottedOrange
-                                                    .withOpacity(0.0),
-                                                shadows: [
-                                                  Shadow(
-                                                    blurRadius: 12,
-                                                    color: slottedOrange
-                                                        .withOpacity(0.6),
-                                                    offset: const Offset(0, 0),
+                                  child: Stack(
+                                    children: [
+                                      username.isNotEmpty &&
+                                              username.toLowerCase() !=
+                                                  'no performer'
+                                          ? Container(
+                                              decoration: BoxDecoration(
+                                                color: CupertinoColors.black
+                                                    .withOpacity(0.3),
+                                                borderRadius:
+                                                    BorderRadius.circular(120),
+                                              ),
+                                              width: 240,
+                                              height: 240,
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  Text(
+                                                    photoUrl != placeholderImage &&
+                                                            photoUrl != ''
+                                                        ? ''
+                                                        : username
+                                                            .characters.first
+                                                            .toUpperCase(),
+                                                    style: TextStyle(
+                                                      fontSize: 240 * 0.78,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: slottedOrange
+                                                          .withOpacity(0.0),
+                                                      shadows: [
+                                                        Shadow(
+                                                          blurRadius: 12,
+                                                          color: slottedOrange
+                                                              .withOpacity(0.6),
+                                                          offset: const Offset(
+                                                              0, 0),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    textAlign: TextAlign.center,
                                                   ),
                                                 ],
                                               ),
-                                              textAlign: TextAlign.center,
+                                            )
+                                          : Container(
+                                              decoration: BoxDecoration(
+                                                color: CupertinoColors.black
+                                                    .withOpacity(0.3),
+                                                borderRadius:
+                                                    BorderRadius.circular(120),
+                                              ),
+                                              width: 240,
+                                              height: 240,
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  // Background image or letter
+                                                  if (username.isNotEmpty &&
+                                                      username.toLowerCase() !=
+                                                          'no performer')
+                                                    Text(
+                                                      photoUrl != placeholderImage &&
+                                                              photoUrl != ''
+                                                          ? ''
+                                                          : username
+                                                              .characters.first
+                                                              .toUpperCase(),
+                                                      style: TextStyle(
+                                                        fontSize: 240 * 0.78,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: slottedOrange
+                                                            .withOpacity(0.0),
+                                                        // shadows: [
+                                                        //   Shadow(
+                                                        //     blurRadius: 12,
+                                                        //     color: slottedOrange
+                                                        //         .withOpacity(0.6),
+                                                        //     offset:
+                                                        //         const Offset(0, 0),
+                                                        //   ),
+                                                        // ],
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                ],
+                                              ),
                                             ),
-                                          ],
-                                        )
-                                      : CircularProgressIndicator(
+                                      // Progress indicator
+                                      SizedBox(
+                                        width:
+                                            240, // Explicit size for progress indicator
+                                        height: 240,
+                                        child: CircularProgressIndicator(
                                           value: event.performer == null ||
                                                   event.timeLimit == 0 ||
                                                   event.performerStart == null
                                               ? 1
-                                              : progress,
+                                              : 1.0 - progress,
                                           strokeWidth: 6,
                                           strokeCap: StrokeCap.round,
-                                          backgroundColor: Colors.transparent,
-                                          valueColor: AlwaysStoppedAnimation(
-                                              event.performer != null
-                                                  ? slottedOrange
-                                                  : CupertinoColors
-                                                      .secondaryLabel),
+                                          backgroundColor: slottedOrange,
+                                          valueColor:
+                                              const AlwaysStoppedAnimation(
+                                                  CupertinoColors.systemGrey),
                                         ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.all(16.0),
                                   child: Column(
                                     children: [
                                       Text(
-                                        event.performerStart == null
-                                            ? event.timeLimit == 0
-                                                ? '∞'
-                                                : "${event.timeLimit}:00"
-                                            : progress > 0
-                                                ? '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}'
-                                                : event.timeLimit == 0
+                                        event.ended
+                                            ? 'Event Ended'
+                                            : event.performerStart == null
+                                                ? event.timeLimit == 0
                                                     ? '∞'
-                                                    : '0:00',
+                                                    : "${event.timeLimit}:00"
+                                                : progress > 0
+                                                    ? '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}'
+                                                    : event.timeLimit == 0
+                                                        ? '∞'
+                                                        : '0:00',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 28,
@@ -531,7 +600,8 @@ class LivePageState extends State<LivePage> {
                                         ),
                                       ),
                                       const SizedBox(height: 12),
-                                      if (event.performer != null)
+                                      if (event.performer != null &&
+                                          !event.ended)
                                         Text(
                                           username,
                                           style: const TextStyle(
@@ -539,7 +609,8 @@ class LivePageState extends State<LivePage> {
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                      if (event.performer == null)
+                                      if (event.performer == null &&
+                                          !event.ended)
                                         Text(
                                           'No Performer',
                                           style: TextStyle(
@@ -673,12 +744,6 @@ class LivePageState extends State<LivePage> {
                                                 ),
                                                 actions: [
                                                   CupertinoDialogAction(
-                                                    child: const Text("Cancel"),
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(),
-                                                  ),
-                                                  CupertinoDialogAction(
                                                     child: const Text("Add"),
                                                     onPressed: () async {
                                                       // Disable the button by popping the dialog
@@ -758,6 +823,12 @@ class LivePageState extends State<LivePage> {
                                                       }
                                                     },
                                                   ),
+                                                  CupertinoDialogAction(
+                                                    child: const Text("Cancel"),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
+                                                  ),
                                                 ],
                                               ),
                                             );
@@ -797,45 +868,42 @@ class LivePageState extends State<LivePage> {
                                     child: widget.user?.uid == event.host &&
                                             !event.ended
                                         ? ReorderableListView.builder(
-                                            key: ValueKey(event.attendees.length), // Add key to force rebuild
+                                            key: ValueKey(event.attendees
+                                                .length), // Add key to force rebuild
                                             onReorder: (oldIndex, newIndex) {
                                               if (newIndex > oldIndex) {
                                                 newIndex -= 1;
                                               }
                                               final List<String>
-                                                    updatedAttendees =
-                                                    List.from(
-                                                        event.attendees);
-                                                final String movedPerformer =
-                                                    updatedAttendees
-                                                        .removeAt(oldIndex);
-                                                updatedAttendees.insert(
-                                                    newIndex, movedPerformer);
+                                                  updatedAttendees =
+                                                  List.from(event.attendees);
+                                              final String movedPerformer =
+                                                  updatedAttendees
+                                                      .removeAt(oldIndex);
+                                              updatedAttendees.insert(
+                                                  newIndex, movedPerformer);
                                               setState(() {
-                                                
                                                 widget.event.attendees =
                                                     updatedAttendees;
                                               });
                                               // Perform async update after setState
                                               FirebaseFirestore.instance
-                                                  .doc(
-                                                      'events/${event.id}')
+                                                  .doc('events/${event.id}')
                                                   .update({
-                                                'attendees':
-                                                    updatedAttendees,
+                                                'attendees': updatedAttendees,
                                               });
                                             },
-                                            itemCount:
-                                                event.attendees.length,
+                                            itemCount: event.attendees.length,
                                             itemBuilder: (context, index) {
                                               final performerId =
-                                                event.attendees[index];
+                                                  event.attendees[index];
                                               return Dismissible(
                                                 key: ValueKey(performerId),
                                                 direction:
                                                     DismissDirection.startToEnd,
                                                 onDismissed: (direction) {
-                                                  _removePerformer(event, performerId);
+                                                  _removePerformer(
+                                                      event, performerId);
                                                 },
                                                 background: Container(
                                                   color:
@@ -969,8 +1037,7 @@ class LivePageState extends State<LivePage> {
                                                         mainAxisSize:
                                                             MainAxisSize.min,
                                                         children: [
-                                                          if (event
-                                                                  .performer ==
+                                                          if (event.performer ==
                                                               performerId) ...[
                                                             const Text(
                                                               "Performing",
@@ -1018,9 +1085,9 @@ class LivePageState extends State<LivePage> {
                                             },
                                           )
                                         : ListView.builder(
-                                            key: ValueKey(event.attendees.length), // Add key to force rebuild
-                                            itemCount:
-                                                event.attendees.length,
+                                            key: ValueKey(event.attendees
+                                                .length), // Add key to force rebuild
+                                            itemCount: event.attendees.length,
                                             itemBuilder: (context, index) {
                                               final performerId =
                                                   event.attendees[index];
@@ -1066,8 +1133,7 @@ class LivePageState extends State<LivePage> {
                                                         : placeholderImage;
                                                     return CupertinoListTile(
                                                       onTap: isHost &&
-                                                              !event
-                                                                  .ended &&
+                                                              !event.ended &&
                                                               event.live
                                                           ? () {
                                                               _lineupPerformer(
@@ -1159,8 +1225,7 @@ class LivePageState extends State<LivePage> {
                                                         mainAxisSize:
                                                             MainAxisSize.min,
                                                         children: [
-                                                          if (event
-                                                                  .performer ==
+                                                          if (event.performer ==
                                                               performerId) ...[
                                                             const Text(
                                                               "Performing",
@@ -1262,8 +1327,7 @@ class LivePageState extends State<LivePage> {
                                                       });
                                                       setState(() {
                                                         event.live = true;
-                                                        event.live =
-                                                            true;
+                                                        event.live = true;
                                                       });
                                                     }
                                                   : null
