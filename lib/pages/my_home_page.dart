@@ -170,7 +170,9 @@ class _MyHomePageState extends State<MyHomePage> {
         color: CupertinoColors.systemBackground,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSearching ? complementaryColor : CupertinoColors.systemGrey, // Updated color
+          color: isSearching
+              ? complementaryColor
+              : CupertinoColors.systemGrey, // Updated color
           width: 1.5,
         ),
       ),
@@ -238,7 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     FirebaseFirestore.instance.collection('events').snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return  Center(
+                    return Center(
                       child: CupertinoActivityIndicator(
                         color: complementaryColor,
                         radius: 16,
@@ -345,7 +347,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           controller: eventsScrollController,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: SizedBox(
@@ -817,16 +820,20 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ? CupertinoColors.black
                                   : event.live
                                       ? CupertinoColors.systemGreen
-                                          .withBlue(CupertinoColors.systemGreen.blue -
-                                              40)
+                                          .withBlue(
+                                              CupertinoColors.systemGreen.blue -
+                                                  40)
                                           .withRed(CupertinoColors.systemGreen.red -
                                               40)
-                                          .withGreen(CupertinoColors.systemGreen.green -
-                                              40)
+                                          .withGreen(
+                                              CupertinoColors.systemGreen.green -
+                                                  40)
                                       : event.host == slottedUser?.id
                                           ? complementaryColor
-                                              .withBlue(complementaryColor.blue - 40)
-                                              .withRed(complementaryColor.red - 40)
+                                              .withBlue(
+                                                  complementaryColor.blue - 40)
+                                              .withRed(
+                                                  complementaryColor.red - 40)
                                               .withGreen(
                                                   complementaryColor.green - 40)
                                           : slottedUser == null
@@ -834,15 +841,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                               : event.attendees
                                                       .contains(slottedUser.id)
                                                   ? CupertinoColors.label
-                                                  : event.waitlist.contains(
-                                                          slottedUser.id)
+                                                  : event.waitlist
+                                                          .contains(slottedUser.id)
                                                       ? CupertinoColors.label
-                                                      : event.attendees.length <
-                                                              event.slots
-                                                          ? complementaryColor
-                                                              .withBlue(complementaryColor.blue - 40)
-                                                              .withRed(complementaryColor.red - 40)
-                                                              .withGreen(complementaryColor.green - 40)
+                                                      : event.attendees.length < event.slots
+                                                          ? complementaryColor.withBlue(complementaryColor.blue - 40).withRed(complementaryColor.red - 40).withGreen(complementaryColor.green - 40)
                                                           : complementaryColor,
                               spreadRadius: 1,
                               blurRadius: 1,
@@ -941,10 +944,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     : event.attendees.contains(
                                                             slottedUser.id)
                                                         ? complementaryColor
-                                                        : event.waitlist
-                                                                .contains(
-                                                                    slottedUser
-                                                                        .id)
+                                                        : event.waitlist.contains(
+                                                                slottedUser.id)
                                                             ? complementaryColor
                                                             : event.attendees
                                                                         .length <
