@@ -9,7 +9,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:slotted/common/colors.dart';
+// import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/date_components.dart';
 import 'package:slotted/common/event_class.dart' as EventClass;
 // ignore: depend_on_referenced_packages
@@ -48,6 +48,8 @@ class MyEventsPageState extends State<MyEventsPage> {
   final ScrollController eventsScrollController = ScrollController();
   final DeviceCalendar.DeviceCalendarPlugin _deviceCalendarPlugin =
       DeviceCalendar.DeviceCalendarPlugin();
+
+  final Color complementaryColor = CupertinoColors.systemTeal;
 
   void _triggerImpactFeedback() {
     HapticFeedback.mediumImpact();
@@ -97,12 +99,12 @@ class MyEventsPageState extends State<MyEventsPage> {
                         // color: CupertinoColors.black.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: const CircularProgressIndicator(
+                      child: CircularProgressIndicator(
                         strokeCap: StrokeCap.round,
                         backgroundColor: CupertinoColors.systemOrange,
                         strokeAlign: -8,
                         strokeWidth: 5,
-                        color: slottedOrange,
+                        color: complementaryColor,
                       ),
                     )
                   : widget.user == null
@@ -124,9 +126,9 @@ class MyEventsPageState extends State<MyEventsPage> {
                                     decoration: BoxDecoration(
                                       color: CupertinoColors.black,
                                       borderRadius: BorderRadius.circular(12),
-                                      boxShadow: const [
+                                      boxShadow: [
                                         BoxShadow(
-                                          color: slottedOrange,
+                                          color: complementaryColor,
                                           spreadRadius: 3,
                                           blurRadius: 9,
                                         ),
@@ -148,7 +150,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                                                         slottedUser.isHost
                                                     ? CupertinoColors
                                                         .systemBackground
-                                                    : slottedOrange,
+                                                    : complementaryColor,
                                                 fontWeight: eventMode == 1 &&
                                                         slottedUser.isHost
                                                     ? FontWeight.w400
@@ -168,7 +170,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                                             style: TextStyle(
                                                 color: eventMode == 1 &&
                                                         slottedUser.isHost
-                                                    ? slottedOrange
+                                                    ? complementaryColor
                                                     : CupertinoColors
                                                         .systemBackground,
                                                 fontWeight: eventMode == 1 &&
@@ -220,10 +222,10 @@ class MyEventsPageState extends State<MyEventsPage> {
                                             ),
                                           ),
                                         ),
-                                        child: const Text(
+                                        child: Text(
                                           'Create Event',
                                           style: TextStyle(
-                                            color: slottedOrange,
+                                            color: complementaryColor,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 18,
                                           ),
@@ -249,9 +251,9 @@ class MyEventsPageState extends State<MyEventsPage> {
                                           .snapshots(),
                                   builder: (context, snapshot) {
                                     if (!snapshot.hasData) {
-                                      return const Center(
+                                      return Center(
                                         child: CupertinoActivityIndicator(
-                                          color: slottedOrange,
+                                          color: complementaryColor,
                                           radius: 16,
                                         ),
                                       );
@@ -343,9 +345,9 @@ class MyEventsPageState extends State<MyEventsPage> {
                                     } else if (snapshot.hasError) {
                                       return Text('Error: ${snapshot.error}');
                                     } else {
-                                      return const CupertinoActivityIndicator(
+                                      return CupertinoActivityIndicator(
                                         radius: 20,
-                                        color: slottedOrange,
+                                        color: complementaryColor,
                                       );
                                     }
                                   },
@@ -366,8 +368,8 @@ class MyEventsPageState extends State<MyEventsPage> {
       padding: const EdgeInsets.all(12),
       child: Text(
         title,
-        style: const TextStyle(
-          color: slottedOrange,
+        style: TextStyle(
+          color: complementaryColor,
           fontSize: 24,
           fontWeight: FontWeight.w800,
         ),
@@ -764,11 +766,11 @@ class MyEventsPageState extends State<MyEventsPage> {
                                           .withGreen(CupertinoColors.systemGreen.green -
                                               40)
                                       : event.host == slottedUser?.id
-                                          ? slottedOrange
-                                              .withBlue(slottedOrange.blue - 40)
-                                              .withRed(slottedOrange.red - 40)
+                                          ? complementaryColor
+                                              .withBlue(complementaryColor.blue - 40)
+                                              .withRed(complementaryColor.red - 40)
                                               .withGreen(
-                                                  slottedOrange.green - 40)
+                                                  complementaryColor.green - 40)
                                           : slottedUser == null
                                               ? CupertinoColors.label
                                               : event.attendees
@@ -779,11 +781,11 @@ class MyEventsPageState extends State<MyEventsPage> {
                                                       ? CupertinoColors.label
                                                       : event.attendees.length <
                                                               event.slots
-                                                          ? slottedOrange
-                                                              .withBlue(slottedOrange.blue - 40)
-                                                              .withRed(slottedOrange.red - 40)
-                                                              .withGreen(slottedOrange.green - 40)
-                                                          : slottedOrange,
+                                                          ? complementaryColor
+                                                              .withBlue(complementaryColor.blue - 40)
+                                                              .withRed(complementaryColor.red - 40)
+                                                              .withGreen(complementaryColor.green - 40)
+                                                          : complementaryColor,
                               spreadRadius: 1,
                               blurRadius: 1,
                             ),
@@ -843,7 +845,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                                         ? Text(
                                             'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}',
                                             style: TextStyle(
-                                                color: slottedOrange,
+                                                color: complementaryColor,
                                                 fontWeight: FontWeight.w700,
                                                 fontSize: slottedUser == null
                                                     ? 14.5
@@ -880,12 +882,12 @@ class MyEventsPageState extends State<MyEventsPage> {
                                                     ? Colors.white
                                                     : event.attendees.contains(
                                                             slottedUser.id)
-                                                        ? slottedOrange
+                                                        ? complementaryColor
                                                         : event.waitlist
                                                                 .contains(
                                                                     slottedUser
                                                                         .id)
-                                                            ? slottedOrange
+                                                            ? complementaryColor
                                                             : event.attendees
                                                                         .length <
                                                                     event.slots

@@ -39,6 +39,8 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
   final FocusNode authFocusNode = FocusNode();
+  final Color complementaryColor = CupertinoColors.systemTeal;
+
   KeyboardActionsConfig _buildConfig(BuildContext context) {
     return KeyboardActionsConfig(
       keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
@@ -50,10 +52,10 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
             return CupertinoButton(
               padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
               onPressed: () => node.unfocus(),
-              child: const Text(
+              child: Text(
                 'Done',
                 style: TextStyle(
-                  color: slottedOrange,
+                  color: complementaryColor,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -199,10 +201,10 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                 'Are you sure you want to give up your slot for this event?${isPaid ? ' You will be refunded after your reservation is cancelled.' : ''}'),
             actions: [
               CupertinoDialogAction(
-                  child: const Text(
+                  child: Text(
                     'Back',
                     style: TextStyle(
-                      color: slottedOrange,
+                      color: complementaryColor,
                     ),
                   ),
                   onPressed: () async {
@@ -496,7 +498,11 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                                   ),
                                 ),
                         padding: EdgeInsets.zero,
-                        child: const Icon(CupertinoIcons.bell, size: 30),
+                        child: const Icon(
+                          CupertinoIcons.bell,
+                          size: 30,
+                          color: CupertinoColors.systemTeal,
+                        ),
                       )
                     : null,
                 trailing: CupertinoButton(
@@ -507,6 +513,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                       ? const Icon(
                           CupertinoIcons.gear,
                           size: 30,
+                          color: CupertinoColors.systemTeal,
                         )
                       : const Text(
                           'Sign In',
@@ -531,8 +538,9 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   resizeToAvoidBottomInset: false,
                   tabBar: CupertinoTabBar(
                     height: 64,
-                    backgroundColor: CupertinoColors.systemGrey.withOpacity(0.2),
-                    activeColor: slottedOrange,
+                    backgroundColor:
+                        CupertinoColors.systemGrey.withOpacity(0.2),
+                    activeColor: complementaryColor,
                     inactiveColor: CupertinoColors.systemGrey,
                     currentIndex: _tabController.index,
                     onTap: (index) {
@@ -564,7 +572,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                             borderRadius: BorderRadius.circular(40),
                             border: Border.all(
                               color: _tabController.index == 1
-                                  ? slottedOrange.withOpacity(0.93)
+                                  ? complementaryColor.withOpacity(0.93)
                                   : CupertinoColors.systemGrey.withOpacity(0.7),
                               width: 3,
                             ),
@@ -574,7 +582,7 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                             width: iconSize * 1.2,
                             height: iconSize * 1.2,
                             color: _tabController.index == 1
-                                ? slottedOrange.withOpacity(0.93)
+                                ? complementaryColor.withOpacity(0.93)
                                 : CupertinoColors.systemGrey.withOpacity(0.7),
                           ),
                         ),
@@ -608,12 +616,12 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: const CircularProgressIndicator(
+                  child: CircularProgressIndicator(
                     strokeCap: StrokeCap.round,
                     backgroundColor: CupertinoColors.systemOrange,
                     strokeAlign: -8,
                     strokeWidth: 5,
-                    color: slottedOrange,
+                    color: complementaryColor,
                   ),
                 ),
               ),
@@ -846,8 +854,8 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildNavigationTitle() {
-    const style = TextStyle(
-      color: slottedOrange,
+    final style = TextStyle(
+      color: complementaryColor,
       fontWeight: FontWeight.w700,
       fontSize: 30,
     );

@@ -49,6 +49,17 @@ class _MyHomePageState extends State<MyHomePage> {
   final DeviceCalendar.DeviceCalendarPlugin _deviceCalendarPlugin =
       DeviceCalendar.DeviceCalendarPlugin();
 
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  final List<String> _slideshowImages = [
+    'lib/assets/images/default_featured.jpg',
+    'lib/assets/images/dj.png',
+    'lib/assets/images/s_logo.png',
+  ];
+
+  // Define a new color to replace slottedOrange
+  final Color complementaryColor = CupertinoColors.systemTeal;
+
   KeyboardActionsConfig _buildConfig(BuildContext context) {
     return KeyboardActionsConfig(
       keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
@@ -63,10 +74,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 node.unfocus();
                 setState(() {});
               },
-              child: const Text(
+              child: Text(
                 'Done',
                 style: TextStyle(
-                  color: slottedOrange,
+                  color: complementaryColor, // Updated color
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -159,11 +170,37 @@ class _MyHomePageState extends State<MyHomePage> {
         color: CupertinoColors.systemBackground,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSearching ? slottedOrange : CupertinoColors.systemGrey,
+          color: isSearching ? complementaryColor : CupertinoColors.systemGrey, // Updated color
           width: 1.5,
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startSlideshow();
+  }
+
+  void _startSlideshow() {
+    Future.delayed(const Duration(seconds: 5), () {
+      if (_pageController.hasClients) {
+        _currentPage = (_currentPage + 1) % _slideshowImages.length;
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+        _startSlideshow();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -201,9 +238,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     FirebaseFirestore.instance.collection('events').snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return const Center(
+                    return  Center(
                       child: CupertinoActivityIndicator(
-                        color: slottedOrange,
+                        color: complementaryColor,
                         radius: 16,
                       ),
                     );
@@ -294,9 +331,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                                 );
                               },
-                              child: const Icon(
+                              child: Icon(
                                 CupertinoIcons.slider_horizontal_3,
-                                color: slottedOrange,
+                                color: complementaryColor, // Updated color
                                 size: 24,
                               ),
                             ),
@@ -308,13 +345,21 @@ class _MyHomePageState extends State<MyHomePage> {
                           controller: eventsScrollController,
                           children: [
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: Image.asset(
-                                  'lib/assets/images/default_featured.jpg',
-                                  fit: BoxFit.cover,
+                                child: SizedBox(
+                                  height: 200, // Adjust height as needed
+                                  child: PageView.builder(
+                                    controller: _pageController,
+                                    itemCount: _slideshowImages.length,
+                                    itemBuilder: (context, index) {
+                                      return Image.asset(
+                                        _slideshowImages[index],
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
@@ -357,8 +402,8 @@ class _MyHomePageState extends State<MyHomePage> {
       padding: const EdgeInsets.all(12),
       child: Text(
         title,
-        style: const TextStyle(
-          color: slottedOrange,
+        style: TextStyle(
+          color: complementaryColor, // Updated color
           fontSize: 24,
           fontWeight: FontWeight.w800,
         ),
@@ -779,11 +824,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                           .withGreen(CupertinoColors.systemGreen.green -
                                               40)
                                       : event.host == slottedUser?.id
-                                          ? slottedOrange
-                                              .withBlue(slottedOrange.blue - 40)
-                                              .withRed(slottedOrange.red - 40)
+                                          ? complementaryColor
+                                              .withBlue(complementaryColor.blue - 40)
+                                              .withRed(complementaryColor.red - 40)
                                               .withGreen(
-                                                  slottedOrange.green - 40)
+                                                  complementaryColor.green - 40)
                                           : slottedUser == null
                                               ? CupertinoColors.label
                                               : event.attendees
@@ -794,11 +839,11 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       ? CupertinoColors.label
                                                       : event.attendees.length <
                                                               event.slots
-                                                          ? slottedOrange
-                                                              .withBlue(slottedOrange.blue - 40)
-                                                              .withRed(slottedOrange.red - 40)
-                                                              .withGreen(slottedOrange.green - 40)
-                                                          : slottedOrange,
+                                                          ? complementaryColor
+                                                              .withBlue(complementaryColor.blue - 40)
+                                                              .withRed(complementaryColor.red - 40)
+                                                              .withGreen(complementaryColor.green - 40)
+                                                          : complementaryColor,
                               spreadRadius: 1,
                               blurRadius: 1,
                             ),
@@ -858,7 +903,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         ? Text(
                                             'Reserve\n${event.price > 0 ? '\$${event.price.toStringAsFixed(2)}' : 'Free'}',
                                             style: TextStyle(
-                                                color: slottedOrange,
+                                                color: complementaryColor,
                                                 fontWeight: FontWeight.w700,
                                                 fontSize: slottedUser == null
                                                     ? 14.5
@@ -895,12 +940,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     ? Colors.white
                                                     : event.attendees.contains(
                                                             slottedUser.id)
-                                                        ? slottedOrange
+                                                        ? complementaryColor
                                                         : event.waitlist
                                                                 .contains(
                                                                     slottedUser
                                                                         .id)
-                                                            ? slottedOrange
+                                                            ? complementaryColor
                                                             : event.attendees
                                                                         .length <
                                                                     event.slots
