@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Slot - System Fonts</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background-color: #2D2D3A;
+      color: white;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+    
+    /* Important: These styles will be applied to the Flutter app */
+    flt-glass-pane * {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif !important;
+      color: inherit !important;
+      visibility: visible !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading indicator -->
+  <div id="loading" style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+    <div style="text-align: center;">
+      <h1>Loading Open Slot...</h1>
+      <p>Using system fonts for better text display</p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // Force HTML renderer
+    window.flutterConfiguration = {
+      renderer: "html"
+    };
+
+    // Hide loading when Flutter is ready
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+    }
+  </script>
+  
+  <!-- Include Flutter scripts -->
+  <script src="flutter.js"></script>
+  <script>
+    window.addEventListener('load', function() {
+      // Initialize Flutter
+      _flutter.loader.load({
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine({
+            renderer: "html",
+            useColorEmoji: false
+          }).then(function(appRunner) {
+            // Run the app
+            appRunner.runApp();
+            // Hide loading after a short delay
+            setTimeout(hideLoading, 1000);
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

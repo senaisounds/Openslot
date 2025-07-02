@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSlot - Static Version</title>
+  <style>
+    /* Base styles */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #2D2D3A;
+      color: white;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background-color: #FF5722;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .content {
+      background-color: #3D3D4A;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+    }
+    
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    
+    .event {
+      background-color: #4D4D5A;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #FF5722;
+    }
+    
+    .button {
+      display: inline-block;
+      background-color: #FF5722;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+    
+    .button.secondary {
+      background-color: #4CAF50;
+    }
+    
+    .button:hover {
+      opacity: 0.9;
+    }
+    
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #4D4D5A;
+      color: #AAA;
+    }
+    
+    .signin-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .signin-button .icon {
+      margin-right: 8px;
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.7);
+      z-index: 1000;
+    }
+    
+    .modal-content {
+      background-color: #3D3D4A;
+      margin: 10% auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 8px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .modal-header h3 {
+      margin: 0;
+    }
+    
+    .close {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close:hover {
+      color: white;
+    }
+    
+    .modal-body {
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      background-color: #4D4D5A;
+      color: white;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .event {
+        padding: 15px;
+      }
+      
+      .modal-content {
+        margin: 20% auto;
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="signin-button" id="signinBtn">
+      <span class="icon">👤</span> Sign In
+    </button>
+    
+    <header>
+      <h1>OpenSlot</h1>
+      <p>Find and join events in your area</p>
+    </header>
+    
+    <div class="nav">
+      <div>
+        <a href="#" class="button active">Home</a>
+        <a href="#" class="button">Explore</a>
+      </div>
+      <div>
+        <a href="#" class="button secondary" id="createEventBtn">Create Event</a>
+      </div>
+    </div>
+    
+    <div class="content">
+      <h2>Featured Events</h2>
+      
+      <div class="event">
+        <h3>Comedy Night at The Laugh Factory</h3>
+        <p><strong>Date:</strong> Tomorrow, 8:00 PM</p>
+        <p><strong>Location:</strong> The Laugh Factory, New York</p>
+        <p>Join us for a night of laughter with top comedians from around the city!</p>
+        <a href="#" class="button reserve-btn" data-event="comedy-night">Reserve Slot</a>
+      </div>
+      
+      <div class="event">
+        <h3>Open Mic Poetry Reading</h3>
+        <p><strong>Date:</strong> Friday, 7:00 PM</p>
+        <p><strong>Location:</strong> Caffeine Dreams, Brooklyn</p>
+        <p>Share your poetry or listen to others in an inclusive and supportive environment.</p>
+        <a href="#" class="button reserve-btn" data-event="poetry-reading">Reserve Slot</a>
+      </div>
+      
+      <div class="event">
+        <h3>DJ Night - Electronic Beats</h3>
+        <p><strong>Date:</strong> Saturday, 10:00 PM</p>
+        <p><strong>Location:</strong> Pulse Club, Manhattan</p>
+        <p>Dance to the best electronic music with our featured DJs spinning the latest tracks.</p>
+        <a href="#" class="button reserve-btn" data-event="dj-night">Reserve Slot</a>
+      </div>
+      
+      <div class="event">
+        <h3>Weekend Yoga in the Park</h3>
+        <p><strong>Date:</strong> Sunday, 9:00 AM</p>
+        <p><strong>Location:</strong> Central Park, Great Lawn</p>
+        <p>Start your day with a relaxing and energizing yoga session in the heart of the city.</p>
+        <a href="#" class="button reserve-btn" data-event="yoga">Reserve Slot</a>
+      </div>
+      
+      <div class="footer">
+        <p>This is a static backup version of OpenSlot.</p>
+        <p>Try <a href="index.html" style="color: #FF5722;">loading the full app</a> again.</p>
+        <p>Generated: <span id="timestamp"></span></p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Sign In Modal -->
+  <div id="signinModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Sign In</h3>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter your password">
+        </div>
+        <button class="button" id="loginButton" style="width: 100%;">Sign In</button>
+        <p style="text-align: center; margin-top: 15px;">
+          Don't have an account? <a href="#" id="createAccountLink" style="color: #FF5722;">Create one</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Reserve Slot Modal -->
+  <div id="reserveModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Reserve Your Slot</h3>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>You're about to reserve a slot for <strong id="eventName">Event Name</strong>.</p>
+        <p>Please sign in to continue.</p>
+        <button class="button" id="goToSignInButton" style="width: 100%;">Sign In</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Create Event Modal -->
+  <div id="createEventModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Create New Event</h3>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Event creation requires the full app version.</p>
+        <p>Please try the full app again or sign in first.</p>
+        <button class="button" id="tryFullAppButton" style="width: 100%; margin-bottom: 10px;">Try Full App</button>
+        <button class="button" id="signInFirstButton" style="width: 100%; background-color: #4CAF50;">Sign In First</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Set timestamp
+    document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    
+    // Modal handling
+    const signinModal = document.getElementById('signinModal');
+    const reserveModal = document.getElementById('reserveModal');
+    const createEventModal = document.getElementById('createEventModal');
+    const signinBtn = document.getElementById('signinBtn');
+    const closeButtons = document.querySelectorAll('.close');
+    const reserveButtons = document.querySelectorAll('.reserve-btn');
+    const createEventBtn = document.getElementById('createEventBtn');
+    const loginButton = document.getElementById('loginButton');
+    
+    // Open sign in modal
+    signinBtn.addEventListener('click', function() {
+      signinModal.style.display = 'block';
+    });
+    
+    // Open create event modal
+    createEventBtn.addEventListener('click', function() {
+      createEventModal.style.display = 'block';
+    });
+    
+    // Reserve slot buttons
+    reserveButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const eventId = this.getAttribute('data-event');
+        const eventElement = this.closest('.event');
+        const eventTitle = eventElement.querySelector('h3').textContent;
+        
+        document.getElementById('eventName').textContent = eventTitle;
+        reserveModal.style.display = 'block';
+      });
+    });
+    
+    // Close modals
+    closeButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        signinModal.style.display = 'none';
+        reserveModal.style.display = 'none';
+        createEventModal.style.display = 'none';
+      });
+    });
+    
+    // Go to sign in from reserve modal
+    document.getElementById('goToSignInButton').addEventListener('click', function() {
+      reserveModal.style.display = 'none';
+      signinModal.style.display = 'block';
+    });
+    
+    // Try full app button
+    document.getElementById('tryFullAppButton').addEventListener('click', function() {
+      window.location.href = 'index.html';
+    });
+    
+    // Sign in first button
+    document.getElementById('signInFirstButton').addEventListener('click', function() {
+      createEventModal.style.display = 'none';
+      signinModal.style.display = 'block';
+    });
+    
+    // Login button handling
+    loginButton.addEventListener('click', function() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+      }
+      
+      // Show a success message since this is a static backup
+      alert('This is a static backup version. Please use the full app for actual sign-in functionality.');
+      signinModal.style.display = 'none';
+    });
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(e) {
+      if (e.target === signinModal) {
+        signinModal.style.display = 'none';
+      } else if (e.target === reserveModal) {
+        reserveModal.style.display = 'none';
+      } else if (e.target === createEventModal) {
+        createEventModal.style.display = 'none';
+      }
+    });
+    
+    // Create account link
+    document.getElementById('createAccountLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      alert('Account creation requires the full app. Please try the full app version.');
+    });
+  </script>
+</body>
+</html> 

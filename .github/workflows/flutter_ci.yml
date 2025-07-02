@@ -1,0 +1,334 @@
+name: Flutter CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  FLUTTER_VERSION: "3.24.0"
+  JAVA_VERSION: "17"
+
+jobs:
+  # Code Quality & Testing
+  test-and-analyze:
+    name: Test & Code Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: ${{ env.JAVA_VERSION }}
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get Flutter dependencies
+      run: flutter pub get
+
+    - name: Verify Flutter installation
+      run: flutter doctor -v
+
+    - name: Run code formatting check
+      run: dart format --output=none --set-exit-if-changed .
+
+    - name: Analyze code
+      run: flutter analyze --fatal-infos
+
+    - name: Run unit tests
+      run: flutter test --coverage --reporter=expanded
+
+    - name: Run integration tests
+      run: flutter test integration_test/ --reporter=expanded
+
+    - name: Generate coverage report
+      run: |
+        sudo apt-get update
+        sudo apt-get install lcov
+        genhtml coverage/lcov.info -o coverage/html
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          coverage/
+          test-results.xml
+
+  # Performance Testing
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: test-and-analyze
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Run performance tests
+      run: flutter test test/performance/ --reporter=expanded
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: test/performance/results/
+
+  # Security Scanning
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Run security audit
+      run: flutter pub deps --json | jq '.packages[] | select(.kind == "direct")' | dart pub audit
+
+    - name: Check for known vulnerabilities
+      run: |
+        # Custom security checks
+        echo "Checking for hardcoded secrets..."
+        if grep -r "sk_live_" lib/ || grep -r "pk_live_" lib/; then
+          echo "❌ Found potential live API keys in code"
+          exit 1
+        else
+          echo "✅ No live API keys found"
+        fi
+
+  # Build Android
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [test-and-analyze, performance-tests]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: ${{ env.JAVA_VERSION }}
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Build Android APK (Debug)
+      run: flutter build apk --debug --split-per-abi
+
+    - name: Build Android APK (Release)
+      if: github.ref == 'refs/heads/main'
+      run: flutter build apk --release --split-per-abi
+
+    - name: Upload Android artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-builds
+        path: |
+          build/app/outputs/flutter-apk/*.apk
+
+  # Build iOS
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    timeout-minutes: 45
+    needs: [test-and-analyze, performance-tests]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Setup iOS
+      run: |
+        cd ios
+        pod install
+        cd ..
+
+    - name: Build iOS (Debug)
+      run: flutter build ios --debug --no-codesign
+
+    - name: Build iOS (Release)
+      if: github.ref == 'refs/heads/main'
+      run: flutter build ios --release --no-codesign
+
+    - name: Upload iOS artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-builds
+        path: |
+          build/ios/iphoneos/*.app
+
+  # Build Web
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [test-and-analyze, performance-tests]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Build Web
+      run: flutter build web --release
+
+    - name: Upload web artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: web-build
+        path: build/web/
+
+  # Deploy to staging (develop branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-android, build-ios, build-web]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+
+    steps:
+    - name: Download web build
+      uses: actions/download-artifact@v3
+      with:
+        name: web-build
+        path: build/web/
+
+    - name: Deploy to Firebase Hosting (Staging)
+      uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: '${{ secrets.GITHUB_TOKEN }}'
+        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}'
+        projectId: '${{ secrets.FIREBASE_PROJECT_ID_STAGING }}'
+        channelId: live
+
+  # Deploy to production (main branch)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-android, build-ios, build-web, security-scan]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Download web build
+      uses: actions/download-artifact@v3
+      with:
+        name: web-build
+        path: build/web/
+
+    - name: Deploy to Firebase Hosting (Production)
+      uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: '${{ secrets.GITHUB_TOKEN }}'
+        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROD }}'
+        projectId: '${{ secrets.FIREBASE_PROJECT_ID_PROD }}'
+        channelId: live
+
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+  # Notification
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+    - name: Notify on Success
+      if: ${{ success() }}
+      run: |
+        echo "✅ CI/CD Pipeline completed successfully!"
+        echo "Branch: ${{ github.ref }}"
+        echo "Commit: ${{ github.sha }}"
+
+    - name: Notify on Failure
+      if: ${{ failure() }}
+      run: |
+        echo "❌ CI/CD Pipeline failed!"
+        echo "Branch: ${{ github.ref }}"
+        echo "Commit: ${{ github.sha }}"

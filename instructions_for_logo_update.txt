@@ -1,0 +1,10 @@
+To update the app with the new 'openslot' logo:
+
+1. Save the logo image from this conversation to: lib/assets/images/new_logo/openslot_logo.png
+
+2. Run the following command to generate new app icons with the new logo:
+   flutter pub run flutter_launcher_icons:main
+
+3. Update all app stores with the new logo when publishing the next app update.
+
+Make sure the image is saved with the correct filename and path as per the instructions above. 

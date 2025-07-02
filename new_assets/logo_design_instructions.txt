@@ -1,0 +1,12 @@
+Logo Design for "Open Slot" App
+
+Design Specifications:
+1. Primary shape: Letter "O" in a clean, modern style
+2. Primary color: Orange (#EE7D30) - the same color already used in the app's theme
+3. Background: Transparent or dark background for better visibility
+4. Style: Minimalist, recognizable at small sizes (app icon)
+5. Optional: Small slot or opening in the letter "O" to represent the "open slot" concept
+
+The current "S" logo should be replaced with this new "O" logo while maintaining similar dimensions and quality.
+
+For temporary use, the app can use the existing s_logo.png file with the orange color until the new logo is designed and implemented. 

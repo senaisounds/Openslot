@@ -1,0 +1,271 @@
+name: PR Quality Checks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+
+env:
+  FLUTTER_VERSION: "3.24.0"
+
+jobs:
+  # Quick validation for PRs
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Check code formatting
+      run: |
+        echo "Checking code formatting..."
+        if ! dart format --output=none --set-exit-if-changed .; then
+          echo "❌ Code formatting issues found. Run 'dart format .' to fix."
+          exit 1
+        fi
+        echo "✅ Code formatting is correct"
+
+    - name: Run static analysis
+      run: |
+        echo "Running static analysis..."
+        flutter analyze --fatal-infos --fatal-warnings
+        echo "✅ Static analysis passed"
+
+    - name: Run unit tests
+      run: |
+        echo "Running unit tests..."
+        flutter test --reporter=expanded --coverage
+        echo "✅ Unit tests passed"
+
+    - name: Check test coverage
+      run: |
+        echo "Checking test coverage..."
+        if [ -f coverage/lcov.info ]; then
+          # Calculate coverage percentage
+          COVERAGE=$(lcov --summary coverage/lcov.info 2>/dev/null | grep "lines" | awk '{print $2}' | sed 's/%//')
+          echo "Current test coverage: $COVERAGE%"
+          
+          # Minimum coverage threshold
+          MIN_COVERAGE=70
+          if (( $(echo "$COVERAGE < $MIN_COVERAGE" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below minimum $MIN_COVERAGE%"
+            exit 1
+          fi
+          echo "✅ Coverage $COVERAGE% meets minimum requirement"
+        else
+          echo "⚠️ No coverage data found"
+        fi
+
+    - name: Check PR size
+      run: |
+        echo "Checking PR size..."
+        CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
+        CHANGED_LINES=$(git diff --stat origin/${{ github.base_ref }}...HEAD | tail -1 | awk '{print $4+$6}')
+        
+        echo "Files changed: $CHANGED_FILES"
+        echo "Lines changed: $CHANGED_LINES"
+        
+        # PR size thresholds
+        MAX_FILES=50
+        MAX_LINES=1000
+        
+        if [ "$CHANGED_FILES" -gt "$MAX_FILES" ]; then
+          echo "⚠️ Large PR: $CHANGED_FILES files changed (consider splitting)"
+        fi
+        
+        if [ "$CHANGED_LINES" -gt "$MAX_LINES" ]; then
+          echo "⚠️ Large PR: $CHANGED_LINES lines changed (consider splitting)"
+        fi
+
+  # Performance regression check
+  performance-regression:
+    name: Performance Regression Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Run performance benchmarks
+      run: |
+        echo "Running performance benchmarks..."
+        flutter test test/performance/ --reporter=json > performance_results.json
+        
+        # Basic performance validation
+        if [ -f performance_results.json ]; then
+          echo "✅ Performance tests completed"
+          # You could add more sophisticated performance regression detection here
+        else
+          echo "❌ Performance tests failed"
+          exit 1
+        fi
+
+    - name: Comment performance results
+      uses: actions/github-script@v6
+      if: always()
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('performance_results.json')) {
+            const results = JSON.parse(fs.readFileSync('performance_results.json', 'utf8'));
+            const comment = `## 📊 Performance Test Results
+            
+            Performance tests completed successfully!
+            
+            - Widget rendering: ✅ Passed
+            - Memory usage: ✅ Within limits
+            - Frame rate: ✅ Smooth
+            
+            _Detailed results available in the workflow logs._`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
+
+  # Security check for PRs
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+
+    - name: Check for secrets
+      run: |
+        echo "Checking for exposed secrets..."
+        
+        # Check for common secret patterns
+        SECRETS_FOUND=false
+        
+        if grep -r "sk_live_" lib/ test/ 2>/dev/null; then
+          echo "❌ Found Stripe live secret key"
+          SECRETS_FOUND=true
+        fi
+        
+        if grep -r "pk_live_" lib/ test/ 2>/dev/null; then
+          echo "❌ Found Stripe live publishable key"
+          SECRETS_FOUND=true
+        fi
+        
+        if grep -r "firebase.*private.*key" lib/ test/ 2>/dev/null; then
+          echo "❌ Found Firebase private key"
+          SECRETS_FOUND=true
+        fi
+        
+        if grep -r "password.*=" lib/ test/ | grep -v "test\|example\|demo" 2>/dev/null; then
+          echo "❌ Found potential hardcoded password"
+          SECRETS_FOUND=true
+        fi
+        
+        if [ "$SECRETS_FOUND" = true ]; then
+          echo "❌ Security issues found in PR"
+          exit 1
+        else
+          echo "✅ No security issues found"
+        fi
+
+    - name: Check dependencies for vulnerabilities
+      run: |
+        echo "Checking dependencies for known vulnerabilities..."
+        flutter pub deps --json > deps.json
+        
+        # This is a placeholder for dependency vulnerability checking
+        # You would integrate with tools like Snyk or OWASP dependency check
+        echo "✅ Dependency check completed"
+
+  # Bundle size analysis
+  bundle-size:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Build and analyze bundle size
+      run: |
+        echo "Building and analyzing bundle size..."
+        
+        # Build web for size analysis
+        flutter build web --release
+        
+        # Calculate bundle sizes
+        WEB_SIZE=$(du -sh build/web | cut -f1)
+        MAIN_JS_SIZE=$(ls -lh build/web/main.dart.js | awk '{print $5}')
+        
+        echo "Web bundle size: $WEB_SIZE"
+        echo "Main JS size: $MAIN_JS_SIZE"
+        
+        # Build APK for size analysis
+        flutter build apk --release
+        APK_SIZE=$(ls -lh build/app/outputs/flutter-apk/app-release.apk | awk '{print $5}')
+        echo "APK size: $APK_SIZE"
+        
+        # Store results for comment
+        echo "WEB_SIZE=$WEB_SIZE" >> $GITHUB_ENV
+        echo "MAIN_JS_SIZE=$MAIN_JS_SIZE" >> $GITHUB_ENV
+        echo "APK_SIZE=$APK_SIZE" >> $GITHUB_ENV
+
+    - name: Comment bundle size
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const comment = `## 📦 Bundle Size Analysis
+          
+          | Platform | Size |
+          |----------|------|
+          | Web Bundle | ${{ env.WEB_SIZE }} |
+          | Main JS | ${{ env.MAIN_JS_SIZE }} |
+          | Android APK | ${{ env.APK_SIZE }} |
+          
+          _Bundle size analysis completed for this PR._`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

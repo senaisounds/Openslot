@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="/">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Open Slot - Find and join events in your area.">
+  <meta name="theme-color" content="#2D2D3A">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  
+  <title>Open Slot</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #2D2D3A;
+      color: white;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+    
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      width: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 999;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 87, 34, 0.3);
+      border-radius: 50%;
+      border-top-color: #FF5722;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .status-message {
+      margin-top: 20px;
+      text-align: center;
+      max-width: 80%;
+    }
+    
+    .button {
+      display: inline-block;
+      background-color: #FF5722;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin: 10px 5px;
+      font-weight: bold;
+    }
+    
+    .sign-in-button {
+      background-color: #4CAF50;
+      color: white;
+      font-size: 16px;
+      padding: 12px 24px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+  </style>
+
+  <!-- Font preloading -->
+  <style>
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 400;
+      src: local('Roboto'), local('Roboto-Regular'), local('sans-serif');
+    }
+    @font-face {
+      font-family: 'Noto Sans';
+      font-style: normal;
+      font-weight: 400;
+      src: local('Noto Sans'), local('NotoSans-Regular'), local('sans-serif');
+    }
+    @font-face {
+      font-family: 'MaterialIcons';
+      font-style: normal;
+      font-weight: 400;
+      src: local('Material Icons'), local('MaterialIcons-Regular');
+    }
+  </style>
+  
+  <!-- WebAssembly Fix -->
+  <script>
+    // Ensure WebAssembly is available and working
+    try {
+      // Check if WebAssembly is supported
+      if (typeof WebAssembly === 'object' && 
+          typeof WebAssembly.instantiate === 'function') {
+        // Try a simple module compilation to verify it works
+        const bytes = new Uint8Array([0,97,115,109,1,0,0,0]);
+        WebAssembly.instantiate(bytes).then(
+          () => console.log("WebAssembly is working correctly"),
+          e => console.error("WebAssembly error:", e)
+        );
+      } else {
+        console.warn("WebAssembly not supported by this browser");
+      }
+    } catch (e) {
+      console.error("WebAssembly check failed:", e);
+    }
+    
+    // Mock Firebase
+    window.firebase = {
+      analytics: function() {
+        return {
+          logEvent: function() { return true; }
+        };
+      },
+      crashlytics: function() {
+        return {
+          recordError: function() { return true; }
+        };
+      }
+    };
+    
+    // Force HTML renderer for Flutter
+    window.flutterConfiguration = {
+      renderer: "html"
+    };
+    
+    // Global error handler
+    window.addEventListener('error', function(e) {
+      if (e.error && e.error.message && 
+          (e.error.message.includes('MissingPluginException') || 
+           e.error.message.includes('WebAssembly'))) {
+        console.warn('Suppressed error:', e.error.message);
+        e.preventDefault();
+        return false;
+      }
+    }, true);
+  </script>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="status-message">Loading Open Slot...</div>
+    <div style="margin-top: 10px;">
+      <a href="index-static.html" class="button">View Static Version</a>
+    </div>
+  </div>
+  
+  <button class="sign-in-button" onclick="alert('Please wait for the app to load first')">
+    <span style="margin-right: 8px;">👤</span> Sign In
+  </button>
+
+  <!-- Script to handle loading the Flutter app -->
+  <script>
+    // Keep a copy of the current static site content
+    const loadingContent = document.getElementById('loading').innerHTML;
+    
+    // Set a timeout to check if the app has loaded
+    let loadTimeout = setTimeout(function() {
+      console.warn("Flutter app loading timeout reached");
+      document.getElementById('loading').innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+          <h2 style="color: #FF5722;">Failed to load application</h2>
+          <p>Please try one of these alternatives:</p>
+          <div>
+            <a href="index-static.html" class="button">View Static Version</a>
+            <a href="?" class="button" onclick="location.reload(); return false;">Try Again</a>
+          </div>
+        </div>
+      `;
+    }, 10000);
+    
+    // Function to load the Flutter app
+    function loadFlutterApp() {
+      try {
+        console.log("Loading Flutter app...");
+        
+        // Create and append the script tag
+        var script = document.createElement('script');
+        script.src = 'main.dart.js';
+        
+        script.onload = function() {
+          console.log('Flutter app script loaded successfully');
+          clearTimeout(loadTimeout);
+          
+          // Give Flutter some time to initialize, then hide loading
+          setTimeout(function() {
+            document.getElementById('loading').style.display = 'none';
+          }, 2000);
+        };
+        
+        script.onerror = function(error) {
+          console.error('Failed to load Flutter app:', error);
+          document.getElementById('loading').innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+              <h2 style="color: #FF5722;">Failed to load application</h2>
+              <p>Please try the static version instead:</p>
+              <a href="index-static.html" class="button">View Static Version</a>
+            </div>
+          `;
+        };
+        
+        document.body.appendChild(script);
+      } catch (e) {
+        console.error("Error attempting to load Flutter:", e);
+        // Show error message
+        document.getElementById('loading').innerHTML = `
+          <div style="text-align: center; padding: 20px;">
+            <h2 style="color: #FF5722;">Error loading application</h2>
+            <p>${e.message}</p>
+            <a href="index-static.html" class="button">View Static Version</a>
+          </div>
+        `;
+      }
+    }
+    
+    // Start loading the app after a short delay
+    setTimeout(loadFlutterApp, 500);
+  </script>
+</body>
+</html>

@@ -9,142 +9,194 @@ enum EventType {
 }
 
 class Event {
-  String address = '';
-  List<String> attendees = [];
-  DateTime date = DateTime.fromMillisecondsSinceEpoch(0);
-  bool ended = false;
-  String host = '';
-  String hostName = '';
-  String id = '';
-  bool live = false;
-  LatLng location = const LatLng(0, 0);
-  String name = '';
+  String id;
+  String name;
+  String host;
+  String description;
+  String rules;
+  LatLng location;
+  DateTime date;
+  bool live;
+  bool ended;
   String? performer;
   DateTime? performerStart;
-  double price = 0;
-  Map<String, DateTime> reservationTimestamps = {};
-  String rules = '';
-  bool signupOnLocation = false;
-  int slots = 0;
-  int timeLimit = 0;
-  EventType type = EventType.mic;
-  List<String> waitlist = [];
+  int timeLimit;
+  List<String> attendees;
+  Map<String, DateTime> reservationTimestamps;
+  Set<String> checkedPerformers;
+  String address;
+  String category;
+  String hostName;
+  String? upNext;
+  double price;
+  bool signupOnLocation;
+  int slots;
+  EventType type;
+  List<String> waitlist;
+  bool isPrivate;
+  String? password;
+  String coverUrl;
+  bool isFeatured;
+  int capacity;
+  List<String> checkedPerformersList;
+
+  Event({
+    required this.id,
+    this.name = '',
+    this.host = '',
+    this.description = '',
+    this.rules = '',
+    LatLng? location,
+    DateTime? date,
+    this.live = false,
+    this.ended = false,
+    this.performer,
+    this.performerStart,
+    this.timeLimit = 0,
+    List<String>? attendees,
+    Map<String, DateTime>? reservationTimestamps,
+    Set<String>? checkedPerformers,
+    this.address = '',
+    this.category = 'other',
+    this.hostName = '',
+    this.upNext,
+    this.price = 0,
+    this.signupOnLocation = false,
+    this.slots = 0,
+    this.type = EventType.mic,
+    List<String>? waitlist,
+    this.isPrivate = false,
+    this.password,
+    this.coverUrl = '',
+    this.isFeatured = false,
+    this.capacity = 0,
+    this.checkedPerformersList = const [],
+  }) : 
+    location = location ?? const LatLng(0, 0),
+    date = date ?? DateTime.now(),
+    attendees = attendees ?? [],
+    reservationTimestamps = reservationTimestamps ?? {},
+    checkedPerformers = checkedPerformers ?? const {},
+    waitlist = waitlist ?? const [];
+
+  factory Event.empty() {
+    return Event(id: '');
+  }
+
+  factory Event.fromDocument(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    
+    LatLng parseLocation(Map<String, dynamic> data) {
+      if (data['location'] is GeoPoint) {
+        final geoPoint = data['location'] as GeoPoint;
+        return LatLng(geoPoint.latitude, geoPoint.longitude);
+      }
+      return const LatLng(0, 0);
+    }
+
+    return Event(
+      id: doc.id,
+      name: data['name'] as String? ?? '',
+      host: data['host'] as String? ?? '',
+      description: data['description'] as String? ?? '',
+      rules: data['rules'] as String? ?? '',
+      location: parseLocation(data),
+      date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      live: data['live'] as bool? ?? false,
+      ended: data['ended'] as bool? ?? false,
+      performer: data['performer'] as String?,
+      performerStart: (data['performerStart'] as Timestamp?)?.toDate(),
+      timeLimit: data['timeLimit'] as int? ?? 0,
+      attendees: List<String>.from(data['attendees'] as List? ?? []),
+      reservationTimestamps: (data['reservationTimestamps'] as Map<String, dynamic>? ?? {}).map(
+        (key, value) => MapEntry(key, (value as Timestamp).toDate()),
+      ),
+      checkedPerformers: Set<String>.from(data['checkedPerformers'] as List? ?? []),
+      address: data['address'] as String? ?? '',
+      category: data['category'] as String? ?? 'other',
+      hostName: data['hostName'] as String? ?? '',
+      upNext: data['upNext'] as String?,
+      price: (data['price'] as num?)?.toDouble() ?? 0.0,
+      signupOnLocation: data['signupOnLocation'] as bool? ?? false,
+      slots: data['slots'] as int? ?? 0,
+      type: data['type'] == 'deck' ? EventType.deck : EventType.mic,
+      waitlist: List<String>.from(data['waitlist'] as List? ?? []),
+      isPrivate: data['isPrivate'] as bool? ?? false,
+      password: data['password'] as String?,
+      coverUrl: data['coverUrl'] as String? ?? '',
+      isFeatured: data['isFeatured'] as bool? ?? false,
+      capacity: (data['capacity'] as num?)?.toInt() ?? 0,
+      checkedPerformersList: List<String>.from(data['checkedPerformers'] as List? ?? []),
+    );
+  }
+
+  Map<String, dynamic> toDocument() {
+    return {
+      'name': name,
+      'host': host,
+      'description': description,
+      'rules': rules,
+      'location': GeoPoint(location.latitude, location.longitude),
+      'date': Timestamp.fromDate(date),
+      'live': live,
+      'ended': ended,
+      'performer': performer,
+      'performerStart': performerStart != null ? Timestamp.fromDate(performerStart!) : null,
+      'timeLimit': timeLimit,
+      'attendees': attendees,
+      'reservationTimestamps': reservationTimestamps.map(
+        (key, value) => MapEntry(key, Timestamp.fromDate(value)),
+      ),
+      'checkedPerformers': checkedPerformers.toList(),
+      'address': address,
+      'category': category,
+      'hostName': hostName,
+      'upNext': upNext,
+      'price': price,
+      'signupOnLocation': signupOnLocation,
+      'slots': slots,
+      'type': type == EventType.deck ? 'deck' : 'mic',
+      'waitlist': waitlist,
+      'isPrivate': isPrivate,
+      'password': password,
+      'coverUrl': coverUrl,
+      'isFeatured': isFeatured,
+      'capacity': capacity,
+      'checkedPerformersList': checkedPerformersList,
+    };
+  }
 
   int get openSlots {
+    if (slots <= 0) return 0;
     return max(0, slots - attendees.length);
   }
 
-  static Event fromDocument(DocumentSnapshot document) {
-    if (document.data() == null) {
-      return Event();
-    }
-    final docData = document.data()! as Map<String, dynamic>;
-
-    final event = Event();
-    if (docData['address'] != null) {
-      event.address = docData['address'];
-    }
-    if (docData['attendees'] != null) {
-      event.attendees = List<String>.from(docData['attendees']);
-    }
-    if (docData['date'] != null) {
-      event.date = (docData['date'] as Timestamp).toDate();
-    }
-    if (docData['ended'] != null) {
-      event.ended = docData['ended'];
-    }
-    if (docData['host'] != null) {
-      event.host = docData['host'];
-    }
-    if (docData['hostName'] != null) {
-      event.hostName = docData['hostName'];
-    }
-    event.id = docData['id'] ?? document.id;
-    if (docData['live'] != null) {
-      event.live = docData['live'];
-    }
-    if (docData['location'] != null) {
-      final location = docData['location'] as GeoPoint;
-      event.location = LatLng(location.latitude, location.longitude);
-    }
-    if (docData['name'] != null) {
-      event.name = docData['name'];
-    }
-    if (docData['performer'] != null) {
-      event.performer = docData['performer'];
-    }
-    if (docData['performerStart'] != null) {
-      event.performerStart = (docData['performerStart'] as Timestamp).toDate();
-    }
-    if (docData['price'] != null) {
-      event.price = docData['price'] * 1.0;
-    }
-    if (docData['reservationTimestamps'] != null) {
-      Map<String, Timestamp> reservationTimestamps =
-          Map<String, Timestamp>.from(docData['reservationTimestamps']);
-
-      event.reservationTimestamps = reservationTimestamps.map((key, value) {
-        return MapEntry(key, value.toDate());
-      });
-    }
-    if (docData['rules'] != null) {
-      event.rules = docData['rules'];
-    }
-    if (docData['signupOnLocation'] != null) {
-      event.signupOnLocation = docData['signupOnLocation'];
-    }
-    if (docData['slots'] != null) {
-      event.slots = docData['slots'];
-    }
-    if (docData['timeLimit'] != null) {
-      event.timeLimit = docData['timeLimit'];
-    }
-    if (docData['type'] != null) {
-      event.type = docData['type'] == 'DECK' ? EventType.deck : EventType.mic;
-    }
-    if (docData['waitlist'] != null) {
-      event.waitlist = List<String>.from(docData['waitlist']);
-    }
-
-    return event;
+  bool get isHappeningNow {
+    final now = DateTime.now();
+    return !ended && date.isBefore(now) && live;
   }
 
-  static Map<String, dynamic> toDocument(
-    Event event, {
-    bool deletingAttendees = false,
-    bool deletingWaitlist = false,
-  }) {
-    final docData = <String, dynamic>{};
+  bool get isUpcoming {
+    final now = DateTime.now();
+    return !ended && date.isAfter(now);
+  }
 
-    docData['address'] = event.address;
-    docData['attendees'] = deletingAttendees
-        ? event.attendees
-        : FieldValue.arrayUnion(event.attendees);
-    docData['date'] = event.date;
-    docData['ended'] = event.ended;
-    docData['host'] = event.host;
-    docData['hostName'] = event.hostName;
-    docData['id'] = event.id;
-    docData['live'] = event.live;
-    docData['location'] =
-        GeoPoint(event.location.latitude, event.location.longitude);
-    docData['name'] = event.name;
-    docData['performer'] = event.performer;
-    docData['performerStart'] = event.performerStart;
-    docData['price'] = event.price;
-    docData['reservationTimestamps'] =
-        event.reservationTimestamps.map((key, value) {
-      return MapEntry(key, Timestamp.fromDate(value));
-    });
-    docData['rules'] = event.rules;
-    docData['signupOnLocation'] = event.signupOnLocation;
-    docData['slots'] = event.slots;
-    docData['timeLimit'] = event.timeLimit;
-    docData['type'] = event.type.name.toUpperCase();
-    docData['waitlist'] = deletingWaitlist
-        ? event.waitlist
-        : FieldValue.arrayUnion(event.waitlist);
+  bool get isFull {
+    return openSlots <= 0;
+  }
 
-    return docData;
+  String get formattedPrice {
+    if (price <= 0) return 'Free';
+    return '\$${price.toStringAsFixed(2)}';
+  }
+  
+  int getWaitlistPosition(String userId) {
+    final index = waitlist.indexOf(userId);
+    if (index == -1) return 0;
+    return index + 1;
+  }
+  
+  int get waitlistCount {
+    return waitlist.length;
   }
 }

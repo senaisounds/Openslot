@@ -1,0 +1,26 @@
+To create a new "O" logo for the Open Slot app, follow these steps:
+
+1. Create a 1024x1024 pixel image with a transparent background
+2. Draw a circle/letter "O" in orange color (#EE7D30)
+3. Make sure the design is simple and recognizable at small sizes
+4. Save as lib/assets/images/o_logo.png
+5. Update the pubspec.yaml file to point to this new logo:
+
+   ```yaml
+   flutter_launcher_icons:
+     android: "launcher_icon"
+     ios: true
+     image_path: "lib/assets/images/o_logo.png"
+     min_sdk_android: 21
+   ```
+
+6. Run the following commands to generate the app icons:
+   ```
+   flutter clean
+   flutter pub get
+   flutter pub run flutter_launcher_icons
+   ```
+
+7. Rebuild and reinstall the app completely to see the changes
+
+Note: If you can't create a custom icon right now, you can use an online tool or a graphic designer to create one. 

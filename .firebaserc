@@ -1,0 +1,24 @@
+{
+  "projects": {
+    "default": "open-mic-5cc8e"
+  },
+  "targets": {
+    "open-mic-5cc8e": {
+      "hosting": {
+        "main": [
+          "open-mic-5cc8e"
+        ],
+        "openslot-me": [
+          "openslot-me"
+        ],
+        "openslot-me-domain": [
+          "openslot-me-domain"
+        ],
+        "openslot-web-app": [
+          "openslot-web-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,123 @@
+Launching lib/main.dart on iPhone 16 Pro Max in debug mode...
+Running Xcode build...                                          
+ └─Compiling, linking and signing...                        12.6s
+Xcode build done.                                           43.2s
+Syncing files to device iPhone 16 Pro Max...                       161ms
+
+Flutter run key commands.
+r Hot reload. 🔥🔥🔥
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on iPhone 16 Pro Max is available at: http://127.0.0.1:61946/J4yTQLkQ-zg=/
+The Flutter DevTools debugger and profiler on iPhone 16 Pro Max is available at: http://127.0.0.1:9101?uri=http://127.0.0.1:61946/J4yTQLkQ-zg=/
+flutter: ══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+flutter: The following assertion was thrown while applying parent data.:
+flutter: Incorrect use of ParentDataWidget.
+flutter: The ParentDataWidget Positioned(left: 0.0, top: 162.0, right: 0.0) wants to apply ParentData of type
+flutter: StackParentData to a RenderObject, which has been set up to accept ParentData of incompatible type
+flutter: ParentData.
+flutter: Usually, this means that the Positioned widget has the wrong ancestor RenderObjectWidget. Typically,
+flutter: Positioned widgets are placed directly inside Stack widgets.
+flutter: The offending Positioned is currently placed inside a RepaintBoundary widget.
+flutter: The ownership chain for the RenderObject that received the incompatible parent data was:
+flutter:   _GestureSemantics ← RawGestureDetector ← GestureDetector ← Positioned ← RepaintBoundary ← Stack ←
+flutter: Padding ← MediaQuery ← Stack ← CupertinoPageScaffoldBackgroundColor ← ⋯
+flutter:
+flutter: When the exception was thrown, this was the stack:
+flutter: #0      RenderObjectElement._updateParentData.<anonymous closure> (package:flutter/src/widgets/framework.dart:6793:11)
+flutter: #1      RenderObjectElement._updateParentData (package:flutter/src/widgets/framework.dart:6810:6)
+flutter: #2      RenderObjectElement.attachRenderObject (package:flutter/src/widgets/framework.dart:6856:7)
+flutter: #3      RenderObjectElement.mount (package:flutter/src/widgets/framework.dart:6714:5)
+flutter: #4      SingleChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7026:11)
+flutter: ...     Normal element mounting (24 frames)
+flutter: #28     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4555:16)
+flutter: #29     MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7178:36)
+flutter: #30     MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7194:32)
+flutter: ...     Normal element mounting (10 frames)
+flutter: #40     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4555:16)
+flutter: #41     MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7178:36)
+flutter: #42     MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7194:32)
+flutter: ...     Normal element mounting (75 frames)
+flutter: #117    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4555:16)
+flutter: #118    MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7178:36)
+flutter: #119    MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7194:32)
+flutter: ...     Normal element mounting (180 frames)
+flutter: #299    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4555:16)
+flutter: #300    MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7178:36)
+flutter: #301    Element.updateChild (package:flutter/src/widgets/framework.dart:4020:18)
+flutter: #302    Element.updateChildren (package:flutter/src/widgets/framework.dart:4217:11)
+flutter: #303    MultiChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7211:17)
+flutter: #304    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #305    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #306    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5892:11)
+flutter: #307    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #308    StatefulElement.update (package:flutter/src/widgets/framework.dart:5917:5)
+flutter: #309    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #310    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #311    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #312    ProxyElement.update (package:flutter/src/widgets/framework.dart:6059:5)
+flutter: #313    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #314    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #315    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #316    ProxyElement.update (package:flutter/src/widgets/framework.dart:6059:5)
+flutter: #317    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+flutter: #318    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #319    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #320    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5892:11)
+flutter: #321    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #322    StatefulElement.update (package:flutter/src/widgets/framework.dart:5917:5)
+flutter: #323    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #324    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #325    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #326    ProxyElement.update (package:flutter/src/widgets/framework.dart:6059:5)
+flutter: #327    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+flutter: #328    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #329    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #330    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5892:11)
+flutter: #331    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #332    StatefulElement.update (package:flutter/src/widgets/framework.dart:5917:5)
+flutter: #333    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #334    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #335    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5892:11)
+flutter: #336    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #337    StatefulElement.update (package:flutter/src/widgets/framework.dart:5917:5)
+flutter: #338    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #339    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7034:14)
+flutter: #340    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #341    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7034:14)
+flutter: #342    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #343    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #344    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #345    ProxyElement.update (package:flutter/src/widgets/framework.dart:6059:5)
+flutter: #346    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #347    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #348    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #349    ProxyElement.update (package:flutter/src/widgets/framework.dart:6059:5)
+flutter: #350    Element.updateChild (package:flutter/src/widgets/framework.dart:3998:15)
+flutter: #351    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5756:16)
+flutter: #352    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5892:11)
+flutter: #353    Element.rebuild (package:flutter/src/widgets/framework.dart:5445:7)
+flutter: #354    BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2704:15)
+flutter: #355    BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2762:11)
+flutter: #356    BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3066:18)
+flutter: #357    WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1229:21)
+flutter: #358    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:482:5)
+flutter: #359    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1442:15)
+flutter: #360    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1355:9)
+flutter: #361    SchedulerBinding._handleDrawFrame (package:flutter/src/scheduler/binding.dart:1208:5)
+flutter: #365    _invoke (dart:ui/hooks.dart:318:10)
+flutter: #366    PlatformDispatcher._drawFrame (dart:ui/platform_dispatcher.dart:428:5)
+flutter: #367    _drawFrame (dart:ui/hooks.dart:288:31)
+flutter: (elided 3 frames from dart:async)
+flutter: ════════════════════════════════════════════════════════════════════════════════════════════════════
+flutter: Another exception was thrown: Incorrect use of ParentDataWidget.
+flutter: Another exception was thrown: Incorrect use of ParentDataWidget.
+flutter: Another exception was thrown: Incorrect use of ParentDataWidget.
+flutter: Another exception was thrown: Incorrect use of ParentDataWidget.
+flutter: Another exception was thrown: Incorrect use of ParentDataWidget.
+flutter: Another exception was thrown: Incorrect use of ParentDataWidget.
+Lost connection to device.

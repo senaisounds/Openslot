@@ -1,0 +1,59 @@
+# Set proper MIME types for Flutter web app
+<IfModule mod_mime.c>
+  # Add MIME type for WebAssembly files
+  AddType application/wasm .wasm
+  
+  # Set MIME type for main.dart.js
+  AddType application/javascript .js
+  
+  # Set MIME type for JavaScript map files
+  AddType application/json .map
+  
+  # Ensure text files are sent with the correct encoding
+  AddCharset utf-8 .html .css .js .json
+</IfModule>
+
+# Cache control for static assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  
+  # Cache Flutter resources
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType application/wasm "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType application/font-woff "access plus 1 year"
+  ExpiresByType application/font-woff2 "access plus 1 year"
+  
+  # But update the flutter_service_worker.js frequently
+  <Files "flutter_service_worker.js">
+    ExpiresDefault "access plus 0 seconds"
+  </Files>
+</IfModule>
+
+# Enable CORS for all resources
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|wasm|css|json|png|jpg|jpeg|gif|webp|svg|woff|woff2|ttf|eot)$">
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, OPTIONS"
+    Header set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept"
+  </FilesMatch>
+</IfModule>
+
+# Disable caching for service worker
+<Files "flutter_service_worker.js">
+  Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+</Files>
+
+# Redirect all requests to index.html for Flutter router
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # If the request is not for a file or directory
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Redirect everything else to index.html
+  RewriteRule ^(.*)$ /index.html [L]
+</IfModule> 

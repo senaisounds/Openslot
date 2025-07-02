@@ -1,0 +1,32 @@
+# Open Slot Logo Design Instructions
+
+## Brand Name
+"Open Slot" - A app for finding and booking event slots
+
+## Logo Design Elements
+1. Primary Element: Letter "O" in a clean, modern style
+2. Primary Color: Orange (#EE7D30) - this warm, vibrant orange conveys energy and creativity
+3. Optional: Small gap or "slot" in the circle to represent the "open slot" concept
+4. Background: Transparent (or white for light backgrounds, dark for dark backgrounds)
+
+## Style Guidelines
+- Minimalist and clean design
+- Must be recognizable at small sizes (app icon)
+- Professional and modern appearance
+- Should convey the concept of "availability" or "open space"
+
+## Technical Requirements
+- Create as a vector file (SVG) for best scaling
+- Also provide PNG formats at 1024x1024px, 512x512px, and 256x256px
+- Ensure the logo has appropriate padding within its bounding box
+- Final file naming: o_logo.svg, o_logo_1024.png, etc.
+
+## Logo Placement
+- Main app icon on mobile devices
+- App store listings
+- Marketing materials
+- Website header
+
+The current logo should be replaced with this new design while maintaining similar dimensions and quality standards.
+
+Save the final design to lib/assets/images/o_logo.png and update the pubspec.yaml file to reference this new image for the app icon. 

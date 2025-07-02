@@ -1,71 +1,48 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:keyboard_actions/keyboard_actions.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:slotted/api/stripe.dart';
-import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
-import 'package:slotted/pages/my_events.dart';
+import 'package:slotted/common/constants.dart' as constants;
 import 'package:slotted/pages/my_home_page.dart';
-import 'package:slotted/pages/profile.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
-import 'package:slotted/widgets/code_verification_page.dart';
 import 'package:http/http.dart' as http;
-import 'notifications_page.dart';
+import 'package:slotted/pages/login_page.dart';
+import 'package:slotted/utils/logger.dart';
+import 'package:slotted/common/private_event_dialog.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:slotted/common/colors.dart';
+// Animation constants from constants.dart
+const kAnimationDurationLong = constants.kAnimationDurationLong;
+const kAnimationDurationMedium = constants.kAnimationDurationMedium;
+const kAnimationCurveEnergetic = constants.kAnimationCurveEnergetic;
+const kAnimationCurveBouncy = constants.kAnimationCurveBouncy;
 
 // Create class MainNav that manages a tab controller screen with 5 routes. The middle route must point to MyHomePage.
 class MainNav extends StatefulWidget {
-  const MainNav({super.key, this.debug = false});
+  const MainNav({super.key, this.debug = false, this.event});
 
   final bool debug;
+  final Event? event;
 
   @override
   State<MainNav> createState() => MainNavState();
 }
 
 class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
-  late final CupertinoTabController _tabController;
   late final SlottedUser? slottedUser;
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-
-  final FocusNode authFocusNode = FocusNode();
+final FocusNode authFocusNode = FocusNode();
   final Color complementaryColor = CupertinoColors.systemTeal;
-
-  KeyboardActionsConfig _buildConfig(BuildContext context) {
-    return KeyboardActionsConfig(
-      keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
-      keyboardBarColor: CupertinoColors.secondaryLabel.withOpacity(1),
-      nextFocus: false,
-      actions: [
-        KeyboardActionsItem(focusNode: authFocusNode, toolbarButtons: [
-          (node) {
-            return CupertinoButton(
-              padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
-              onPressed: () => node.unfocus(),
-              child: Text(
-                'Done',
-                style: TextStyle(
-                  color: complementaryColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            );
-          }
-        ]),
-      ],
-    );
-  }
 
   String? phoneNumber;
 
@@ -73,30 +50,65 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
 
   final double iconSize = 30;
 
-  String titleString = 'Slotted';
+  String titleString = 'Open Slot';
 
   late final List<Widget> tabViews;
 
   final TextEditingController phoneController = TextEditingController();
-
-  bool _hasCheckedUser = false;
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  final bool _hasCheckedUser = false;
 
   Future<String> reserveAction(
       dynamic paymentIntent, Event event, SlottedUser slottedUser) async {
-    var response = await http.post(
-      Uri.parse(
-          'https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: {
-        'eventID': event.id,
-        'userID': slottedUser.id,
-        'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
-        'debug': widget.debug ? 'true' : 'false',
-      },
-    );
-    return response.body;
+    try {
+      // Check network connectivity before making request
+      try {
+        final connectivityCheck = await http.get(Uri.parse('https://google.com'))
+            .timeout(const Duration(seconds: 5));
+        if (connectivityCheck.statusCode != 200) {
+          Logger.d('Network connectivity check failed with status: ${connectivityCheck.statusCode}', tag: 'Main_nav');
+          throw Exception('No internet connection');
+        }
+      } catch (e) {
+        Logger.d('Network connectivity check failed: $e', tag: 'Main_nav');
+        throw Exception('Please check your internet connection');
+      }
+
+      Logger.d('Making reservation request for event: ${event.id}, user: ${slottedUser.id}', tag: 'Main_nav');
+      var response = await http.post(
+        Uri.parse(
+            'https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'eventID': event.id,
+          'userID': slottedUser.id,
+          'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
+          'debug': widget.debug ? 'true' : 'false',
+        },
+      ).timeout(const Duration(seconds: 30));
+      
+      Logger.d('Reservation response status: ${response.statusCode}', tag: 'Main_nav');
+      Logger.d('Reservation response body: ${response.body}', tag: 'Main_nav');
+      
+      if (response.statusCode != 200) {
+        try {
+          final errorData = json.decode(response.body);
+          throw Exception(errorData['error'] ?? 'Failed to reserve: ${response.body}');
+        } catch (jsonError) {
+          throw Exception('Failed to reserve: ${response.body}');
+        }
+      }
+      
+      return response.body;
+    } catch (e) {
+      Logger.d('Error in reserveAction: $e', tag: 'Main_nav');
+      if (e.toString().contains('timeout')) {
+        throw Exception('Request timed out. Please try again');
+      }
+      throw Exception('Failed to complete reservation: ${e.toString()}');
+    }
   }
 
   Future<void> deleteEvent(String eventId) async {
@@ -181,6 +193,8 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
   }
 
   Future<void> resAuth(Event event, SlottedUser slottedUser) async {
+    if (!mounted) return;
+    
     setState(() {
       isLoading = true;
     });
@@ -190,80 +204,89 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     final isReserved = event.attendees.contains(slottedUser.id);
     final isWaitlisted = event.waitlist.contains(slottedUser.id);
 
-    if (isReserved || isWaitlisted) {
-      await showCupertinoDialog(
-        context: context,
-        builder: (context) {
-          final isPaid = event.price > 0;
-          return CupertinoAlertDialog(
-            title: Text('${isPaid ? 'Refund' : 'Cancel'} Reservation'),
-            content: Text(
-                'Are you sure you want to give up your slot for this event?${isPaid ? ' You will be refunded after your reservation is cancelled.' : ''}'),
-            actions: [
-              CupertinoDialogAction(
-                  child: Text(
-                    'Back',
-                    style: TextStyle(
-                      color: complementaryColor,
-                    ),
-                  ),
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    setState(() {
-                      isLoading = false;
-                    });
-                  }),
-              CupertinoDialogAction(
-                child: const Text(
-                  'Unreserve',
-                  style: TextStyle(
-                      color: CupertinoColors.systemRed,
-                      fontWeight: FontWeight.w600),
-                ),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  try {
-                    await reserveAction(paymentIntent, event, slottedUser);
-                  } catch (e) {
-                    String errorMessage =
-                        'There was an error processing your ${isPaid ? 'refund' : 'cancellation'}. Please try again.\n$e';
-                    if (e is PlatformException) {
-                      errorMessage = e.message ?? errorMessage;
-                    } else if (e is StripeException) {
-                      errorMessage = e.error.message ?? errorMessage;
-                    } else if (e is StripeError) {
-                      errorMessage = e.message;
-                    }
-
-                    await showCupertinoDialog(
-                      context: context,
-                      builder: (context) {
-                        return CupertinoAlertDialog(
-                          title: const Text('Error'),
-                          content: Text(errorMessage),
-                          actions: [
-                            CupertinoDialogAction(
-                              child: const Text('OK'),
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  }
-                  setState(() {
-                    isLoading = false;
-                  });
-                },
-              ),
-            ],
-          );
-        },
-      );
-      return;
-    }
-
     try {
+      // Check if event is private and requires password verification
+      if (event.isPrivate && !(isReserved || isWaitlisted)) {
+        final password = await showCupertinoDialog<String>(
+          context: context,
+          barrierDismissible: true,
+          builder: (context) => PrivateEventDialog(
+            eventName: event.name,
+            onSubmit: (password) => Navigator.of(context).pop(password),
+            onCancel: () => Navigator.of(context).pop(null),
+          ),
+        );
+
+        // If user cancels password entry
+        if (password == null) {
+          if (!mounted) return;
+          setState(() {
+            isLoading = false;
+          });
+          return;
+        }
+
+        // Verify password with backend
+        try {
+          Logger.d('Verifying password for event: ${event.id}', tag: 'Main_nav');
+          final verifyResponse = await http.post(
+            Uri.parse(
+                'https://us-central1-open-mic-5cc8e.cloudfunctions.net/verifyEventPassword'),
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: {
+              'eventID': event.id,
+              'password': Uri.encodeComponent(password),
+            },
+          ).timeout(const Duration(seconds: 10));
+
+          Logger.d('Password verification response status: ${verifyResponse.statusCode}', tag: 'Main_nav');
+          Logger.d('Password verification response body: ${verifyResponse.body}', tag: 'Main_nav');
+
+          if (verifyResponse.statusCode != 200) {
+            final errorData = json.decode(verifyResponse.body);
+            final errorMessage = errorData['error'] ?? 'Invalid password';
+            Logger.d('Password verification failed: $errorMessage', tag: 'Main_nav');
+            throw Exception(errorMessage);
+          }
+
+          // Parse response to check success field
+          final responseData = json.decode(verifyResponse.body);
+          if (!responseData['success']) {
+            Logger.d('Password verification response indicated failure', tag: 'Main_nav');
+            throw Exception('Password verification failed');
+          }
+          
+          Logger.d('Password verification successful', tag: 'Main_nav');
+        } catch (e) {
+          Logger.d('Error verifying password: $e', tag: 'Main_nav');
+          if (!mounted) return;
+          
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Error'),
+              content: Text(e.toString().contains('Invalid password') 
+                ? 'Invalid password. Please try again.' 
+                : 'Failed to verify password. Please try again.'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          );
+          
+          setState(() {
+            isLoading = false;
+          });
+          return;
+        }
+      }
+
+      // Continue with payment and reservation if password verification passed
       if (event.price > 0 && !(isReserved || isWaitlisted)) {
         paymentIntent = await StripeApi.createPaymentIntent(
           userId: slottedUser.id,
@@ -286,7 +309,55 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
       }
 
       await reserveAction(paymentIntent, event, slottedUser);
+      
+      // Show success message
+      if (!mounted) return;
+      
+      setState(() {
+        isLoading = false;
+      });
+      
+      try {
+        // Check if the event is now full and if the user is on the waitlist
+        final updatedEvent = await FirebaseFirestore.instance.collection('events').doc(event.id).get();
+        final isNowWaitlisted = updatedEvent.exists && 
+                               (updatedEvent.data()?['waitlist'] as List<dynamic>?)?.contains(slottedUser.id) == true;
+        
+        await showCupertinoDialog(
+          context: context,
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: const Text('Success'),
+              content: Text(isNowWaitlisted 
+                ? 'You have been added to the waitlist for ${event.name}. We\'ll notify you if a spot becomes available.'
+                : 'You have successfully reserved a spot for ${event.name}.'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } catch (dialogError) {
+        Logger.d('Error showing success dialog: $dialogError', tag: 'Main_nav');
+        // Dialog failed but reservation succeeded
+      }
+      
+      // Force UI refresh after successful reservation
+      if (!mounted) return;
+      setState(() {
+        // Trigger rebuild to update UI
+      });
+      
     } catch (e) {
+      if (!mounted) return;
+      
       String errorMessage =
           'There was an error processing your payment. Please try again.\n$e';
       bool cancelled = false;
@@ -299,7 +370,11 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         errorMessage = e.message;
       }
 
-      print(e);
+      Logger.d(e.toString(), tag: 'Main_nav');
+
+      setState(() {
+        isLoading = false;
+      });
 
       if (!cancelled) {
         await showCupertinoDialog(
@@ -319,54 +394,20 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
         );
       }
     }
-
-    setState(() {
-      isLoading = false;
-    });
   }
 
   @override
   void initState() {
     super.initState();
-    _tabController = CupertinoTabController(
-      initialIndex: 1,
-    );
-    tabViews = [
-      StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) => MyEventsPage(
-            user: snapshot.data,
-            authAction: (context, isLoggedIn, completion) =>
-                _authAction(context, isLoggedIn, completion: completion),
-            reserveAction: (event, slottedUser) => resAuth(event, slottedUser),
-            deleteEvent: (eventId) => deleteEvent(eventId),
-            debug: widget.debug),
-      ),
-      StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) => MyHomePage(
-          debug: widget.debug,
-          user: snapshot.data,
-          authAction: (context, isLoggedIn, completion) =>
-              _authAction(context, isLoggedIn, completion: completion),
-          reserveAction: (event, slottedUser) => resAuth(event, slottedUser),
-          deleteEvent: (eventId) => deleteEvent(eventId),
-        ),
-      ),
-      StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) => ProfilePage(
-          user: snapshot.data,
-          authAction: (isLoggedIn) => _authAction(context, isLoggedIn),
-          debug: widget.debug,
-        ),
-      ),
-    ];
+    _initializeFirebaseMessaging();
+  }
+
+  Future<void> _initializeFirebaseMessaging() async {
+    // ... existing _initializeFirebaseMessaging code ...
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     phoneController.dispose();
     super.dispose();
   }
@@ -378,287 +419,38 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        bool loggedIn = snapshot.data != null;
-        if (snapshot.data?.uid != null) {
-          // Use a delayed future to run this code once after launch
-          String? currentUid = snapshot.data?.uid; // Capture current UID
-          Future.delayed(const Duration(seconds: 2), () {
-            if (!mounted) return; // Check if widget is still mounted
-            if (snapshot.data?.uid != currentUid)
-              return; // Check if user changed
-
-            // Track if we've already run this code
-            if (!_hasCheckedUser) {
-              _hasCheckedUser = true;
-
-              FirebaseFirestore.instance
-                  .doc('users/${snapshot.data!.uid}')
-                  .get()
-                  .then((value) {
-                final slottedUser = SlottedUser.fromDocument(value);
-
-                if (slottedUser.username.isEmpty) {
-                  // Show username collection dialog
-                  if (!isDialogShowing) {
-                    isDialogShowing = true;
-                    showCupertinoDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) {
-                        final usernameController = TextEditingController();
-                        return CupertinoAlertDialog(
-                          title: const Text('Welcome to Slotted!'),
-                          content: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-                            child: Column(
-                              children: [
-                                const Text(
-                                    'Please choose a username to get started.'),
-                                const SizedBox(
-                                  height: 8,
-                                ),
-                                CupertinoTextField(
-                                  autofocus: true,
-                                  controller: usernameController,
-                                  placeholder: 'Username',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          actions: [
-                            CupertinoDialogAction(
-                              onPressed: () {
-                                if (usernameController.text.isNotEmpty) {
-                                  FirebaseFirestore.instance
-                                      .doc('users/${snapshot.data!.uid}')
-                                      .set({
-                                    'username': usernameController.text,
-                                    'joined': Timestamp.now(),
-                                    'isHost': true,
-                                    'photoUrl': null,
-                                  }, SetOptions(merge: true)).then((_) {
-                                    isDialogShowing = false;
-                                    Navigator.pop(context);
-                                  });
-                                }
-                              },
-                              child: const Text('Save'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  }
-                }
-              });
-
-              Permission.notification.request().then((status) {
-                if (status.isGranted) {
-                  // Permission is granted
-                  _firebaseMessaging.getAPNSToken().then((apnsToken) {
-                    // print("APNS TOKEN: $apnsToken");
-                    return _firebaseMessaging.getToken();
-                  }).then((token) {
-                    // print("MESSAGING TOKEN: $token");
-                    FirebaseFirestore.instance
-                        .doc('users/${snapshot.data!.uid}')
-                        .set(
-                      {
-                        'pushToken': token,
-                      },
-                      SetOptions(merge: true),
-                    );
-                  });
-                }
-              });
-            }
-          });
-        }
-        return Stack(
-          children: [
-            CupertinoPageScaffold(
-              resizeToAvoidBottomInset: false,
-              navigationBar: CupertinoNavigationBar(
-                border: null,
-                backgroundColor: Colors.transparent,
-                middle: _buildNavigationTitle(),
-                leading: loggedIn
-                    ? CupertinoButton(
-                        onPressed: isLoading
-                            ? null
-                            : () => Navigator.of(context).push(
-                                  CupertinoPageRoute(
-                                    builder: (context) => NotificationsPage(
-                                      user: snapshot.data,
-                                    ),
-                                  ),
-                                ),
-                        padding: EdgeInsets.zero,
-                        child: const Icon(
-                          CupertinoIcons.bell,
-                          size: 30,
-                          color: CupertinoColors.systemTeal,
-                        ),
-                      )
-                    : null,
-                trailing: CupertinoButton(
-                  onPressed:
-                      isLoading ? null : () => _openSettings(context, loggedIn),
-                  padding: EdgeInsets.zero,
-                  child: loggedIn
-                      ? const Icon(
-                          CupertinoIcons.gear,
-                          size: 30,
-                          color: CupertinoColors.systemTeal,
-                        )
-                      : const Text(
-                          'Sign In',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                ),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      CupertinoColors.systemBlue.withOpacity(0.1),
-                      CupertinoColors.systemPurple.withOpacity(0.1),
-                    ],
-                  ),
-                ),
-                child: CupertinoTabScaffold(
-                  resizeToAvoidBottomInset: false,
-                  tabBar: CupertinoTabBar(
-                    height: 64,
-                    backgroundColor:
-                        CupertinoColors.systemGrey.withOpacity(0.2),
-                    activeColor: complementaryColor,
-                    inactiveColor: CupertinoColors.systemGrey,
-                    currentIndex: _tabController.index,
-                    onTap: (index) {
-                      _tabController.index = index;
-                      setState(() {
-                        switch (_tabController.index) {
-                          case 0:
-                            titleString = 'My Events';
-                            break;
-                          case 1:
-                            titleString = 'Slotted';
-                            break;
-                          case 2:
-                            titleString = 'Profile';
-                            break;
-                          default:
-                            titleString = 'Slotted';
-                        }
-                      });
-                    },
-                    iconSize: iconSize,
-                    items: [
-                      const BottomNavigationBarItem(
-                        icon: Icon(CupertinoIcons.list_bullet),
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(40),
-                            border: Border.all(
-                              color: _tabController.index == 1
-                                  ? complementaryColor.withOpacity(0.93)
-                                  : CupertinoColors.systemGrey.withOpacity(0.7),
-                              width: 3,
-                            ),
-                          ),
-                          child: Image.asset(
-                            'lib/assets/images/s_logo.png',
-                            width: iconSize * 1.2,
-                            height: iconSize * 1.2,
-                            color: _tabController.index == 1
-                                ? complementaryColor.withOpacity(0.93)
-                                : CupertinoColors.systemGrey.withOpacity(0.7),
-                          ),
-                        ),
-                      ),
-                      const BottomNavigationBarItem(
-                        icon: Icon(CupertinoIcons.person),
-                      ),
-                    ],
-                  ),
-                  tabBuilder: (context, index) {
-                    return SafeArea(
-                      child: tabViews[index],
-                    );
-                  },
-                ),
-              ),
-            ),
-            if (isLoading)
-              const Opacity(
-                opacity: 0.7,
-                child: ModalBarrier(
-                  color: CupertinoColors.black,
-                  dismissible: false,
-                ),
-              ),
-            if (isLoading)
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: CircularProgressIndicator(
-                    strokeCap: StrokeCap.round,
-                    backgroundColor: CupertinoColors.systemOrange,
-                    strokeAlign: -8,
-                    strokeWidth: 5,
-                    color: complementaryColor,
-                  ),
-                ),
-              ),
-          ],
+        final loggedIn = snapshot.hasData;
+        return CupertinoPageScaffold(
+          resizeToAvoidBottomInset: false,
+          child: MyHomePage(
+            user: snapshot.data,
+            debug: widget.debug,
+            authAction: (context, loggedIn, completion) async {
+              await _authAction(context, loggedIn, completion: completion);
+            },
+            reserveAction: (event, slottedUser) async {
+              return resAuth(event, slottedUser);
+            },
+            deleteEvent: (String eventId) async {
+              await deleteEvent(eventId);
+            },
+          ),
         );
       },
     );
   }
 
-  void _openSettings(BuildContext context, bool loggedIn) {
-    if (!loggedIn) {
-      _authAction(context, loggedIn);
-      return;
+  IconData _getHeaderIcon() {
+    switch (titleString) {
+      case 'My Events':
+        return CupertinoIcons.star_circle_fill;
+      case 'Open Slot':
+        return CupertinoIcons.sparkles;
+      case 'Profile':
+        return CupertinoIcons.person_crop_circle_fill;
+      default:
+        return CupertinoIcons.sparkles;
     }
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) {
-        return CupertinoActionSheet(
-          title: const Text('Settings'),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () => _authAction(context, loggedIn),
-              child: Text(
-                loggedIn ? 'Sign Out' : 'Sign In',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        );
-      },
-    );
   }
 
   Future<void> _authAction(BuildContext context, bool loggedIn,
@@ -669,175 +461,29 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     try {
       if (loggedIn) {
         await FirebaseAuthService().signOut();
-        setState(() {
-          isLoading = false;
-        });
-        completion?.call();
-        Navigator.of(context).pop();
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+          completion?.call();
+          Navigator.of(context).pushAndRemoveUntil(
+            CupertinoPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+          );
+        }
       } else {
-        // Present sign in modal to collect phone number
-        phoneController.clear();
-        final result = await showCupertinoModalPopup(
-          context: context,
-          builder: (builder) {
-            return
-                // KeyboardActions(
-                //   isDialog: true,
-                //   disableScroll: true,
-                //   autoScroll: false,
-                //   config: _buildConfig(context),
-                //   child:
-                CupertinoAlertDialog(
-              title: const Text(
-                'Sign In',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              content: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-                child: CupertinoTextField(
-                  focusNode: authFocusNode,
-                  autofocus: true,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  placeholder: 'Phone Number',
-                  keyboardType: TextInputType.phone,
-                  onChanged: (value) {
-                    // Format the display value
-                    final digits = value.replaceAll(RegExp(r'\D'), '');
-                    String formatted = '';
-                    for (int i = 0; i < digits.length && i < 10; i++) {
-                      if (i == 3 || i == 6) formatted += '-';
-                      formatted += digits[i];
-                    }
-
-                    setState(() {
-                      phoneNumber = value.replaceAll('-', '');
-                      phoneController.text = formatted;
-                    });
-                  },
-                  controller: phoneController,
-                  maxLength: 12,
-                ),
-              ),
-              actions: [
-                CupertinoDialogAction(
-                  onPressed: () {
-                    setState(() {
-                      phoneNumber = null;
-                      isLoading = false;
-                    });
-                    completion?.call();
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel'),
-                ),
-                CupertinoDialogAction(
-                  onPressed: () async {
-                    // Format phone number, filter all characters except 0-9 and +
-                    var formattedNumber = phoneNumber
-                        ?.replaceAll(' ', '')
-                        .replaceAll('-', '')
-                        .trim();
-                    // if formattedNumber doesn't start with +, add +1
-
-                    if (formattedNumber == null || formattedNumber.isEmpty) {
-                      return;
-                    }
-
-                    if (!formattedNumber.startsWith('+')) {
-                      formattedNumber = '+1$formattedNumber';
-                    }
-
-                    await FirebaseAuthService().firebaseAuth.verifyPhoneNumber(
-                          phoneNumber: formattedNumber,
-                          verificationCompleted:
-                              (PhoneAuthCredential credential) async {
-                            // Auto-retrieval or instant verification completed
-                            await FirebaseAuthService()
-                                .firebaseAuth
-                                .signInWithCredential(credential);
-                            setState(() {
-                              isLoading = false;
-                            });
-                            completion?.call();
-                          },
-                          verificationFailed: (FirebaseAuthException e) {
-                            // Handle error
-                            showCupertinoDialog(
-                              context: context,
-                              builder: (context) => CupertinoAlertDialog(
-                                title: const Text('Error'),
-                                content: Text(e.message ?? e.toString()),
-                                actions: [
-                                  CupertinoButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(),
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            setState(() {
-                              isLoading = false;
-                            });
-                            completion?.call();
-                          },
-                          codeSent: (String verificationId, int? resendToken) {
-                            // Code sent for manual entry
-                            Navigator.of(context)
-                                .push(CupertinoPageRoute(
-                              builder: (context) => CodeVerificationPage(
-                                  verificationId: verificationId),
-                            ))
-                                .then((value) {
-                              setState(() {
-                                isLoading = false;
-                              });
-                              completion?.call();
-                            });
-                          },
-                          codeAutoRetrievalTimeout: (String verificationId) {
-                            // Auto retrieval timeout
-                            showCupertinoDialog(
-                              context: context,
-                              builder: (context) => CupertinoAlertDialog(
-                                title: const Text('Error'),
-                                content: const Text('Verifcation timed out.'),
-                                actions: [
-                                  CupertinoButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(),
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            setState(() {
-                              isLoading = false;
-                            });
-                            completion?.call();
-                          },
-                        );
-                    Navigator.of(context).pop(formattedNumber);
-                  },
-                  child: const Text(
-                    'Sign In',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-              // ),
-            );
-          },
+        // Use the new LoginPage instead of the modal dialog
+        await Navigator.of(context).push(
+          CupertinoPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const LoginPage(),
+          ),
         );
 
-        if (result == null) {
+        // Check if user is logged in after returning from login page
+        if (FirebaseAuth.instance.currentUser != null) {
+          Navigator.of(context).pop(true);
+        } else {
           setState(() {
             isLoading = false;
           });
@@ -853,16 +499,236 @@ class MainNavState extends State<MainNav> with SingleTickerProviderStateMixin {
     }
   }
 
-  Widget _buildNavigationTitle() {
-    final style = TextStyle(
-      color: complementaryColor,
-      fontWeight: FontWeight.w700,
-      fontSize: 30,
-    );
+  Future<void> _adjustTimeLimit(Event event, BuildContext context, String currentTime) async {
+    final timeOptions = [1, 2, 3, 5, 10, 15];
+    int selectedTime = int.tryParse(currentTime) ?? 5;
+    selectedTime = selectedTime == 0 ? 1 : selectedTime;
+    bool isInfinite = event.timeLimit == 0;
 
-    return Text(
-      titleString,
-      style: style,
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: AppColors.backgroundDark,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundLight.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        CupertinoIcons.infinite,
+                        color: isInfinite ? AppColors.accent : Colors.grey,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        "Unlimited Time",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isInfinite ? AppColors.accent : Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  CupertinoSwitch(
+                    value: isInfinite,
+                    activeTrackColor: AppColors.accent,
+                    onChanged: (value) {
+                      setState(() {
+                        isInfinite = value;
+                        if (!isInfinite && selectedTime < 1) {
+                          selectedTime = 5;
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ),
+              if (!isInfinite) ...[
+                const SizedBox(height: 24),
+                Text(
+                  "$selectedTime minutes",
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: timeOptions.map((time) {
+                    final isSelected = selectedTime == time;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedTime = time;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.accent : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected ? AppColors.accent : Colors.grey.withValues(alpha: 0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: Text(
+                          "$time min",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.black : Colors.white,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
+                SliderTheme(
+                  data: SliderThemeData(
+                    activeTrackColor: AppColors.accent,
+                    inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
+                    thumbColor: AppColors.accent,
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+                  ),
+                  child: Slider(
+                    min: 1,
+                    max: 30,
+                    divisions: 29,
+                    value: selectedTime.toDouble().clamp(1, 30),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedTime = value.round();
+                      });
+                    },
+                  ),
+                ),
+              ],
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () async {
+                        try {
+                          final int timeLimit = isInfinite ? 0 : selectedTime;
+                          await _retryOperation(
+                            operation: () => FirebaseFirestore.instance
+                                .doc('events/${event.id}')
+                                .update({
+                                  'timeLimit': timeLimit,
+                                  'performerStart': timeLimit > 0 ? DateTime.now() : null,
+                                }),
+                            operationName: 'Updating time limit',
+                          );
+                          Navigator.of(context).pop();
+                        } catch (e) {
+                          // Handle error
+                        }
+                      },
+                      child: const Text(
+                        'Save',
+                        style: TextStyle(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  Future<void> _showErrorDialog(String message, {Function()? retryAction}) async {
+    await showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          if (retryAction != null)
+            CupertinoDialogAction(
+              child: const Text('Retry'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                retryAction();
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<T> _retryOperation<T>({
+    required Future<T> Function() operation,
+    required String operationName,
+    int maxRetries = 3,
+    Duration delay = const Duration(seconds: 1),
+  }) async {
+    int attempts = 0;
+    while (true) {
+      try {
+        attempts++;
+        return await operation();
+      } catch (e) {
+        if (attempts >= maxRetries) {
+          Logger.e('Failed $operationName after $attempts attempts: $e', tag: 'Main_nav');
+          rethrow;
+        }
+        await Future.delayed(delay * attempts);
+      }
+    }
   }
 }

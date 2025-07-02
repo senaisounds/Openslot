@@ -7,15 +7,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Slotted</string>
+	<string>Open Slot</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<string>com.openslot.app</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>slotted</string>
+	<string>Open Slot</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -30,6 +30,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>app-1-482276707475-ios-06df3593bd445244d41166</string>
+				<string>maps</string>
 			</array>
 		</dict>
 	</array>
@@ -37,6 +38,13 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Calendar is used to add events</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera is used to add a profile picture</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
@@ -45,8 +53,6 @@
 	<string>Location is used to find nearby events</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Photos are used to add a profile picture</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>Calendar is used to add events</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

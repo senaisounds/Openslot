@@ -4,8 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:slotted/pages/live.dart';
-import 'profile.dart'; // Ensure this import is correct based on your project structure
+import 'profile_page.dart'; // Updated to use the working profile page implementation
+import 'package:slotted/common/constants.dart';
 
 class AttendeesPage extends StatefulWidget {
   final String eventName;
@@ -17,7 +17,7 @@ class AttendeesPage extends StatefulWidget {
   final Future<void> Function(BuildContext, bool, Function()) authAction;
 
   const AttendeesPage({
-    Key? key,
+    super.key,
     required this.eventName,
     required this.attendees,
     required this.eventId,
@@ -25,7 +25,7 @@ class AttendeesPage extends StatefulWidget {
     required this.debug,
     required this.user,
     required this.authAction,
-  }) : super(key: key);
+  });
 
   @override
   _AttendeesPageState createState() => _AttendeesPageState();
@@ -92,6 +92,39 @@ class _AttendeesPageState extends State<AttendeesPage> {
     }
   }
 
+  // Helper method to get consistent avatar colors
+  Color _getAvatarColor(String userId) {
+    final colors = [
+      const Color(0xFFE53E3E), // Red
+      const Color(0xFF9F7AEA), // Purple  
+      const Color(0xFF38A169), // Green
+      const Color(0xFF3182CE), // Blue
+      const Color(0xFFD69E2E), // Orange/Yellow
+      const Color(0xFF805AD5), // Purple variant
+      const Color(0xFF319795), // Teal
+      const Color(0xFFDD6B20), // Orange
+      const Color(0xFF2B6CB0), // Blue variant
+      const Color(0xFFD53F8C), // Pink
+      const Color(0xFF38B2AC), // Teal variant
+      const Color(0xFFED8936), // Orange variant
+    ];
+    
+    final colorIndex = userId.hashCode.abs() % colors.length;
+    return colors[colorIndex];
+  }
+
+  // Helper method to get user initials
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+    
+    final words = name.trim().split(' ');
+    if (words.length == 1) {
+      return words[0][0].toUpperCase();
+    } else {
+      return '${words[0][0]}${words[1][0]}'.toUpperCase();
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -118,8 +151,8 @@ class _AttendeesPageState extends State<AttendeesPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              CupertinoColors.systemBlue.withOpacity(0.1),
-              CupertinoColors.systemPurple.withOpacity(0.1),
+              CupertinoColors.systemBlue.withAlpha(25),
+              CupertinoColors.systemPurple.withAlpha(25),
             ],
           ),
         ),
@@ -128,18 +161,43 @@ class _AttendeesPageState extends State<AttendeesPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: CupertinoSearchTextField(
-                  padding: const EdgeInsets.all(8),
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value;
-                    });
-                  },
-                  backgroundColor: CupertinoColors.systemGrey5,
-                  placeholder: 'Search attendees',
-                  prefixIcon: const Icon(CupertinoIcons.search,
-                      color: CupertinoColors.systemGrey),
-                  style: const TextStyle(color: CupertinoColors.white),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey6.withAlpha(204),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: CupertinoColors.activeBlue.withAlpha(51),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: CupertinoSearchTextField(
+                    padding: const EdgeInsets.all(12),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                      });
+                    },
+                    backgroundColor: CupertinoColors.systemGrey6.withAlpha(25),
+                    placeholder: 'Search attendees',
+                    placeholderStyle: TextStyle(
+                      color: CupertinoColors.systemGrey.withAlpha(204),
+                      fontSize: 16,
+                    ),
+                    prefixIcon: Icon(
+                      CupertinoIcons.search,
+                      color: CupertinoColors.systemGrey.withAlpha(204),
+                      size: 20,
+                    ),
+                    suffixIcon: Icon(
+                      CupertinoIcons.xmark_circle_fill,
+                      color: CupertinoColors.systemGrey.withAlpha(204),
+                      size: 20,
+                    ),
+                    style: const TextStyle(
+                      color: CupertinoColors.black,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
               Expanded(
@@ -161,7 +219,7 @@ class _AttendeesPageState extends State<AttendeesPage> {
                               vertical: 4.0, horizontal: 8.0),
                           decoration: BoxDecoration(
                             color: highlighted == performerId
-                                ? CupertinoColors.activeOrange.withOpacity(0.15)
+                                ? CupertinoColors.activeOrange.withAlpha(38)
                                 : CupertinoColors.darkBackgroundGray,
                             borderRadius: BorderRadius.circular(8.0),
                           ),
@@ -171,32 +229,14 @@ class _AttendeesPageState extends State<AttendeesPage> {
                                   .doc('users/$performerId')
                                   .get()
                                   .then((doc) => doc.exists)) {
+                                if (!mounted) return;
                                 Navigator.of(context).push(
                                   CupertinoPageRoute(
-                                    builder: (context) => CupertinoPageScaffold(
-                                      resizeToAvoidBottomInset: false,
-                                      backgroundColor:
-                                          CupertinoColors.systemBackground,
-                                      navigationBar:
-                                          const CupertinoNavigationBar(
-                                        middle: Text("Performer's Profile"),
-                                        backgroundColor: CupertinoColors
-                                            .secondarySystemBackground,
-                                      ),
-                                      child: ProfilePage(
-                                          debug: widget.debug,
-                                          user: widget.user,
-                                          authAction: (loggedIn) =>
-                                              widget.authAction(
-                                                  context, loggedIn, () {}),
-                                          viewUser:
-                                              performerId != widget.user?.uid
-                                                  ? performerId
-                                                  : null),
-                                    ),
+                                    builder: (context) => ProfilePage(userId: performerId),
                                   ),
                                 );
                               } else {
+                                if (!mounted) return;
                                 showCupertinoDialog(
                                   context: context,
                                   builder: (context) => CupertinoAlertDialog(
@@ -216,8 +256,21 @@ class _AttendeesPageState extends State<AttendeesPage> {
                             },
                             padding: const EdgeInsets.all(16),
                             leading: CircleAvatar(
-                              backgroundImage:
-                                  CachedNetworkImageProvider(photoUrl),
+                              backgroundImage: photoUrl.isNotEmpty && photoUrl != placeholderImage
+                                  ? CachedNetworkImageProvider(photoUrl)
+                                  : null,
+                              backgroundColor: photoUrl.isEmpty || photoUrl == placeholderImage
+                                  ? _getAvatarColor(performerId)
+                                  : null,
+                              child: photoUrl.isEmpty || photoUrl == placeholderImage
+                                  ? Text(
+                                      _getInitials(username),
+                                      style: const TextStyle(
+                                        color: CupertinoColors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
                             ),
                             title: Text(
                               username,

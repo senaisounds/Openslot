@@ -1,0 +1,16 @@
+[
+  {
+    "origin": [
+      "https://slotted-e4ee8.web.app", 
+      "https://openslot.me", 
+      "https://open-mic-5cc8e.web.app", 
+      "https://openslot-me.web.app", 
+      "https://openslot-me-domain.web.app", 
+      "https://openslot-web-app.web.app",
+      "http://localhost:*"
+    ],
+    "method": ["GET", "HEAD", "POST", "PUT", "DELETE"],
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
+    "maxAgeSeconds": 3600
+  }
+] 

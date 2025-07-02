@@ -1,0 +1,75 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "hosting": [
+    {
+      "target": "main",
+      "public": "build/web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "openslot-me",
+      "public": "build/web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/flutter-app",
+          "destination": "/flutter-app.html"
+        },
+        {
+          "source": "/flutter-app/**",
+          "destination": "/flutter-app.html"
+        }
+      ]
+    },
+    {
+      "target": "openslot-me-domain",
+      "public": "build/web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/flutter-app",
+          "destination": "/flutter-app.html"
+        },
+        {
+          "source": "/flutter-app/**",
+          "destination": "/flutter-app.html"
+        }
+      ]
+    },
+    {
+      "target": "openslot-web-app",
+      "public": "build/web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ]
+}

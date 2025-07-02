@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSlot - Static Version</title>
+  <style>
+    /* Base styles */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #2D2D3A;
+      color: white;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background-color: #FF5722;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .content {
+      background-color: #3D3D4A;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+    }
+    
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    
+    .event {
+      background-color: #4D4D5A;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #FF5722;
+    }
+    
+    .button {
+      display: inline-block;
+      background-color: #FF5722;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+    
+    .button.secondary {
+      background-color: #4CAF50;
+    }
+    
+    .button:hover {
+      opacity: 0.9;
+    }
+    
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #4D4D5A;
+      color: #AAA;
+    }
+    
+    .signin-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .signin-button .icon {
+      margin-right: 8px;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .event {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="signin-button">
+      <span class="icon">👤</span> Sign In
+    </button>
+    
+    <header>
+      <h1>OpenSlot</h1>
+      <p>Find and join events in your area</p>
+    </header>
+    
+    <div class="nav">
+      <div>
+        <a href="#" class="button">Home</a>
+        <a href="#" class="button">Explore</a>
+      </div>
+      <div>
+        <a href="#" class="button secondary">Create Event</a>
+      </div>
+    </div>
+    
+    <div class="content">
+      <h2>Featured Events</h2>
+      
+      <div class="event">
+        <h3>Comedy Night at The Laugh Factory</h3>
+        <p><strong>Date:</strong> Tomorrow, 8:00 PM</p>
+        <p><strong>Location:</strong> The Laugh Factory, New York</p>
+        <p>Join us for a night of laughter with top comedians from around the city!</p>
+        <a href="#" class="button">Reserve Slot</a>
+      </div>
+      
+      <div class="event">
+        <h3>Open Mic Poetry Reading</h3>
+        <p><strong>Date:</strong> Friday, 7:00 PM</p>
+        <p><strong>Location:</strong> Caffeine Dreams, Brooklyn</p>
+        <p>Share your poetry or listen to others in an inclusive and supportive environment.</p>
+        <a href="#" class="button">Reserve Slot</a>
+      </div>
+      
+      <div class="event">
+        <h3>DJ Night - Electronic Beats</h3>
+        <p><strong>Date:</strong> Saturday, 10:00 PM</p>
+        <p><strong>Location:</strong> Pulse Club, Manhattan</p>
+        <p>Dance to the best electronic music with our featured DJs spinning the latest tracks.</p>
+        <a href="#" class="button">Reserve Slot</a>
+      </div>
+      
+      <div class="event">
+        <h3>Weekend Yoga in the Park</h3>
+        <p><strong>Date:</strong> Sunday, 9:00 AM</p>
+        <p><strong>Location:</strong> Central Park, Great Lawn</p>
+        <p>Start your day with a relaxing and energizing yoga session in the heart of the city.</p>
+        <a href="#" class="button">Reserve Slot</a>
+      </div>
+      
+      <div class="footer">
+        <p>This is a static backup version of OpenSlot.</p>
+        <p>Try <a href="index.html">loading the full app</a> or <a href="flutter_direct.html">direct loading</a>.</p>
+        <p>Generated: <script>document.write(new Date().toLocaleString())</script></p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Simple sign-in alert
+    document.querySelector('.signin-button').addEventListener('click', function() {
+      alert('Sign-in functionality is not available in the static backup version.\nPlease try the full app version if available.');
+    });
+  </script>
+</body>
+</html> 

@@ -19,18 +19,18 @@ class _CountdownTimerState extends State<CountdownTimer> {
   }
 
   void startTimer() {
-    timer =
-        Timer.periodic(const Duration(microseconds: 1), (_) => setCountdown());
+    timer = Timer.periodic(const Duration(milliseconds: 33), (_) => setCountdown());
   }
 
   void setCountdown() {
-    const reduceMicroSecondsBy = 10;
+    const reduceMillisecondsBy = 33;
     setState(() {
-      final seconds = duration.inMicroseconds - reduceMicroSecondsBy;
-      if (seconds < 0) {
+      final milliseconds = duration.inMilliseconds - reduceMillisecondsBy;
+      if (milliseconds <= 0) {
         timer?.cancel();
+        duration = Duration.zero;
       } else {
-        duration = Duration(microseconds: seconds);
+        duration = Duration(milliseconds: milliseconds);
       }
     });
   }

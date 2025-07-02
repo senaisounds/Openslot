@@ -1,0 +1,6 @@
+The "openslot" logo image from the conversation needs to be saved here with the name "openslot_logo.png".
+
+Steps to update the app with this new logo:
+1. Save the image from the conversation to this directory
+2. Update the app configuration in pubspec.yaml to use this new logo
+3. Update any references to the old logo throughout the app. 

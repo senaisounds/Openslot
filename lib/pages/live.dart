@@ -12,7 +12,7 @@ import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/attendees_page.dart';
 import 'package:slotted/pages/event_details.dart';
-import 'package:slotted/pages/profile.dart';
+import 'package:slotted/pages/profile_page.dart';
 import 'package:torch_light/torch_light.dart';
 
 const placeholderImage =
@@ -183,11 +183,7 @@ class LivePageState extends State<LivePage> {
                                 CupertinoColors.secondarySystemBackground,
                           ),
                           child: ProfilePage(
-                            debug: widget.debug,
-                            user: widget.user,
-                            authAction: (loggedIn) =>
-                                widget.authAction(context, loggedIn, () {}),
-                            viewUser: performer != widget.user?.uid
+                            userId: performer != widget.user?.uid
                                 ? performer
                                 : null,
                           ),
@@ -385,7 +381,7 @@ class LivePageState extends State<LivePage> {
                       : null,
               child: Text(
                 "${event.timeLimit == 0 ? '∞' : "${event.timeLimit}m"} Time Limit",
-                style: const TextStyle(color: slottedOrange),
+                style: const TextStyle(color: AppColors.slottedOrange),
               ),
             ),
           ),
@@ -491,12 +487,12 @@ class LivePageState extends State<LivePage> {
                                                       fontSize: 240 * 0.78,
                                                       fontWeight:
                                                           FontWeight.bold,
-                                                      color: slottedOrange
+                                                      color: AppColors.slottedOrange
                                                           .withOpacity(0.0),
                                                       shadows: [
                                                         Shadow(
                                                           blurRadius: 12,
-                                                          color: slottedOrange
+                                                          color: AppColors.slottedOrange
                                                               .withOpacity(0.6),
                                                           offset: const Offset(
                                                               0, 0),
@@ -535,12 +531,12 @@ class LivePageState extends State<LivePage> {
                                                         fontSize: 240 * 0.78,
                                                         fontWeight:
                                                             FontWeight.bold,
-                                                        color: slottedOrange
+                                                        color: AppColors.slottedOrange
                                                             .withOpacity(0.0),
                                                         // shadows: [
                                                         //   Shadow(
                                                         //     blurRadius: 12,
-                                                        //     color: slottedOrange
+                                                        //     color: AppColors.slottedOrange
                                                         //         .withOpacity(0.6),
                                                         //     offset:
                                                         //         const Offset(0, 0),
@@ -566,7 +562,7 @@ class LivePageState extends State<LivePage> {
                                               : 1.0 - progress,
                                           strokeWidth: 6,
                                           strokeCap: StrokeCap.round,
-                                          backgroundColor: slottedOrange,
+                                          backgroundColor: AppColors.slottedOrange,
                                           valueColor:
                                               const AlwaysStoppedAnimation(
                                                   CupertinoColors.systemGrey),
@@ -1000,15 +996,7 @@ class LivePageState extends State<LivePage> {
                                                                         ),
                                                                         child:
                                                                             ProfilePage(
-                                                                          debug:
-                                                                              widget.debug,
-                                                                          user:
-                                                                              widget.user,
-                                                                          authAction: (loggedIn) => widget.authAction(
-                                                                              context,
-                                                                              loggedIn,
-                                                                              () {}),
-                                                                          viewUser: snapshot.data == null
+                                                                          userId: snapshot.data == null
                                                                               ? null
                                                                               : performerId != widget.user?.uid
                                                                                   ? performerId
@@ -1043,7 +1031,7 @@ class LivePageState extends State<LivePage> {
                                                               "Performing",
                                                               style: TextStyle(
                                                                 color:
-                                                                    slottedOrange,
+                                                                    AppColors.slottedOrange,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
@@ -1188,15 +1176,7 @@ class LivePageState extends State<LivePage> {
                                                                         ),
                                                                         child:
                                                                             ProfilePage(
-                                                                          debug:
-                                                                              widget.debug,
-                                                                          user:
-                                                                              widget.user,
-                                                                          authAction: (loggedIn) => widget.authAction(
-                                                                              context,
-                                                                              loggedIn,
-                                                                              () {}),
-                                                                          viewUser: snapshot.data == null
+                                                                          userId: snapshot.data == null
                                                                               ? null
                                                                               : performerId != widget.user?.uid
                                                                                   ? performerId
@@ -1231,7 +1211,7 @@ class LivePageState extends State<LivePage> {
                                                               "Performing",
                                                               style: TextStyle(
                                                                 color:
-                                                                    slottedOrange,
+                                                                    AppColors.slottedOrange,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
@@ -1332,7 +1312,7 @@ class LivePageState extends State<LivePage> {
                                                     }
                                                   : null
                                               : null,
-                                      color: slottedOrange,
+                                      color: AppColors.slottedOrange,
                                       child: Text(
                                         event.live
                                             ? event.performer != null
@@ -1382,7 +1362,7 @@ class LivePageState extends State<LivePage> {
                           _isFlashlightOn
                               ? CupertinoIcons.lightbulb_fill
                               : CupertinoIcons.lightbulb_slash,
-                          color: slottedOrange,
+                          color: AppColors.slottedOrange,
                         ),
                       ),
                     ),

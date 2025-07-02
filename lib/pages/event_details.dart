@@ -18,6 +18,7 @@ import 'package:maps_launcher/maps_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:http/http.dart' as http;
+import 'package:slotted/common/design_system.dart';
 
 class EventDetailsPage extends StatefulWidget {
   const EventDetailsPage({
@@ -59,7 +60,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
   Future<void> _reserveAction(
       Event event, SlottedUser slottedUser, User user) async {
-    setState(() {
+        setState(() {
       actionPending = true;
     });
 
@@ -83,13 +84,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   child: const Text(
                     'Back',
                     style: TextStyle(
-                      color: slottedOrange,
+                      color: AppColors.slottedOrange,
                     ),
                   ),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    setState(() {
-                      actionPending = false;
+            setState(() {
+              actionPending = false;
                     });
                   }),
               CupertinoDialogAction(
@@ -104,7 +105,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                   try {
                     await reserveAction(
                         paymentIntent, event, slottedUser, user);
-                  } catch (e) {
+            } catch (e) {
                     String errorMessage =
                         'There was an error processing your ${isPaid ? 'refund' : 'cancellation'}. Please try again.\n$e';
                     if (e is PlatformException) {
@@ -118,24 +119,24 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                     print(e);
 
                     // ignore: use_build_context_synchronously
-                    showCupertinoDialog(
-                      context: context,
+            showCupertinoDialog(
+              context: context,
                       builder: (context) {
                         return CupertinoAlertDialog(
                           title: const Text('Error'),
                           content: Text(errorMessage),
-                          actions: [
-                            CupertinoDialogAction(
-                              child: const Text('OK'),
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ],
+                actions: [
+                  CupertinoDialogAction(
+                    child: const Text('OK'),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
                         );
                       },
                     );
                   }
-                  setState(() {
-                    actionPending = false;
+        setState(() {
+          actionPending = false;
                   });
                 },
               ),
@@ -186,16 +187,16 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
       if (!cancelled) {
         // ignore: use_build_context_synchronously
-        showCupertinoDialog(
-          context: context,
+    showCupertinoDialog(
+      context: context,
           builder: (context) {
             return CupertinoAlertDialog(
               title: const Text('Error'),
               content: Text(errorMessage),
-              actions: [
+        actions: [
                 CupertinoDialogAction(
                   child: const Text('OK'),
-                  onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             );
@@ -214,9 +215,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     return PopScope(
       canPop: !actionPending,
       child: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          final User? user = snapshot.data;
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        final User? user = snapshot.data;
           return StreamBuilder<DocumentSnapshot>(
             stream: user == null
                 ? null
@@ -227,17 +228,17 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
               final slottedUser = userSnap.data == null
                   ? null
                   : SlottedUser.fromDocument(userSnap.data!);
-              return StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('events')
-                    .doc(widget.initialEvent.id)
-                    .snapshots(),
-                builder: (context, snapshot) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('events')
+          .doc(widget.initialEvent.id)
+          .snapshots(),
+      builder: (context, snapshot) {
                   Event event;
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     event = widget.initialEvent;
                   }
-                  if (snapshot.hasError) {
+        if (snapshot.hasError) {
                     return const Center(
                       child: Text('Error loading event'),
                     );
@@ -248,10 +249,10 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                     );
                   }
                   event = Event.fromDocument(snapshot.data!);
-                  return CupertinoPageScaffold(
+    return CupertinoPageScaffold(
                     resizeToAvoidBottomInset: false,
                     navigationBar: CupertinoNavigationBar(
-                      border: null,
+        border: null,
                       backgroundColor: CupertinoColors.systemBackground,
                       leading: actionPending ? const SizedBox() : null,
                       middle: Padding(
@@ -260,47 +261,72 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           event.name,
-                          style: const TextStyle(
-                            color: slottedOrange,
+                      style: TextStyle(
+                            color: DesignSystem.primaryOrange,
                             fontWeight: FontWeight.w800,
                             fontSize: 20,
-                          ),
-                        ),
+                            shadows: [
+                              Shadow(
+                                offset: const Offset(0, 1),
+                                blurRadius: 2,
+                                color: Colors.black.withValues(alpha: 0.1),
+                    ),
+                  ],
+                ),
+              ),
                       ),
                     ),
                     child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            CupertinoColors.systemBlue.withOpacity(0.1),
-                            CupertinoColors.systemPurple.withOpacity(0.1),
-                          ],
-                        ),
-                      ),
+                      decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                            Color(0xFF1a1a2e),
+                            Color(0xFF16213e),
+              ],
+            ),
+          ),
                       child: SafeArea(
-                        child: Center(
-                          child: Column(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+            child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
+              children: [
                               const SizedBox(
                                 height: 20,
                               ),
                               Column(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Text(
-                                    'Hosted by ${event.hostName}',
-                                    style: const TextStyle(
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                      children: [
+                        Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                                      color: DesignSystem.primaryOrange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                                        color: DesignSystem.primaryOrange.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                                      'Hosted by ${event.hostName}',
+                    style: const TextStyle(
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.w700,
+                                        color: DesignSystem.primaryOrange,
+                    ),
+                  ),
+                ),
                                   const SizedBox(height: 10),
-                                  Text(
+                      Text(
                                     '${_convertDateTimeToStringComponents(event.date).dayFull}, ${_convertDateTimeToStringComponents(event.date).monthFull} ${_convertDateTimeToStringComponents(event.date).dayNum} at ${_convertDateTimeToStringComponents(event.date).time}',
                                     textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                   const SizedBox(height: 10),
                                   CupertinoButton(
@@ -312,7 +338,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                         return true;
                                       });
                                     },
-                                    padding: EdgeInsets.zero,
+            padding: EdgeInsets.zero,
                                     child: Text(
                                       event.address,
                                       style: const TextStyle(
@@ -322,36 +348,41 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
-                                  if (event.rules.isNotEmpty) ...[
+          if (event.rules.isNotEmpty) ...[
                                     const SizedBox(height: 28),
                                     const Text(
-                                      'Rules',
-                                      style: TextStyle(
+                    'Rules',
+                    style: TextStyle(
                                           fontSize: 20,
-                                          fontWeight: FontWeight.w800),
+                      fontWeight: FontWeight.w800,
+                                          color: Colors.white),
                                     ),
                                     const SizedBox(height: 10),
-                                    Container(
+            Container(
                                       padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
+              decoration: BoxDecoration(
                                         color: CupertinoColors.systemBackground
                                             .withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(16),
                                       ),
-                                      height: 96,
+                                      constraints: const BoxConstraints(
+                                        maxHeight: 120,
+                                        minHeight: 60,
+                                      ),
                                       width:
                                           MediaQuery.of(context).size.width * 0.8,
                                       child: SingleChildScrollView(
                                         scrollDirection: Axis.vertical,
-                                        child: Column(
+                child: Column(
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceEvenly,
                                           children: event.rules
                                               .split('\n')
                                               .map((rule) => Text(
                                                     rule,
-                                                    style: const TextStyle(
-                                                      fontSize: 16,
+                      style: const TextStyle(
+                        fontSize: 16,
+                                                      color: Colors.white,
                                                     ),
                                                   ))
                                               .toList(),
@@ -368,19 +399,19 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                     ),
                                 ],
                               ),
-                              SizedBox(
+                SizedBox(
                                 width: MediaQuery.of(context).size.width,
-                                height: MediaQuery.of(context).size.width * 0.78,
+                                height: MediaQuery.of(context).size.height * 0.35,
                                 child: SafeArea(
                                   child: Padding(
-                                    padding: const EdgeInsets.all(24),
-                                    child: Container(
+                                    padding: const EdgeInsets.all(16),
+              child: Container(
                                       clipBehavior: Clip.hardEdge,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
                                       ),
-                                      child: Stack(
-                                        children: [
+          child: Stack(
+            children: [
                                           FlutterMap(
                                             mapController: mapController,
                                             options: MapOptions(
@@ -402,7 +433,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                       enableMultiFingerGestureRace:
                                                           false),
                                             ),
-                                            children: [
+                    children: [
                                               TileLayer(
                                                   retinaMode:
                                                       RetinaMode.isHighDensity(
@@ -434,16 +465,16 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                       child: Image.asset(
                                                         'lib/assets/images/s_pin.png',
                                                       ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
+                        ),
+                      ),
+                    ],
+              ),
+            ],
+          ),
                                           Positioned(
                                             top: 16,
                                             right: 16,
-                                            child: CupertinoButton(
+        child: CupertinoButton(
                                                 color: CupertinoColors
                                                     .systemBackground,
                                                 borderRadius:
@@ -453,23 +484,21 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                   height: 44,
                                                   width: 44,
                                                   child: Icon(
-                                                    CupertinoIcons.location,
-                                                    color: slottedOrange,
+                  CupertinoIcons.location, 
+                                                    color: AppColors.slottedOrange,
                                                     size: 30,
                                                   ),
                                                 ),
                                                 onPressed: () => mapController
                                                     .move(event.location, 16)),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
                                 ),
                               ),
-                              const Expanded(
-                                child: SizedBox(),
-                              ),
+                              const SizedBox(height: 20),
                               // if (!event.attendees.contains(user?.uid) &&
                               //     !event.waitlist.contains(user?.uid))
                               Text(
@@ -477,6 +506,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 18,
+                          color: Colors.white,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -487,11 +517,11 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                 child: Padding(
                                   padding:
                                       const EdgeInsets.fromLTRB(22, 0, 22, 0),
-                                  child: CupertinoButton(
+      child: CupertinoButton(
                                     color: event.live
                                         ? CupertinoColors.activeGreen
                                         : event.host == slottedUser?.id
-                                            ? slottedOrange
+                                            ? AppColors.slottedOrange
                                             : event.attendees.contains(user?.uid)
                                                 ? CupertinoColors
                                                     .secondarySystemBackground
@@ -499,8 +529,8 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                         .contains(user?.uid)
                                                     ? CupertinoColors
                                                         .secondarySystemBackground
-                                                    : slottedOrange,
-                                    padding: EdgeInsets.zero,
+                                                    : AppColors.slottedOrange,
+        padding: EdgeInsets.zero,
                                     onPressed: () => actionPending
                                         ? null
                                         : event.live
@@ -511,28 +541,28 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                 ? Navigator.of(context).pop()
                                                 : (slottedUser == null
                                                     ? () async {
-                                                        setState(() {
-                                                          actionPending = true;
-                                                        });
+      setState(() {
+        actionPending = true;
+      });
                                                         await widget.authAction(
                                                             context, false, () {
-                                                          setState(() {
-                                                            actionPending = false;
-                                                          });
-                                                        });
+        setState(() {
+          actionPending = false;
+        });
+      });
                                                       }()
                                                     : _reserveAction(event,
                                                         slottedUser, user!)),
                                     borderRadius: BorderRadius.circular(20),
                                     child: actionPending
                                         ? CupertinoActivityIndicator(
-                                            radius: 14,
+            radius: 14,
                                             color: event.attendees
                                                     .contains(user?.uid)
-                                                ? slottedOrange
+                                                ? AppColors.slottedOrange
                                                 : event.waitlist
                                                         .contains(user?.uid)
-                                                    ? slottedOrange
+                                                    ? AppColors.slottedOrange
                                                     : CupertinoColors
                                                         .secondarySystemBackground,
                                           )
@@ -565,22 +595,22 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                             CrossAxisAlignment
                                                                 .center,
                                                         children: [
-                                                          Text(
+          Text(
                                                             'Reserved',
                                                             style: TextStyle(
                                                               color:
-                                                                  slottedOrange,
+                                                                  AppColors.slottedOrange,
                                                               fontSize: 19,
                                                               fontWeight:
                                                                   FontWeight.w800,
                                                             ),
                                                           ),
-                                                          SizedBox(width: 12),
+          SizedBox(width: 12),
                                                           Icon(
                                                             CupertinoIcons
                                                                 .check_mark_circled_solid,
                                                             size: 20,
-                                                            color: slottedOrange,
+                                                            color: AppColors.slottedOrange,
                                                             weight: 30,
                                                           )
                                                         ],
@@ -594,12 +624,12 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                             crossAxisAlignment:
                                                                 CrossAxisAlignment
                                                                     .center,
-                                                            children: [
+        children: [
                                                               Text(
                                                                 'Waitlisted',
                                                                 style: TextStyle(
                                                                   color:
-                                                                      slottedOrange,
+                                                                      AppColors.slottedOrange,
                                                                   fontSize: 19,
                                                                   fontWeight:
                                                                       FontWeight
@@ -612,7 +642,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                                     .check_mark_circled_solid,
                                                                 size: 20,
                                                                 color:
-                                                                    slottedOrange,
+                                                                    AppColors.slottedOrange,
                                                                 weight: 30,
                                                               )
                                                             ],
@@ -620,7 +650,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                         : slottedUser == null
                                                             ? const Text(
                                                                 'Sign in to reserve',
-                                                                style: TextStyle(
+            style: TextStyle(
                                                                   color:
                                                                       CupertinoColors
                                                                           .label,
@@ -661,14 +691,14 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                 ),
                               ),
                               const SizedBox(
-                                height: 32,
+                                height: 80,
                               )
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                  );
+          ),
+        ),
+      ),
+    );
                 },
               );
             },

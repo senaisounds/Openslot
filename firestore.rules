@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is viewing their own data
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Check if user is an admin
+    function isAdmin() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Validate event data for creation/updates
+    function isValidEvent() {
+      let incomingData = request.resource.data;
+      return incomingData.name is string &&
+             incomingData.name.size() > 0 &&
+             incomingData.name.size() < 100 &&
+             incomingData.host is string &&
+             incomingData.date is timestamp;
+    }
+    
+    // User profiles - users can read any profile but only edit their own
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+      
+      // Allow updates to specific fields by other users (e.g., followers)
+      match /{allChildren=**} {
+        allow read: if isAuthenticated();
+      }
+    }
+    
+    // Events - users can read all events but only edit their own
+    match /events/{eventId} {
+      // Anyone can read events
+      allow read: if true;
+      
+      // Only event owner or admin can modify
+      allow create: if isAuthenticated() && isValidEvent() && request.resource.data.host == request.auth.uid;
+      allow update: if isAuthenticated() && 
+                      (request.resource.data.host == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && 
+                      (resource.data.host == request.auth.uid || isAdmin());
+                      
+      // Special rules for attendees field to allow users to join events
+      allow update: if isAuthenticated() && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees', 'waitlist']) &&
+                      (request.resource.data.attendees.hasAll(resource.data.attendees) || 
+                       request.resource.data.attendees.hasAll(resource.data.attendees.concat([request.auth.uid])) ||
+                       resource.data.attendees.hasAll(request.resource.data.attendees.concat([request.auth.uid])));
+    }
+    
+    // Public event images
+    match /event_images/{imageId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    
+    // Admin-only collections
+    match /admins/{docId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // System configurations
+    match /system/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+} 
