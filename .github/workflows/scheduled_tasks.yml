@@ -99,7 +99,7 @@ jobs:
         echo "Health report generated"
 
     - name: Upload health report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: daily-health-report-$(date +%Y-%m-%d)
         path: |
@@ -202,7 +202,7 @@ jobs:
         EOL
 
     - name: Upload performance data
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-monitoring-$(date +%Y-%m-%d)
         path: |
@@ -270,7 +270,7 @@ jobs:
         EOL
 
     - name: Upload security report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-report-$(date +%Y-%m-%d)
         path: |
