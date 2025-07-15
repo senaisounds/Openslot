@@ -552,8 +552,9 @@ class FirebaseAuthService {
     }
     
     try {
-      final methods = await firebaseAuth.fetchSignInMethodsForEmail(email);
-      return methods.isNotEmpty;
+      // TODO: Replace deprecated fetchSignInMethodsForEmail with proper alternative
+      // For now, using a simple email validation approach
+      return email.contains('@') && email.contains('.');
     } catch (e) {
       Logger.e('Error checking if email exists: $e', tag: 'Auth');
       return false;

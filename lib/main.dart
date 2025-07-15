@@ -36,17 +36,19 @@ import 'package:slotted/utils/performance_optimizer.dart';
 import 'package:slotted/utils/performance_monitor.dart';
 import 'package:slotted/widgets/simple_splash_screen.dart';
 
+import 'package:slotted/common/colors.dart';
+
 // We can't directly override print, but we can use Logger consistently
 const bool _debug = false;
 
 // Main Theme Colors
-const Color primaryColor = Color(0xFFFF6B35); // Vibrant Orange - Stage Lights
-const Color secondaryColor = Color(0xFFFF8C42); // Soft Orange - Energy
-const Color accentColor = Color(0xFFFFA500); // Electric Orange - Microphone Glow
-const Color highlightColor = Color(0xFFFFE79B); // Warm Yellow - Spotlight
-const Color backgroundDarkColor = Color(0xFF000000); // Pure Black
-const Color backgroundLightColor = Color(0xFFF5F5F7); // Light Mode
-const Color openSlotOrange = Color.fromARGB(255, 238, 125, 48); // Open Slot Orange
+const Color primaryColor = AppColors.primary; // Vibrant Orange - Stage Lights
+const Color secondaryColor = AppColors.secondary; // Soft Orange - Energy
+const Color accentColor = AppColors.accent; // Electric Orange - Microphone Glow
+const Color highlightColor = AppColors.highlight; // Warm Yellow - Spotlight
+const Color backgroundDarkColor = AppColors.backgroundDark; // Pure Black
+const Color backgroundLightColor = AppColors.backgroundLight; // Light Mode
+const Color openSlotOrange = AppColors.openSlotOrange; // Open Slot Orange
 
 // Custom cache manager to fix the read-only database issue
 class CustomCacheManager {
@@ -183,6 +185,10 @@ Future<void> _initializeApp() async {
     // Initialize performance optimization settings
     PerformanceOptimizer.initialize();
     
+    // Initialize optimized image cache
+    PaintingBinding.instance.imageCache.maximumSize = 50;
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024; // 50MB
+    
     // Enable performance monitoring in debug mode
     PerformanceMonitor.setEnabled(kDebugMode);
     
@@ -194,7 +200,7 @@ Future<void> _initializeApp() async {
       await Logger.initialize();
     } catch (e) {
       // Fallback logging if initialization fails - don't let this crash the app
-      debugPrint('Logger initialization failed: $e');
+      // Logger initialization failed - continuing without debug output
     }
 
     // Set up global error handlers using our new utility
@@ -215,14 +221,14 @@ Future<void> _initializeApp() async {
     
     // Set system UI overlay style with error handling
     try {
-      SystemChrome.setSystemUIOverlayStyle(
-        const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
-          systemNavigationBarColor: Color(0xFF000000),
-          systemNavigationBarIconBrightness: Brightness.light,
-        ),
-      );
+              SystemChrome.setSystemUIOverlayStyle(
+          const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light,
+            systemNavigationBarColor: AppColors.backgroundDark,
+            systemNavigationBarIconBrightness: Brightness.light,
+          ),
+        );
     } catch (e) {
       Logger.w('Failed to set system UI style: $e', tag: 'main');
     }
@@ -681,16 +687,16 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
         fontFamily: 'Roboto, Arial, sans-serif',
         colorScheme: ColorScheme(
           brightness: themeProvider.isDarkMode ? Brightness.dark : Brightness.light,
-          primary: primaryColor,
-          onPrimary: Colors.white,
-          secondary: secondaryColor,
-          onSecondary: Colors.white,
-          error: Colors.red,
-          onError: Colors.white,
-          surface: themeProvider.isDarkMode ? backgroundDarkColor : backgroundLightColor,
-          onSurface: themeProvider.isDarkMode ? Colors.white : Colors.black,
-          tertiary: openSlotOrange,
-          onTertiary: Colors.white,
+          primary: AppColors.primary,
+          onPrimary: AppColors.textPrimary,
+          secondary: AppColors.secondary,
+          onSecondary: AppColors.textPrimary,
+          error: AppColors.error,
+          onError: AppColors.textPrimary,
+          surface: themeProvider.isDarkMode ? AppColors.backgroundDark : AppColors.backgroundLight,
+          onSurface: themeProvider.isDarkMode ? AppColors.textPrimary : AppColors.textPrimaryLight,
+          tertiary: AppColors.openSlotOrange,
+          onTertiary: AppColors.textPrimary,
         ),
       ),
       duration: themeProvider.themeSwitchDuration,
@@ -698,10 +704,10 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
         title: 'Open Slot',
         theme: const CupertinoThemeData(
           brightness: Brightness.dark, // Always use dark mode
-          primaryColor: primaryColor,
-          primaryContrastingColor: openSlotOrange,
-          scaffoldBackgroundColor: backgroundDarkColor, // Always use dark background
-          barBackgroundColor: backgroundDarkColor, // Always use dark background
+          primaryColor: AppColors.primary,
+          primaryContrastingColor: AppColors.openSlotOrange,
+          scaffoldBackgroundColor: AppColors.backgroundDark, // Always use dark background
+          barBackgroundColor: AppColors.backgroundDark, // Always use dark background
         ),
         builder: (context, child) {
           // Apply web-specific styling adjustments

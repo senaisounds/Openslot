@@ -869,7 +869,6 @@ class HostPayoutPageState extends State<HostPayoutPage> with TickerProviderState
         statusIcon = CupertinoIcons.xmark_circle_fill;
         break;
       case PayoutStatus.pending:
-      default:
         statusColor = Colors.blue;
         statusIcon = CupertinoIcons.clock;
         break;

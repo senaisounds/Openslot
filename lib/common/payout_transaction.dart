@@ -101,6 +101,7 @@ class PayoutTransaction {
       case 'failed':
         return PayoutStatus.failed;
       case 'pending':
+        return PayoutStatus.pending;
       default:
         return PayoutStatus.pending;
     }
@@ -115,7 +116,6 @@ class PayoutTransaction {
       case PayoutStatus.failed:
         return 'failed';
       case PayoutStatus.pending:
-      default:
         return 'pending';
     }
   }
@@ -150,7 +150,6 @@ class PayoutTransaction {
       case PayoutStatus.failed:
         return 'Failed';
       case PayoutStatus.pending:
-      default:
         return 'Pending';
     }
   }

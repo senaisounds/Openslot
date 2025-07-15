@@ -197,192 +197,112 @@ class PaymentMethodPageState extends State<PaymentMethodPage> {
   }
   
   void _showAddPaymentMethodSheet() {
+    setState(() {
+      _selectedType = PaymentMethodType.bankAccount;
+      _accountNumberController.clear();
+      _accountNameController.clear();
+    });
     showCupertinoModalPopup(
       context: context,
-      builder: (context) => Container(
-        color: context.watch<ThemeProvider>().isDarkMode
-            ? const Color(0xFF1C1C1E)
-            : CupertinoColors.white,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (context) => SafeArea(
+        child: Container(
+          color: context.watch<ThemeProvider>().isDarkMode
+              ? const Color(0xFF18181A)
+              : CupertinoColors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  child: const Text('Cancel'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      child: const Text('Cancel', style: TextStyle(fontSize: 18)),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                    const Text(
+                      'Add Payment Method',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _addPaymentMethod,
+                      child: const Text('Add', style: TextStyle(fontSize: 18)),
+                    ),
+                  ],
                 ),
-                const Text(
-                  'Add Payment Method',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: _addPaymentMethod,
-                  child: const Text('Add'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Method type
-                        Text(
-                          'Payment Method Type',
-                          style: TextStyle(
-                            color: context.watch<ThemeProvider>().isDarkMode
-                                ? Colors.white70
-                                : Colors.black54,
-                            fontSize: 14,
-                          ),
+                const SizedBox(height: 24),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Payment Method Type',
+                        style: TextStyle(
+                          color: context.watch<ThemeProvider>().isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: context.watch<ThemeProvider>().isDarkMode
-                                ? const Color(0xFF2C2C2E)
-                                : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: CupertinoSegmentedControl<PaymentMethodType>(
-                            padding: const EdgeInsets.all(4),
-                            groupValue: _selectedType,
-                            onValueChanged: (value) {
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPaymentTypeCarousel(),
+                      const SizedBox(height: 28),
+                      _buildPaymentFormFields(),
+                      Row(
+                        children: [
+                          CupertinoSwitch(
+                            value: _isDefault,
+                            onChanged: (value) {
                               setState(() {
-                                _selectedType = value;
+                                _isDefault = value;
                               });
                             },
-                            children: {
-                              PaymentMethodType.bankAccount: _buildSegmentWidget('Bank'),
-                              PaymentMethodType.paypal: _buildSegmentWidget('PayPal'),
-                              PaymentMethodType.venmo: _buildSegmentWidget('Venmo'),
-                              PaymentMethodType.cashApp: _buildSegmentWidget('Cash App'),
-                            },
+                            activeTrackColor: kPrimaryColor,
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // Account number
-                        Text(
-                          _accountLabel(_selectedType),
-                          style: TextStyle(
-                            color: context.watch<ThemeProvider>().isDarkMode
-                                ? Colors.white70
-                                : Colors.black54,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        CupertinoTextFormFieldRow(
-                          controller: _accountNumberController,
-                          placeholder: _accountPlaceholder(_selectedType),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter account information';
-                            }
-                            return null;
-                          },
-                          decoration: BoxDecoration(
-                            color: context.watch<ThemeProvider>().isDarkMode
-                                ? const Color(0xFF2C2C2E)
-                                : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // Account name (only for bank accounts)
-                        if (_selectedType == PaymentMethodType.bankAccount) ...[
+                          const SizedBox(width: 12),
                           const Text(
-                            'Account Name',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
+                            'Set as default payment method',
+                            style: TextStyle(fontSize: 17),
                           ),
-                          const SizedBox(height: 8),
-                          Builder(
-                            builder: (context) {
-                              final isDark = context.watch<ThemeProvider>().isDarkMode;
-                              return CupertinoTextFormFieldRow(
-                                controller: _accountNameController,
-                                placeholder: 'Name on account',
-                                validator: (value) {
-                                  if (_selectedType == PaymentMethodType.bankAccount &&
-                                      (value == null || value.isEmpty)) {
-                                    return 'Please enter account name';
-                                  }
-                                  return null;
-                                },
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF2C2C2E)
-                                      : const Color(0xFFF5F5F5),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 24),
                         ],
-                        
-                        // Set as default
-                        Row(
-                          children: [
-                            CupertinoSwitch(
-                              value: _isDefault,
-                              onChanged: (value) {
-                                setState(() {
-                                  _isDefault = value;
-                                });
-                              },
-                              activeTrackColor: kPrimaryColor,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Set as default payment method',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+              ],
             ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom),
-          ],
+          ),
         ),
       ),
     );
   }
   
-  Widget _buildSegmentWidget(String text) {
+  Widget _buildSegmentWidget(String text, {bool selected = false}) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 13),
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+          color: selected
+              ? (isDark ? Colors.black : Colors.white)
+              : (isDark ? Colors.white70 : Colors.black87),
+        ),
       ),
     );
   }
@@ -417,16 +337,188 @@ class PaymentMethodPageState extends State<PaymentMethodPage> {
     }
   }
   
+  // Replace the segmented control with a horizontal carousel
+  Widget _buildPaymentTypeCarousel() {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final types = [
+      PaymentMethodType.bankAccount,
+      PaymentMethodType.paypal,
+      PaymentMethodType.venmo,
+      PaymentMethodType.cashApp,
+    ];
+    final icons = {
+      PaymentMethodType.bankAccount: CupertinoIcons.building_2_fill,
+      PaymentMethodType.paypal: CupertinoIcons.money_dollar_circle_fill,
+      PaymentMethodType.venmo: CupertinoIcons.person_crop_circle_fill,
+      PaymentMethodType.cashApp: CupertinoIcons.money_dollar,
+    };
+    final labels = {
+      PaymentMethodType.bankAccount: 'Bank',
+      PaymentMethodType.paypal: 'PayPal',
+      PaymentMethodType.venmo: 'Venmo',
+      PaymentMethodType.cashApp: 'Cash App',
+    };
+    return SizedBox(
+      height: 90,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: types.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        physics: const BouncingScrollPhysics(),
+        itemBuilder: (context, i) {
+          final type = types[i];
+          final selected = _selectedType == type;
+          return GestureDetector(
+            behavior: HitTestBehavior.translucent, // Ensures the whole card is tappable
+            onTap: () {
+              FocusScope.of(context).unfocus(); // Unfocus any text field
+              setState(() {
+                _selectedType = type;
+                _accountNumberController.clear();
+                _accountNameController.clear();
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              width: selected ? 90 : 80,
+              height: selected ? 90 : 80,
+              decoration: BoxDecoration(
+                color: selected
+                    ? (isDark ? kPrimaryColor.withOpacity(0.15) : kPrimaryColor.withOpacity(0.12))
+                    : (isDark ? const Color(0xFF23232A) : const Color(0xFFF0F0F5)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: selected ? kPrimaryColor : Colors.transparent,
+                  width: selected ? 2 : 1,
+                ),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: kPrimaryColor.withOpacity(0.18),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icons[type],
+                    color: selected ? kPrimaryColor : (isDark ? Colors.white70 : Colors.black54),
+                    size: selected ? 32 : 28,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    labels[type]!,
+                    style: TextStyle(
+                      fontSize: selected ? 16 : 14,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                      color: selected
+                          ? kPrimaryColor
+                          : (isDark ? Colors.white70 : Colors.black87),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
+  // Add this method to build the form fields based on the selected type
+  Widget _buildPaymentFormFields() {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _accountLabel(_selectedType),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        CupertinoTextFormFieldRow(
+          controller: _accountNumberController,
+          placeholder: _accountPlaceholder(_selectedType),
+          placeholderStyle: TextStyle(
+            color: isDark ? Colors.white54 : Colors.black38,
+            fontSize: 16,
+          ),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontSize: 18,
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter account information';
+            }
+            return null;
+          },
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF23232A) : const Color(0xFFF0F0F5),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        const SizedBox(height: 28),
+        if (_selectedType == PaymentMethodType.bankAccount) ...[
+          Text(
+            'Account Name',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          CupertinoTextFormFieldRow(
+            controller: _accountNameController,
+            placeholder: 'Name on account',
+            placeholderStyle: TextStyle(
+              color: isDark ? Colors.white54 : Colors.black38,
+              fontSize: 16,
+            ),
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontSize: 18,
+            ),
+            validator: (value) {
+              if (_selectedType == PaymentMethodType.bankAccount &&
+                  (value == null || value.isEmpty)) {
+                return 'Please enter account name';
+              }
+              return null;
+            },
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF23232A) : const Color(0xFFF0F0F5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          const SizedBox(height: 28),
+        ],
+      ],
+    );
+  }
+  
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDarkMode = themeProvider.isDarkMode;
     
     return CupertinoPageScaffold(
-      backgroundColor: isDarkMode ? kBackgroundDark : CupertinoColors.systemGroupedBackground,
+      backgroundColor: isDarkMode ? AppColors.backgroundDark : CupertinoColors.systemGroupedBackground,
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Payment Methods'),
-        backgroundColor: isDarkMode ? kBackgroundDark : CupertinoColors.white,
+        backgroundColor: isDarkMode ? AppColors.backgroundDark : CupertinoColors.white,
         border: null,
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,

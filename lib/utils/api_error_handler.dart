@@ -114,32 +114,40 @@ class ApiErrorHandler {
       bool barrierDismissible = true,
     }
   ) async {
-    final message = getUserFriendlyMessage(error);
-    
-    return showDialog(
-      context: context,
-      barrierDismissible: barrierDismissible,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title ?? 'Error'),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            if (onRetry != null)
+    try {
+      final message = getUserFriendlyMessage(error);
+      
+      return showDialog(
+        context: context,
+        barrierDismissible: barrierDismissible,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(title ?? 'Error'),
+            content: Text(message),
+            actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  onRetry();
-                },
-                child: const Text('Retry'),
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
               ),
-          ],
-        );
-      },
-    );
+              if (onRetry != null)
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    onRetry();
+                  },
+                  child: const Text('Retry'),
+                ),
+            ],
+          );
+        },
+      );
+          } catch (e, stackTrace) {
+        Logger.e('Error in async operation', 
+                tag: 'ApiErrorHandler', 
+                error: e, 
+                stackTrace: stackTrace);
+      // Handle error gracefully
+    }
   }
   
   /// Show a standard error snackbar

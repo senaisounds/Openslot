@@ -9,7 +9,7 @@ if (!admin.apps.length) {
 
 // Stripe keys - replace with your actual keys
 const stripeTest = new Stripe('sk_test_51RMvr1Q0wBFV119bcCWvuYTtuA28bN7iS2xWZTs02TJdiv1psjISAR75RCsWJtGrlYGw8VCEzNJazTehBETO8WJf00Yyvmjcky');
-const stripeLive = new Stripe('sk_live_YOUR_NEW_LIVE_SECRET_KEY'); // Replace with your live key when ready
+const stripeLive = new Stripe('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'); // Updated live key
 
 export const verifyEventPassword = functions.https.onRequest(async (req, res) => {
   try {
@@ -509,6 +509,56 @@ export const getEphemeralKey = functions.https.onRequest(async (req, res) => {
     res.status(500).send({ 
       error: error instanceof Error ? error.message : 'Internal server error' 
     });
+  }
+});
+
+export const createPaymentIntent = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set('Access-Control-Max-Age', '3600');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    const { amount, currency, customerId, debug } = req.body;
+    if (!amount || !currency) {
+      res.status(400).json({ error: 'Missing required parameters: amount, currency' });
+      return;
+    }
+
+    // Use test or live Stripe key
+    const stripe = debug ? stripeTest : stripeLive;
+
+    // Only include customer if valid
+    let paymentIntentParams: any = {
+      amount: parseInt(amount, 10), // amount in cents
+      currency,
+      payment_method_types: ['card'],
+    };
+    if (
+      typeof customerId === 'string' &&
+      customerId.startsWith('cus_') &&
+      customerId.length > 4 // basic check for valid Stripe customer ID
+    ) {
+      paymentIntentParams.customer = customerId;
+    }
+
+    // Create PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
+
+    res.status(200).json({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    console.error('Error creating PaymentIntent:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
 });
 

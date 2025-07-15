@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:slotted/common/colors.dart';
 
 // Common constants used throughout the app
 
@@ -14,17 +15,17 @@ const Curve kAnimationCurveStandard = Curves.easeInOut;
 const Curve kAnimationCurveEnergetic = Curves.easeInOutCubic;
 const Curve kAnimationCurveBouncy = Curves.elasticOut;
 
-// Theme Colors - Compile-time constants
-const Color kPrimary = Color(0xFFFF6B35);          // Vibrant Orange - Stage Lights
-const Color kPrimaryColor = Color(0xFFFF6B35);     // Vibrant Orange - Stage Lights
-const Color kSecondary = Color(0xFFFF8C42);        // Soft Orange - Energy
-const Color kSecondaryColor = Color(0xFFFF8C42);   // Soft Orange - Energy
-const Color kAccent = Color(0xFFFFA500);           // Electric Orange - Microphone Glow
-const Color kAccentColor = Color(0xFFFFA500);      // Electric Orange - Microphone Glow
-const Color kHighlight = Color(0xFFFFE79B);        // Warm Yellow - Spotlight
-const Color kHighlightColor = Color(0xFFFFE79B);   // Warm Yellow - Spotlight
-const Color kBackgroundDark = Color(0xFF0A0A0A);   // Richer black
-const Color kBackgroundLight = Color(0xFFF8F9FA);  // Softer light
+// Theme Colors - Using AppColors for consistency
+const Color kPrimary = AppColors.primary;          // Vibrant Orange - Stage Lights
+const Color kPrimaryColor = AppColors.primary;     // Vibrant Orange - Stage Lights
+const Color kSecondary = AppColors.secondary;      // Soft Orange - Energy
+const Color kSecondaryColor = AppColors.secondary; // Soft Orange - Energy
+const Color kAccent = AppColors.accent;            // Electric Orange - Microphone Glow
+const Color kAccentColor = AppColors.accent;       // Electric Orange - Microphone Glow
+const Color kHighlight = AppColors.highlight;      // Warm Yellow - Spotlight
+const Color kHighlightColor = AppColors.highlight; // Warm Yellow - Spotlight
+const Color kBackgroundDark = AppColors.backgroundDark;   // Richer black
+const Color kBackgroundLight = AppColors.backgroundLight; // Softer light
 
 // Shadow System
 const List<BoxShadow> kShadowSmall = [
@@ -87,24 +88,20 @@ const List<BoxShadow> kShadowFloating = [
   ),
 ];
 
-// Modern Gradients
-const List<Color> kPrimaryGradient = [Color(0xFFFF6B35), Color(0xFFE85A2E)];
-const List<Color> kSecondaryGradient = [Color(0xFFFF8C42), Color(0xFFE67A35)];
+// Modern Gradients - Using AppColors for consistency
+const List<Color> kPrimaryGradient = [AppColors.primary, AppColors.primaryDark];
+const List<Color> kSecondaryGradient = [AppColors.secondary, AppColors.secondaryDark];
 const List<Color> kAccentGradient = [
-  Color(0xFFFFBE0B),  // Sunny Yellow
-  Color(0xFFFFD93D),  // Light Yellow
+  AppColors.highlight,  // Sunny Yellow
+  AppColors.accent,     // Light Yellow
 ];
 
-const LinearGradient kGradientPrimary = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: kPrimaryGradient,
-);
+LinearGradient get kGradientPrimary => AppColors.getPrimaryGradient();
 
-const LinearGradient kGradientSecondary = LinearGradient(
+LinearGradient get kGradientSecondary => AppColors.getPrimaryGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: kSecondaryGradient,
+  stops: [0.0, 0.5, 1.0],
 );
 
 // Glass Morphism
@@ -215,59 +212,47 @@ const TextStyle kBodyMedium = TextStyle(
   letterSpacing: 0.1,
 );
 
-// Enhanced Card Decoration
+// Enhanced Card Decoration - Using AppColors for consistency
 BoxDecoration kCardDecoration = BoxDecoration(
   color: kBackgroundLight,
   borderRadius: BorderRadius.circular(kBorderRadiusXLarge),
   boxShadow: [
     BoxShadow(
-      color: const Color(0xFF6C4AB0).withValues(alpha: 0.1), // Primary color with opacity
+      color: AppColors.primary.withValues(alpha: 0.1), // Primary color with opacity
       blurRadius: 10,
       offset: const Offset(0, 4),
     ),
     BoxShadow(
-      color: const Color(0xFF8D72E1).withValues(alpha: 0.1), // Secondary color with opacity
+      color: AppColors.secondary.withValues(alpha: 0.1), // Secondary color with opacity
       blurRadius: 20,
       offset: const Offset(0, 8),
     ),
   ],
   border: Border.all(
-    color: const Color(0xFF6C4AB0).withValues(alpha: 0.15), // Primary color with opacity
+    color: AppColors.primary.withValues(alpha: 0.15), // Primary color with opacity
     width: 2,
   ),
 );
 
-// Event Category Colors
-const Map<String, Color> eventCategoryColors = {
-  'COMEDY': Color(0xFFE74C3C),    // Modern Red
-  'DJ': Color(0xFF3498DB),        // Vibrant Blue
-  'POETRY': Color(0xFFF39C12),    // Warm Amber
-  'MUSIC': Color(0xFF9B59B6),     // Purple
-  'OTHER': Color(0xFF34C759),     // Green
-};
+// Event Category Colors - Using AppColors for consistency
+const Map<String, Color> eventCategoryColors = AppColors.eventCategory;
 
-// Event Category Gradients
-const Map<String, List<Color>> eventCategoryGradients = {
-  'COMEDY': [Color(0xFFE74C3C), Color(0xFFC0392B)],    // Red gradient
-  'DJ': [Color(0xFF3498DB), Color(0xFF2980B9)],        // Blue gradient
-  'POETRY': [Color(0xFFF39C12), Color(0xFFE67E22)],    // Amber gradient
-  'MUSIC': [Color(0xFF9B59B6), Color(0xFF8E44AD)],     // Purple gradient
-  'OTHER': [Color(0xFF34C759), Color(0xFF28A745)],     // Green gradient
-};
+// Event Category Gradients - Using AppColors for consistency
+const Map<String, List<Color>> eventCategoryGradients = AppColors.eventCategoryGradient;
 
-// Button Decorations
+// Button Decorations - Using AppColors for consistency
 BoxDecoration kButtonPrimaryDecoration = BoxDecoration(
   gradient: kGradientPrimary,
   borderRadius: BorderRadius.circular(kBorderRadiusXLarge),
   boxShadow: [
     BoxShadow(
-      color: kPrimary.withValues(alpha: 0.3),
+      color: AppColors.primary.withValues(alpha: 0.3),
       blurRadius: 12,
       offset: const Offset(0, 4),
       spreadRadius: 0,
     ),
     BoxShadow(
-      color: kAccent.withValues(alpha: 0.2),
+      color: AppColors.accent.withValues(alpha: 0.2),
       blurRadius: 20,
       offset: const Offset(0, 8),
       spreadRadius: -5,
@@ -280,13 +265,13 @@ BoxDecoration kButtonSecondaryDecoration = BoxDecoration(
   borderRadius: BorderRadius.circular(kBorderRadiusXLarge),
   boxShadow: [
     BoxShadow(
-      color: kSecondary.withValues(alpha: 0.3),
+      color: AppColors.secondary.withValues(alpha: 0.3),
       blurRadius: 12,
       offset: const Offset(0, 4),
       spreadRadius: 0,
     ),
     BoxShadow(
-      color: kHighlight.withValues(alpha: 0.2),
+      color: AppColors.highlight.withValues(alpha: 0.2),
       blurRadius: 20,
       offset: const Offset(0, 8),
       spreadRadius: -5,
@@ -294,13 +279,13 @@ BoxDecoration kButtonSecondaryDecoration = BoxDecoration(
   ],
 );
 
-// Input Field Decoration
+// Input Field Decoration - Using AppColors for consistency
 BoxDecoration kInputFieldDecoration = BoxDecoration(
   color: kBackgroundLight,
   borderRadius: BorderRadius.circular(kBorderRadiusMedium),
   boxShadow: kShadowSmall,
   border: Border.all(
-    color: kPrimary.withValues(alpha: 0.1),
+    color: AppColors.primary.withValues(alpha: 0.1),
     width: 1.5,
   ),
 );

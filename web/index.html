@@ -1,106 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="/">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Open Slot - Find and join events in your area.">
-  <meta name="theme-color" content="#2D2D3A">
+  <meta name="description" content="OpenSlot - Find your next open slot">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- Viewport meta tag for proper mobile responsiveness -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-  
-  <!-- SEO and Social sharing meta tags -->
-  <meta property="og:title" content="Open Slot">
-  <meta property="og:description" content="Find and join events in your area.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://openslot.me">
-  <meta name="twitter:card" content="summary_large_image">
-
-  <!-- iOS meta tags & icons - updated format -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-touch-fullscreen" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Open Slot">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-  <link rel="apple-touch-startup-image" href="icons/Icon-512.png">
-
-  <!-- Favicon setup -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48x48.png">
-  
-  <!-- Browser tab logo icon -->
-  <link rel="icon" href="icons/logo.svg" type="image/svg+xml">
-  <link rel="shortcut icon" href="favicon.ico">
-
-  <!-- Preload Google Fonts - Use System Fonts Instead -->
-  <style>
-    /* System Font Declarations */
-    body, button, input, select, textarea {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-    }
-    
-    /* Basic text styles to ensure visibility */
-    .text-visible {
-      color: inherit !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-    }
-    
-    /* Force text visibility for Flutter elements */
-    flt-glass-pane * {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-    }
-    
-    @font-face {
-      font-family: 'Roboto';
-      font-style: normal;
-      font-weight: 400;
-      font-display: swap;
-      src: local('Roboto'), local('Roboto-Regular'), local('sans-serif');
-    }
-    
-    @font-face {
-      font-family: 'Noto Sans';
-      font-style: normal;
-      font-weight: 400;
-      font-display: swap;
-      src: local('Noto Sans'), local('NotoSans'), local('sans-serif');
-    }
-  </style>
-
-  <title>Open Slot</title>
+  <title>OpenSlot</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="favicon.png"/>
   
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: #2D2D3A;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #6C4AB0, #FF6B35);
       color: white;
       height: 100vh;
-      width: 100vw;
       overflow: hidden;
-      position: fixed;
-      top: 0;
-      left: 0;
     }
 
     #loading {
@@ -108,20 +27,29 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100%;
-      width: 100%;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 999;
+      height: 100vh;
+      background: linear-gradient(135deg, #6C4AB0, #FF6B35);
+    }
+
+    .logo {
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: white;
+    }
+
+    .tagline {
+      font-size: 18px;
+      margin-bottom: 40px;
+      opacity: 0.9;
     }
 
     .spinner {
       width: 40px;
       height: 40px;
-      border: 5px solid rgba(108, 74, 176, 0.3);
+      border: 4px solid rgba(255, 255, 255, 0.3);
       border-radius: 50%;
-      border-top-color: #6C4AB0;
+      border-top-color: white;
       animation: spin 1s ease-in-out infinite;
     }
 
@@ -135,679 +63,32 @@
       font-size: 18px;
       font-weight: 500;
     }
-
-    .alternatives {
-      margin-top: 30px;
-      text-align: center;
-    }
-
-    .button {
-      display: inline-block;
-      background-color: #FF5722;
-      color: white;
-      padding: 10px 20px;
-      text-decoration: none;
-      border-radius: 4px;
-      margin: 10px 5px;
-      font-weight: bold;
-    }
-
-    .button:hover {
-      background-color: #E64A19;
-    }
-
-    #flutter-target {
-      height: 100%;
-      width: 100%;
-    }
-    
-    /* Hide any offline indicators from the Flutter app */
-    .offline-indicator {
-      display: none !important;
-    }
-    
-    /* Sign-in button styling */
-    #sign-in-overlay {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 1000;
-      display: none;
-    }
-    
-    .sign-in-button {
-      background-color: #4CAF50;
-      color: white;
-      font-size: 16px;
-      padding: 12px 24px;
-      border-radius: 50px;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      display: flex;
-      align-items: center;
-      transition: all 0.3s ease;
-    }
-    
-    .sign-in-button:hover {
-      background-color: #45a049;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-    }
-    
-    .sign-in-button:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    
-    .sign-in-button .icon {
-      margin-right: 8px;
-      font-size: 18px;
-    }
-    
-    /* Enhanced UI styles for profile page */
-    .profile-page-enhancements {
-      /* These styles will be applied via JavaScript */
-      --primary-color: #FF5722;
-      --accent-color: #4CAF50;
-      --text-light: #ffffff;
-      --text-dark: #2D2D3A;
-      --background-dark: #2D2D3A;
-      --background-light: #3E3E4A;
-      --shadow-color: rgba(0, 0, 0, 0.3);
-    }
-    
-    /* These styles will be injected via JavaScript to improve UI */
-    .enhanced-profile-container {
-      background-color: var(--background-dark);
-      border-radius: 12px;
-      margin: 20px auto;
-      padding: 30px;
-      max-width: 500px;
-      box-shadow: 0 8px 24px var(--shadow-color);
-    }
-    
-    .enhanced-profile-title {
-      font-size: 28px;
-      font-weight: bold;
-      color: var(--text-light);
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    
-    .enhanced-profile-subtitle {
-      font-size: 16px;
-      color: var(--text-light);
-      opacity: 0.9;
-      text-align: center;
-      margin-bottom: 30px;
-      line-height: 1.5;
-    }
-    
-    .enhanced-signin-button {
-      display: block;
-      width: 100%;
-      background-color: var(--accent-color);
-      color: var(--text-light);
-      font-size: 18px;
-      font-weight: bold;
-      text-align: center;
-      padding: 16px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      margin-bottom: 20px;
-      transition: all 0.3s ease;
-    }
-    
-    .enhanced-signin-button:hover {
-      background-color: #3d9c40;
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    }
-    
-    .enhanced-create-account {
-      text-align: center;
-      font-size: 16px;
-      color: var(--text-light);
-      background-color: var(--background-light);
-      padding: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .enhanced-create-account:hover {
-      background-color: #4A4A5A;
-      transform: translateY(-2px);
-    }
   </style>
-  
-  <!-- Emergency CORS and resource fix for Flutter -->
-  <script>
-    // Create a global stub for firebase and external resources
-    window.enableResourceOverrides = true;
-  
-    // Extreme CORS solution - block and mock all problematic requests
-    const originalFetch = window.fetch;
-    const originalXHROpen = XMLHttpRequest.prototype.open;
-    const originalXHRSend = XMLHttpRequest.prototype.send;
-    
-    // List of URLs to mock
-    const urlsToMock = [
-      'google.com',
-      'googleapis.com',
-      'gstatic.com',
-      'firebase',
-      'crashlytics'
-    ];
-    
-    // Mock responses for different types of resources
-    const mockResponses = {
-      json: JSON.stringify({ success: true, status: 'mocked' }),
-      text: 'Mock text response',
-      html: '<!DOCTYPE html><html><body>Mock HTML response</body></html>',
-      js: 'console.log("Mock JS response");',
-      css: 'body { color: black; }',
-      default: 'Mock default response'
-    };
-    
-    // Helper to check if a URL should be mocked
-    function shouldMockURL(url) {
-      if (typeof url !== 'string') return false;
-      
-      return urlsToMock.some(pattern => url.includes(pattern));
-    }
-    
-    // Helper to get a mock response based on URL
-    function getMockResponse(url) {
-      if (url.endsWith('.json') || url.includes('/json')) {
-        return mockResponses.json;
-      } else if (url.endsWith('.js')) {
-        return mockResponses.js;
-      } else if (url.endsWith('.css')) {
-        return mockResponses.css;
-      } else if (url.endsWith('.html') || url.includes('/html')) {
-        return mockResponses.html;
-      } else {
-        return mockResponses.default;
-      }
-    }
-    
-    // Override fetch
-    window.fetch = function(url, options) {
-      if (shouldMockURL(url) && window.enableResourceOverrides) {
-        console.log('Mocking fetch request to:', url);
-        
-        // Get appropriate mock response
-        const mockResponse = getMockResponse(url);
-        
-        // Create a Response object
-        return Promise.resolve(new Response(mockResponse, {
-          status: 200,
-          headers: new Headers({
-            'Content-Type': url.endsWith('.json') || url.includes('/json') 
-              ? 'application/json' 
-              : url.endsWith('.js') 
-                ? 'application/javascript'
-                : 'text/plain'
-          })
-        }));
-      }
-      
-      // Check if this is a reserveAction request
-      if (typeof url === 'string' && url.includes('reserveAction')) {
-        console.log('Intercepting reservation request:', url);
-        
-        // Clone options to avoid modifying the original
-        const modifiedOptions = options ? { ...options } : {};
-        
-        // Ensure headers are present
-        modifiedOptions.headers = modifiedOptions.headers || {};
-        
-        // Add CORS headers to request
-        modifiedOptions.headers = {
-          ...modifiedOptions.headers,
-          'Access-Control-Request-Method': 'POST',
-          'X-OpenSlot-Client': 'WebApp',
-          'Content-Type': 'application/json'
-        };
-        
-        // Determine if this is a reserve or unreserve action
-        let isUnreserveAction = false;
-        let eventID = null;
-        let userID = null;
-        
-        try {
-          const requestBody = modifiedOptions.body ? JSON.parse(modifiedOptions.body) : {};
-          eventID = requestBody.eventID;
-          userID = requestBody.userID;
-          
-          // Check if user is already in attendees or waitlist
-          if (requestBody.attendees && Array.isArray(requestBody.attendees) && 
-              requestBody.attendees.includes(userID)) {
-            isUnreserveAction = true;
-            console.log('This is an UNRESERVE action');
-          } else if (requestBody.waitlist && Array.isArray(requestBody.waitlist) && 
-                     requestBody.waitlist.includes(userID)) {
-            isUnreserveAction = true;
-            console.log('This is an UNRESERVE action from waitlist');
-          } else {
-            console.log('This is a RESERVE action');
-          }
-          
-          console.log('Request details:', {
-            url: url,
-            method: modifiedOptions.method || 'GET',
-            headers: modifiedOptions.headers,
-            isUnreserve: isUnreserveAction,
-            eventID: eventID,
-            userID: userID,
-            body: requestBody
-          });
-        } catch (e) {
-          console.log('Could not parse request body:', modifiedOptions.body);
-        }
-        
-        // Setup timeout for the fetch request
-        const fetchPromise = originalFetch(url, modifiedOptions);
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000);
-        });
-        
-        // Race the fetch against a timeout
-        return Promise.race([fetchPromise, timeoutPromise])
-          .then(response => {
-            // Check response status
-            if (!response.ok) {
-              console.error('Reservation API error:', {
-                status: response.status,
-                statusText: response.statusText
-              });
-              throw new Error(`Network error: ${response.status} - ${response.statusText}`);
-            }
-            
-            // Clone the response so we can log it AND return it
-            return response.clone().text().then(text => {
-              console.log('Reservation API success response:', text);
-              return response;
-            });
-          })
-          .catch(error => {
-            console.error('Reservation request failed:', error);
-            
-            // If the request times out or fails with a network error, try a backup direct reservation
-            if (error.message.includes('timeout') || 
-                error.message.includes('Failed to fetch') || 
-                error.message.includes('NetworkError') ||
-                error.message.includes('aborted') ||
-                error.message.includes('CORS')) {
-              
-              console.log('Attempting backup direct reservation/unreservation...');
-              
-              if (eventID && userID) {
-                console.log(`Creating direct ${isUnreserveAction ? 'unreservation' : 'reservation'} for event:`, eventID, 'user:', userID);
-                
-                // Create a new response object that mimics a successful reservation or unreservation
-                const mockResponse = new Response(JSON.stringify({
-                  status: 'success',
-                  message: isUnreserveAction ? 'Successfully unreserved (direct method)' : 'Successfully reserved (direct method)',
-                  action: isUnreserveAction ? 'unreserve' : 'reserve'
-                }), {
-                  status: 200,
-                  headers: {
-                    'Content-Type': 'application/json'
-                  }
-                });
-                
-                return mockResponse;
-              }
-            }
-            
-            // Display a user-friendly error message
-            if (error.message.includes('Failed to fetch') || 
-                error.message.includes('NetworkError') ||
-                error.message.includes('timeout')) {
-              throw new Error('Failed to complete reservation: Please check your internet connection or try again');
-            } else if (error.message.includes('404')) {
-              throw new Error('The reservation service is unavailable. Please try again later.');
-            } else if (error.message.includes('403')) {
-              throw new Error('You do not have permission to perform this action.');
-            } else if (error.message.includes('500')) {
-              throw new Error('The server encountered an error. Please try again later.');
-            } else {
-              // Pass through the original error
-              throw error;
-            }
-          });
-      }
-      
-      // Pass through other requests
-      return originalFetch(url, options);
-    };
-    
-    // Override XMLHttpRequest
-    XMLHttpRequest.prototype.open = function(method, url, ...args) {
-      this._url = url;
-      
-      if (shouldMockURL(url) && window.enableResourceOverrides) {
-        console.log('Mocking XHR request to:', url);
-        this._mockUrl = true;
-        // Save the URL to use later in send()
-        return originalXHROpen.call(this, method, 'data:text/plain,mockedResponse', ...args);
-      }
-      
-      return originalXHROpen.call(this, method, url, ...args);
-    };
-    
-    XMLHttpRequest.prototype.send = function(...args) {
-      if (this._mockUrl) {
-        // Mock successful response
-        const mockResponse = getMockResponse(this._url);
-        
-        // Set up a fake response with minimal delay to look more realistic
-        setTimeout(() => {
-          // Set the required properties
-          Object.defineProperty(this, 'status', { value: 200 });
-          Object.defineProperty(this, 'readyState', { value: 4 });
-          Object.defineProperty(this, 'responseText', { value: mockResponse });
-          Object.defineProperty(this, 'response', { value: mockResponse });
-          
-          // Trigger the readystatechange event
-          const event = new Event('readystatechange');
-          this.dispatchEvent(event);
-          
-          // Trigger load event
-          const loadEvent = new Event('load');
-          this.dispatchEvent(loadEvent);
-        }, 10);
-        
-        return;
-      }
-      
-      return originalXHRSend.apply(this, args);
-    };
-    
-    // Mock Firebase analytics and crashlytics to avoid errors
-    window.firebase = {
-      analytics: function() {
-        return {
-          logEvent: function() { 
-            console.log('Mock Firebase Analytics: logEvent called'); 
-            return true;
-          }
-        };
-      },
-      crashlytics: function() {
-        return {
-          recordError: function() { 
-            console.log('Mock Firebase Crashlytics: recordError called');
-            return true;
-          }
-        };
-      }
-    };
-    
-    // Add specific plugin stubs to prevent MissingPluginException errors
-    window.flutter_inappwebview = {
-      callHandler: function() { return Promise.resolve(null); }
-    };
-    
-    // Create plugin stub registry for Firebase plugins
-    if (!window.hasOwnProperty('_flutter')) {
-      window._flutter = {};
-    }
-    
-    // Add plugin stubs
-    window._flutter.registeredPlugins = [
-      "firebase_crashlytics",
-      "firebase_analytics",
-      "firebase_core",
-      "firebase_auth"
-    ];
-    
-    // Create a plugin registry
-    window.flutterPluginRegistry = {};
-    window.flutterPluginRegistry.registerPlugin = function(pluginName, factory) {
-      console.log('Plugin registered:', pluginName);
-      // Create a stub for the plugin
-      window[pluginName] = factory();
-      return true;
-    };
-    
-    // Create a stub for the Firebase Crashlytics plugin
-    window.flutterPluginRegistry.registerPlugin('firebase_crashlytics', function() {
-      return {
-        recordError: function(error, stack) {
-          console.log('Stubbed recordError called with:', error);
-          return Promise.resolve(true);
-        },
-        // Add other methods used by the plugin
-        crash: function() {
-          console.log('Stubbed crash method called');
-          return Promise.resolve(true);
-        },
-        log: function(message) {
-          console.log('Stubbed log method called with:', message);
-          return Promise.resolve(true);
-        }
-      };
-    });
-    
-    // Create a stub for the Firebase Analytics plugin
-    window.flutterPluginRegistry.registerPlugin('firebase_analytics', function() {
-      return {
-        logEvent: function(name, parameters) {
-          console.log('Stubbed logEvent called with:', name, parameters);
-          return Promise.resolve(true);
-        },
-        setAnalyticsCollectionEnabled: function(enabled) {
-          console.log('Stubbed setAnalyticsCollectionEnabled called with:', enabled);
-          return Promise.resolve(true);
-        }
-      };
-    });
-    
-    // Initialize a global error handler for unhandled exceptions
-    window.addEventListener('error', function(event) {
-      console.log('Global error handler caught:', event.error);
-      
-      // If the error involves reservations, we may need to dismiss any stuck dialogs
-      if (event.error && event.error.message && 
-          (event.error.message.includes('reservation') || 
-           event.error.message.includes('reserve') || 
-           event.error.message.includes('unreserve'))) {
-        
-        console.log('Reservation-related error detected, will attempt recovery if needed');
-        
-        // This will run after the current execution completes
-        setTimeout(function() {
-          // Check if there's a loading dialog stuck on screen
-          const dialogs = document.querySelectorAll('.dialog-container, .loading-indicator');
-          if (dialogs.length > 0) {
-            console.log('Found stuck dialogs, attempting to clean up');
-            dialogs.forEach(dialog => {
-              if (dialog.style) {
-                dialog.style.display = 'none';
-              }
-            });
-          }
-        }, 5000);
-      }
-      
-      return false;
-    });
-    
-    // Function to enhance profile page UI
-    function enhanceProfilePage() {
-      console.log('Looking for profile page elements to enhance...');
-      
-      // Check for the profile page
-      const profileHeaders = Array.from(document.querySelectorAll('h1, h2, h3, .header-text, .title-text'));
-      const profileTexts = profileHeaders.filter(el => 
-        el.textContent && 
-        (el.textContent.includes('Create Your Profile') || 
-         el.textContent.includes('Sign in to') || 
-         el.textContent.includes('Create Account'))
-      );
-      
-      // Replace any instances of "Slotted" with "OpenSlot"
-      document.querySelectorAll('*').forEach(element => {
-        if (element.childNodes && element.childNodes.length > 0) {
-          element.childNodes.forEach(node => {
-            if (node.nodeType === 3 && node.nodeValue && node.nodeValue.includes('Slotted')) {
-              node.nodeValue = node.nodeValue.replace(/Slotted/g, 'OpenSlot');
-            }
-          });
-        }
-      });
-      
-      if (profileTexts.length > 0) {
-        console.log('Found profile page, enhancing UI...');
-        
-        // Find the container element (usually a parent div)
-        let profileContainer = profileTexts[0].closest('div');
-        if (!profileContainer) {
-          // If we can't find a parent div, use the parent of the text
-          profileContainer = profileTexts[0].parentElement;
-        }
-        
-        // If we found a container, enhance it
-        if (profileContainer) {
-          // Add class to the container for styling
-          profileContainer.classList.add('enhanced-profile-container');
-          
-          // Find title and apply enhanced styling
-          const title = profileTexts[0];
-          title.classList.add('enhanced-profile-title');
-          
-          // Find subtitle/description
-          const subtitleEls = Array.from(profileContainer.querySelectorAll('p, .text, .description'));
-          if (subtitleEls.length > 0) {
-            subtitleEls[0].classList.add('enhanced-profile-subtitle');
-          }
-          
-          // Find buttons and enhance them
-          const buttons = Array.from(profileContainer.querySelectorAll('button, .button, [role="button"]'));
-          
-          buttons.forEach(button => {
-            const buttonText = button.textContent.toLowerCase();
-            
-            if (buttonText.includes('sign in') || buttonText.includes('login')) {
-              button.classList.add('enhanced-signin-button');
-            } else if (buttonText.includes('create') || buttonText.includes('new') || buttonText.includes('account')) {
-              button.classList.add('enhanced-create-account');
-            }
-          });
-          
-          // If no buttons found, check for other clickable elements
-          if (buttons.length === 0) {
-            const clickables = Array.from(profileContainer.querySelectorAll('a, .clickable, [role="link"]'));
-            clickables.forEach(element => {
-              const text = element.textContent.toLowerCase();
-              
-              if (text.includes('sign in') || text.includes('login')) {
-                element.classList.add('enhanced-signin-button');
-              } else if (text.includes('create') || text.includes('new') || text.includes('account')) {
-                element.classList.add('enhanced-create-account');
-              }
-            });
-          }
-          
-          console.log('Profile page UI enhancement complete');
-        }
-      }
-    }
-    
-    // Function to periodically check for and enhance the profile page
-    function setupProfilePageObserver() {
-      // Run immediately after load
-      setTimeout(enhanceProfilePage, 1000);
-      
-      // Also set up MutationObserver to detect changes
-      const observer = new MutationObserver(mutations => {
-        // Wait a bit for the page to settle
-        setTimeout(enhanceProfilePage, 300);
-      });
-      
-      // Start observing the document with the configured parameters
-      observer.observe(document.body, { 
-        childList: true, 
-        subtree: true,
-        attributes: true,
-        characterData: true
-      });
-      
-      console.log('Profile page observer setup complete');
-    }
-  </script>
-  
-  <!-- Define Flutter variables -->
-  <script>
-    // Define service worker version using template token
-    var serviceWorkerVersion = "{{flutter_service_worker_version}}";
-    
-    // This is called by flutter build to update the service worker version
-    function setServiceWorkerVersion(version) {
-      serviceWorkerVersion = version;
-    }
-    
-    // Force HTML renderer for text rendering
-    window.flutterConfiguration = {
-      renderer: "html"
-    };
-  </script>
-  
-  <!-- Plugin error fixer script - must be loaded before Flutter initializes -->
-  <script src="fix-plugins.js"></script>
-  
-  <!-- Load the Flutter engine -->
-  <script src="flutter.js" defer></script>
 </head>
 <body>
   <div id="loading">
+    <div class="logo">OpenSlot</div>
+    <div class="tagline">Find your next open slot</div>
     <div class="spinner"></div>
-    <div class="status-message">Loading Open Slot...</div>
+    <div class="status-message">Loading OpenSlot...</div>
   </div>
-  
+
+  <script src="flutter.js" defer></script>
   <script>
-    window.addEventListener('load', function() {
-      var loading = document.querySelector('#loading');
-      var loadingStatus = document.querySelector('.status-message');
-      
-      // Set timestamp for loading start
-      var loadStartTime = new Date().getTime();
-      
-      // Load Flutter with explicit HTML renderer
-      _flutter.loader.load({
+    window.addEventListener('load', function(ev) {
+      _flutter.loader.loadEntrypoint({
         serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion || null,
-        },
-        // Force HTML renderer configuration
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine({
-            renderer: "html",
-            useColorEmoji: false
-          }).then(function(appRunner) {
-            appRunner.runApp();
-          });
+          serviceWorkerVersion: null,
         }
+      }).then(function(engineInitializer) {
+        return engineInitializer.initializeEngine();
+      }).then(function(appRunner) {
+        return appRunner.runApp();
       }).then(function() {
-        // Hide loading indicator once app is loaded
-        setTimeout(function() {
-          console.log("App loaded in " + (new Date().getTime() - loadStartTime) + "ms");
-          loading.style.display = 'none';
-        }, 500);
+        document.getElementById('loading').style.display = 'none';
       }).catch(function(error) {
-        console.error("Error loading app:", error);
-        // Even on error, continue trying to load the app instead of showing options
-        loadingStatus.textContent = "Still loading, please wait...";
-        
-        // Retry loading after a delay
-        setTimeout(function() {
-          window.location.reload();
-        }, 3000);
+        console.error('Failed to initialize OpenSlot:', error);
+        document.querySelector('.status-message').textContent = 'Loading failed. Please refresh the page.';
       });
     });
   </script>

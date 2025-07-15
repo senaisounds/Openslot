@@ -5,7 +5,6 @@ import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/edit_event.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:intl/intl.dart';
 import '../test_setup.dart';
 
 void main() {

@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:slotted/api/stripe.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/date_components.dart';
 import 'package:slotted/common/event_class.dart';
@@ -19,6 +18,7 @@ import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:http/http.dart' as http;
 import 'package:slotted/common/design_system.dart';
+import 'package:slotted/config/environment_config.dart';
 
 class EventDetailsPage extends StatefulWidget {
   const EventDetailsPage({
@@ -56,6 +56,31 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       },
     );
     return response.body;
+  }
+
+  Future<String?> createPaymentIntentOnBackend({
+    required int amount, // in cents
+    required String currency,
+    String? customerId,
+    bool debug = true,
+  }) async {
+    final url = '${EnvironmentConfig.apiBaseUrl}/createPaymentIntent';
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'amount': amount.toString(),
+        'currency': currency,
+        'customerId': customerId,
+        'debug': debug,
+      }),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['clientSecret'];
+    } else {
+      throw Exception('Failed to create PaymentIntent: ${response.body}');
+    }
   }
 
   Future<void> _reserveAction(
@@ -116,21 +141,20 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                       errorMessage = e.message;
                     }
 
-                    print(e);
-
-                    // ignore: use_build_context_synchronously
-            showCupertinoDialog(
-              context: context,
+                    // Error handled by dialog
+                    if (!context.mounted) return;
+                    showCupertinoDialog(
+                      context: context,
                       builder: (context) {
                         return CupertinoAlertDialog(
                           title: const Text('Error'),
                           content: Text(errorMessage),
-                actions: [
-                  CupertinoDialogAction(
-                    child: const Text('OK'),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text('OK'),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
                         );
                       },
                     );
@@ -149,27 +173,23 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
     try {
       if (event.price > 0 && !(isReserved || isWaitlisted)) {
-        paymentIntent = await StripeApi.createPaymentIntent(
-          userId: user.uid,
-          amount: event.price,
-          currency: 'USD',
-          customerId: widget.debug
-              ? slottedUser.testCustomerID
-              : slottedUser.customerID,
+        final clientSecret = await createPaymentIntentOnBackend(
+          amount: (event.price * 100).toInt(),
+          currency: 'usd',
+          customerId: widget.debug ? slottedUser.testCustomerID : slottedUser.customerID,
           debug: widget.debug,
         );
-        final stripeCustomerId = paymentIntent['customer'];
-        final ephemeralKey = await StripeApi.getEphemeralKey(stripeCustomerId,
-            debug: widget.debug);
-
-        await StripeApi.pay(
-            paymentIntent: paymentIntent,
-            customer: stripeCustomerId,
-            ephemeralKey: ephemeralKey,
-            event: event);
+        if (clientSecret == null) throw Exception('No client secret returned');
+        await Stripe.instance.initPaymentSheet(
+          paymentSheetParameters: SetupPaymentSheetParameters(
+            paymentIntentClientSecret: clientSecret,
+            merchantDisplayName: 'OpenSlot',
+          ),
+        );
+        await Stripe.instance.presentPaymentSheet();
       }
 
-      await reserveAction(paymentIntent, event, slottedUser, user);
+      await reserveAction('', event, slottedUser, user);
     } catch (e) {
       String errorMessage =
           'There was an error processing your payment. Please try again.\n$e';
@@ -183,20 +203,20 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         errorMessage = e.message;
       }
 
-      print(e);
+      // Error handled by dialog
 
       if (!cancelled) {
-        // ignore: use_build_context_synchronously
-    showCupertinoDialog(
-      context: context,
+        if (!context.mounted) return;
+        showCupertinoDialog(
+          context: context,
           builder: (context) {
             return CupertinoAlertDialog(
               title: const Text('Error'),
               content: Text(errorMessage),
-        actions: [
+              actions: [
                 CupertinoDialogAction(
                   child: const Text('OK'),
-              onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             );
@@ -333,8 +353,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                     onPressed: () async {
                                       MapsLauncher.launchQuery(event.address)
                                           .catchError((error) {
-                                        print('Launch error');
-                                        print(error.toString());
+                                                                                                 // Launch error handled silently
                                         return true;
                                       });
                                     },
@@ -362,7 +381,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                       padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                                         color: CupertinoColors.systemBackground
-                                            .withOpacity(0.2),
+                                            .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(16),
                                       ),
                                       constraints: const BoxConstraints(

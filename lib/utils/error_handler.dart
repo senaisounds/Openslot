@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'logger.dart';
 import 'dart:async';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:slotted/common/error_boundary.dart';
 
 /// A utility class to handle errors in a consistent way across the application
@@ -220,30 +219,7 @@ class ErrorHandler {
     );
   }
 
-  // Log the error to our analytics service
-  static void _logError(String errorType, dynamic error, StackTrace stack) {
-    // Create a simplified error message
-    final errorMessage = 'Error: $errorType - ${error.toString()}';
-    
-    try {
-      // Only use Crashlytics for non-web platforms
-      if (!kIsWeb) {
-        // Log to Firebase Crashlytics
-        FirebaseCrashlytics.instance.recordError(
-          error,
-          stack,
-          reason: errorType,
-          printDetails: true, // Log to console in debug mode
-        );
-      } else {
-        // For web, just use the logger
-        Logger.e(errorMessage, error: error, stackTrace: stack);
-      }
-    } catch (e) {
-      // If crash reporting fails, at least log to console
-      Logger.e(errorMessage, error: e, stackTrace: stack);
-    }
-  }
+
 
   // Display a friendly error UI
   static Widget buildErrorUI(BuildContext context, Object error) {

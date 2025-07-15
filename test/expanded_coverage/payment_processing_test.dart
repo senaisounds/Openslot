@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slotted/common/event_class.dart';
@@ -267,7 +266,7 @@ void main() {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text('You have reserved a spot for ${paidEvent.name}'),
+                  const Text('You have reserved a spot for Paid Test Event'),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {},
@@ -361,8 +360,8 @@ void main() {
           child: Scaffold(
             body: Column(
               children: [
-                Text('Event: ${paidEvent.name}'),
-                Text('Price: \$${paidEvent.price.toStringAsFixed(2)}'),
+                const Text('Event: Paid Test Event'),
+                const Text('Price: \$25.50'),
                 const SizedBox(height: 20),
                 if (isApplePayAvailable) ...[
                   ElevatedButton(

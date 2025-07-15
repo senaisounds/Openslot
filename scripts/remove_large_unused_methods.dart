@@ -94,9 +94,7 @@ Future<void> _removeMethodsFromFile(String filePath, List<String> methodNames) a
   for (final methodName in methodNames) {
     // Pattern to match method definitions including their entire body
     final methodPattern = RegExp(
-      r'\s*(?:\/\/[^\n]*\n\s*)*' r'(?:@[^\n]*\n\s*)*' + // Optional annotations
-      r'(?:static\s+)?' + // Optional static keyword
-      r'(?:Future<[^>]*>\s*|[A-Za-z_][A-Za-z0-9_<>,\s]*\s+)?' + // Return type
+      r'\s*(?:\/\/[^\n]*\n\s*)*' r'(?:@[^\n]*\n\s*)*' r'(?:static\s+)?' r'(?:Future<[^>]*>\s*|[A-Za-z_][A-Za-z0-9_<>,\s]*\s+)?' + // Return type
       RegExp.escape(methodName) + 
       r'\s*\([^{]*\)\s*(?:async\s*)?\s*\{', // Method signature
       multiLine: true,

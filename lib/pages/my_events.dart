@@ -70,7 +70,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          // color: CupertinoColors.black.withOpacity(0.9),
+                          // color: CupertinoColors.black.withValues(opacity: 0.9),
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: CircularProgressIndicator(
@@ -120,7 +120,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                                         borderRadius: BorderRadius.circular(16),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: complementaryColor.withOpacity(0.3),
+                                            color: complementaryColor.withValues(alpha: 0.3),
                                             spreadRadius: 2,
                                             blurRadius: 12,
                                           ),

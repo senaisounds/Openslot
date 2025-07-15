@@ -137,14 +137,8 @@ class NetworkErrorHandler {
     try {
       final connectivityResults = await Connectivity().checkConnectivity();
       // Handle both single result and list of results properly
-      if (connectivityResults is List<ConnectivityResult>) {
-        return connectivityResults.any((result) => result != ConnectivityResult.none);
-      } else {
-        // This handles the older single result API
-        final result = connectivityResults as ConnectivityResult;
-        return result != ConnectivityResult.none;
-      }
-    } catch (e) {
+      return connectivityResults.any((result) => result != ConnectivityResult.none);
+        } catch (e) {
       Logger.e('Error checking connectivity: $e', tag: 'Network');
       return false;
     }

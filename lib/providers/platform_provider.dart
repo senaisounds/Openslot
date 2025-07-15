@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:slotted/utils/logger.dart';
+
 /// Provider to handle platform-specific behavior and settings
 class PlatformProvider extends ChangeNotifier {
   bool _isDesktop = false;
@@ -27,19 +29,23 @@ class PlatformProvider extends ChangeNotifier {
   
   /// Update device type based on screen width
   void updateDeviceType(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    try {
+      final screenWidth = MediaQuery.of(context).size.width;
     
-    final isDesktop = screenWidth >= desktopBreakpoint;
-    final isTablet = screenWidth >= tabletBreakpoint && screenWidth < desktopBreakpoint;
-    final isMobile = screenWidth < tabletBreakpoint;
-    
-    if (isDesktop != _isDesktop || 
-        isTablet != _isTablet || 
-        isMobile != _isMobile) {
-      _isDesktop = isDesktop;
-      _isTablet = isTablet;
-      _isMobile = isMobile;
-      notifyListeners();
+      final isDesktop = screenWidth >= desktopBreakpoint;
+      final isTablet = screenWidth >= tabletBreakpoint && screenWidth < desktopBreakpoint;
+      final isMobile = screenWidth < tabletBreakpoint;
+      
+      if (isDesktop != _isDesktop || 
+          isTablet != _isTablet || 
+          isMobile != _isMobile) {
+        _isDesktop = isDesktop;
+        _isTablet = isTablet;
+        _isMobile = isMobile;
+        notifyListeners();
+      }
+    } catch (e) {
+      Logger.e('Error updating device type', tag: 'PlatformProvider', error: e);
     }
   }
   

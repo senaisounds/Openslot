@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:slotted/utils/logger.dart';
 
 /// A utility class to safely handle BuildContext across async operations
 /// Prevents crashes from using BuildContext after widget disposal
@@ -12,7 +13,7 @@ class AsyncContextGuard {
   }) {
     if (!mounted) {
       if (debugName != null) {
-        debugPrint('AsyncContextGuard: Skipping $debugName - widget unmounted');
+        Logger.d('Skipping $debugName - widget unmounted', tag: 'AsyncContextGuard');
       }
       return false;
     }
@@ -21,8 +22,10 @@ class AsyncContextGuard {
       operation();
       return true;
     } catch (e, stackTrace) {
-      debugPrint('AsyncContextGuard error in ${debugName ?? 'operation'}: $e');
-      debugPrint('Stack trace: $stackTrace');
+      Logger.e('Error in ${debugName ?? 'operation'}', 
+              tag: 'AsyncContextGuard', 
+              error: e, 
+              stackTrace: stackTrace);
       return false;
     }
   }
@@ -120,7 +123,7 @@ class AsyncContextGuard {
   }) async {
     if (!mounted) {
       if (debugName != null) {
-        debugPrint('AsyncContextGuard: Skipping $debugName - widget unmounted before start');
+        Logger.d('Skipping $debugName - widget unmounted before start', tag: 'AsyncContextGuard');
       }
       return null;
     }
@@ -131,15 +134,17 @@ class AsyncContextGuard {
       // Check if still mounted after async operation
       if (!isMountedChecker()) {
         if (debugName != null) {
-          debugPrint('AsyncContextGuard: Widget unmounted during $debugName');
+          Logger.d('Widget unmounted during $debugName', tag: 'AsyncContextGuard');
         }
         return null;
       }
       
       return result;
     } catch (e, stackTrace) {
-      debugPrint('AsyncContextGuard error in ${debugName ?? 'async operation'}: $e');
-      debugPrint('Stack trace: $stackTrace');
+      Logger.e('Error in ${debugName ?? 'async operation'}', 
+              tag: 'AsyncContextGuard', 
+              error: e, 
+              stackTrace: stackTrace);
       return null;
     }
   }

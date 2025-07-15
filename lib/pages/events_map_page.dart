@@ -81,14 +81,13 @@ class EventsMapPageState extends State<EventsMapPage> with SingleTickerProviderS
   // Search and filter state
   final TextEditingController _searchController = TextEditingController();
 String _selectedCategory = 'All';
-final double _maxDistance = 50.0; // in kilometers
+final double _maxDistance = 50.0; // in miles
   
   // Enhanced filtering
   bool _showAdvancedFilters = false;
   double _priceMin = 0;
   double _priceMax = 200;
   String _selectedTimeFilter = 'All Time';
-  final String _selectedDateFilter = 'All Dates';
   bool _showLiveEventsOnly = false;
   bool _showAvailableOnly = false;
   
@@ -98,11 +97,6 @@ final double _maxDistance = 50.0; // in kilometers
   
   // Quick filters
   final List<String> _timeFilters = ['All Time', 'Today', 'This Week', 'This Weekend', 'Next Week'];
-  final List<String> _dateFilters = ['All Dates', 'Today', 'Tomorrow', 'This Week', 'This Month'];
-  
-  // Directions integration
-  final bool _showDirections = false;
-  event_class.Event? _directionsEvent;
   
 // Enhanced search functionality
   bool _showSearchOverlay = false;
@@ -112,7 +106,7 @@ final double _maxDistance = 50.0; // in kilometers
   // Location filter state
   bool _showLocationFilter = false;
   String _selectedDistanceFilter = 'All';
-  final List<String> _distanceOptions = ['All', '5 km', '10 km', '25 km', '50 km', '100 km'];
+  final List<String> _distanceOptions = ['All', '5 mi', '10 mi', '25 mi', '50 mi', '100 mi'];
   
   late AnimationController _animationController;
   late Animation<double> _pulseAnimation;
@@ -892,7 +886,7 @@ final double _maxDistance = 50.0; // in kilometers
     }
     
     // Haversine formula to calculate distance between two points
-    const R = 6371.0; // Earth radius in kilometers
+    const R = 3959.0; // Earth radius in miles
     final dLat = _toRadians(lat2 - lat1);
     final dLon = _toRadians(lon2 - lon1);
     
@@ -981,10 +975,10 @@ final double _maxDistance = 50.0; // in kilometers
             eventCoords.longitude,
           );
           
-          // Parse the selected distance (e.g., "5 km" -> 5.0)
-          final maxDistanceKm = double.tryParse(_selectedDistanceFilter.split(' ')[0]) ?? _maxDistance;
+          // Parse the selected distance (e.g., "5 mi" -> 5.0)
+          final maxDistanceMi = double.tryParse(_selectedDistanceFilter.split(' ')[0]) ?? _maxDistance;
           
-          if (distance > maxDistanceKm) return false;
+          if (distance > maxDistanceMi) return false;
         }
         
         // Apply general distance filter - use map center point
@@ -1934,41 +1928,7 @@ final double _maxDistance = 50.0; // in kilometers
     }
   }
 
-  Widget _buildEventMarker(event_class.Event event, bool isSelected) {
-    final categoryColors = _getCategoryColors(event.category);
-    
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            categoryColors[0].withValues(alpha: 0.9),
-            categoryColors[1].withValues(alpha: 0.9),
-          ],
-        ),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: kBackgroundLight,
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: categoryColors[0].withValues(alpha: 0.4),
-            blurRadius: 8,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Center(
-        child: Icon(
-          _getCategoryIcon(event.category),
-          color: kBackgroundLight,
-          size: isSelected ? 22 : 18,
-        ),
-      ),
-    );
-  }
+
 
   List<Widget> _buildFilterChips() {
     final chips = <Widget>[];
@@ -2163,37 +2123,7 @@ final double _maxDistance = 50.0; // in kilometers
     }
   }
   
-  void _showSuccessDialog(String message) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Success'),
-        content: Text(message),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  void _showErrorDialog(String message) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   // Show a banner indicating we're using simulated location
   void _showSimulatedLocationBanner() {

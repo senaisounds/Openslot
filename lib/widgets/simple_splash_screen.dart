@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
+import 'package:slotted/utils/logger.dart';
+
 class SimpleSplashScreen extends StatefulWidget {
   final VoidCallback? onFinished;
 
@@ -39,10 +41,18 @@ class _SimpleSplashScreenState extends State<SimpleSplashScreen>
   }
 
   Future<void> _startAnimation() async {
-    await _controller.forward();
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (mounted) {
-      widget.onFinished?.call();
+    try {
+      await _controller.forward();
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (mounted) {
+        widget.onFinished?.call();
+      }
+    } catch (e, stackTrace) {
+      Logger.e('Error in async operation', 
+              tag: 'SplashScreen', 
+              error: e, 
+              stackTrace: stackTrace);
+      // Handle error gracefully
     }
   }
 

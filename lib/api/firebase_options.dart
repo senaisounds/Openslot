@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '482276707475',
     projectId: 'open-mic-5cc8e',
     storageBucket: 'open-mic-5cc8e.appspot.com',
-    iosBundleId: 'com.M3.Open-Mic',
+    iosBundleId: 'com.openslot.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -76,6 +76,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '482276707475',
     projectId: 'open-mic-5cc8e',
     storageBucket: 'open-mic-5cc8e.appspot.com',
-    iosBundleId: 'com.M3.Open-Mic.RunnerTests',
+    iosBundleId: 'com.openslot.app',
   );
 }

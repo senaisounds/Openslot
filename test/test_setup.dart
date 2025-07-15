@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:slotted/providers/theme_provider.dart';
 import 'package:slotted/utils/test_network_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'test_helpers.dart';
 
 /// Comprehensive test setup for OpenSlot app
 class TestSetup {
   static late FakeFirebaseFirestore fakeFirestore;
+  static late MockFirebaseAuth mockAuth;
+  static late MockUser mockUser;
   static bool _initialized = false;
 
   /// Initialize all test dependencies
@@ -19,33 +24,47 @@ class TestSetup {
 
     TestWidgetsFlutterBinding.ensureInitialized();
     
+    // Set up SharedPreferences for testing first
+    SharedPreferences.setMockInitialValues({});
+    
     // Initialize Firebase for testing with proper options
     try {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: 'test-api-key',
-          appId: 'test-app-id',
-          messagingSenderId: 'test-sender-id',
-          projectId: 'test-project',
-          authDomain: 'test-project.firebaseapp.com',
-          storageBucket: 'test-project.appspot.com',
-        ),
-      );
+      // Check if Firebase is already initialized
+      if (Firebase.apps.isNotEmpty) {
+        debugPrint('Firebase already initialized, skipping initialization');
+      } else {
+        await Firebase.initializeApp(
+          options: const FirebaseOptions(
+            apiKey: 'test-api-key',
+            appId: 'test-app-id',
+            messagingSenderId: 'test-sender-id',
+            projectId: 'test-project',
+            authDomain: 'test-project.firebaseapp.com',
+            storageBucket: 'test-project.appspot.com',
+          ),
+        );
+        debugPrint('Firebase initialized successfully for testing');
+      }
     } catch (e) {
-      // Firebase already initialized - this is fine
-      debugPrint('Firebase already initialized: $e');
+      debugPrint('Firebase initialization error (safe to ignore in tests): $e');
+      // Continue despite Firebase initialization errors
     }
 
     // Set up fake Firestore
     fakeFirestore = FakeFirebaseFirestore();
     
+    // Set up mock Firebase Auth
+    mockAuth = MockFirebaseAuth();
+    mockUser = MockUser();
+    
+    // Set up initial auth state (signed in by default)
+    mockAuth.signIn(mockUser);
+    
     // Enable test network service
     TestNetworkService.enableTestMode();
     
-    // Set up SharedPreferences for testing
-    SharedPreferences.setMockInitialValues({});
-    
     _initialized = true;
+    debugPrint('TestSetup initialized successfully');
   }
 
   /// Clean up after tests
@@ -55,7 +74,7 @@ class TestSetup {
       await fakeFirestore.terminate();
       await fakeFirestore.clearPersistence();
     } catch (e) {
-      // Ignore cleanup errors
+      debugPrint('Cleanup error (safe to ignore): $e');
     }
     _initialized = false;
   }
@@ -79,7 +98,14 @@ class TestSetup {
     required Widget child,
     ThemeProvider? themeProvider,
     bool includeFirestore = true,
+    bool includeAuth = true,
+    User? customUser,
   }) {
+    // Use custom user if provided
+    if (customUser != null && includeAuth) {
+      mockAuth.signIn(customUser);
+    }
+    
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ThemeProvider>(
@@ -87,6 +113,8 @@ class TestSetup {
         ),
         if (includeFirestore)
           Provider<FirebaseFirestore>.value(value: fakeFirestore),
+        if (includeAuth)
+          Provider<FirebaseAuth>.value(value: mockAuth),
       ],
       child: MaterialApp(
         title: 'OpenSlot Test',
@@ -95,6 +123,36 @@ class TestSetup {
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
         home: child,
+      ),
+    );
+  }
+
+  /// Create Cupertino test app for iOS-style widgets
+  static Widget createCupertinoTestApp({
+    required Widget child,
+    ThemeProvider? themeProvider,
+    bool includeFirestore = true,
+    bool includeAuth = true,
+    User? customUser,
+  }) {
+    // Use custom user if provided
+    if (customUser != null && includeAuth) {
+      mockAuth.signIn(customUser);
+    }
+    
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ThemeProvider>(
+          create: (_) => themeProvider ?? ThemeProvider(),
+        ),
+        if (includeFirestore)
+          Provider<FirebaseFirestore>.value(value: fakeFirestore),
+        if (includeAuth)
+          Provider<FirebaseAuth>.value(value: mockAuth),
+      ],
+      child: CupertinoApp(
+        title: 'OpenSlot Test',
+        home: Material(child: child),
       ),
     );
   }
@@ -186,5 +244,24 @@ class TestSetup {
     } catch (e) {
       debugPrint('SafeEnterText timeout: $e');
     }
+  }
+
+  /// Get mock user for testing
+  static User getMockUser() => mockUser;
+
+  /// Get mock auth for testing
+  static MockFirebaseAuth getMockAuth() => mockAuth;
+
+  /// Get fake firestore for testing
+  static FakeFirebaseFirestore getFakeFirestore() => fakeFirestore;
+
+  /// Sign out the mock user
+  static Future<void> signOut() async {
+    await mockAuth.signOut();
+  }
+
+  /// Sign in the mock user
+  static void signIn([User? user]) {
+    mockAuth.signIn(user ?? mockUser);
   }
 }

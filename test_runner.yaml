@@ -1,0 +1,30 @@
+# Test runner configuration for OpenSlot
+# This file configures the test runner behavior
+
+# Test timeout settings
+timeout: 30s
+
+# Concurrency settings
+concurrency: 4
+
+# Coverage settings
+coverage:
+  enabled: true
+  exclude:
+    - "test/**"
+    - "**/*_test.dart"
+    - "**/*_mock.dart"
+    - "**/generated/**"
+
+# Test discovery
+test_on:
+  - android
+  - ios
+  - web
+
+# Test filtering
+tags:
+  - unit
+  - widget
+  - integration
+  - performance

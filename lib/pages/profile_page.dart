@@ -217,7 +217,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   );
                 },
-                child: const Text('Sign In'),
+                child: const Text(
+                  'Sign In',
+                  style: TextStyle(
+                    color: Colors.white, // Ensure high contrast
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -289,41 +295,47 @@ class _ProfilePageState extends State<ProfilePage> {
                   )
                 : Stack(
                     children: [
-                      // Main content
-                      RefreshIndicator(
-                        key: _refreshIndicatorKey,
-                        onRefresh: () async {
-                          HapticFeedback.mediumImpact();
-                          await _loadUserData();
-                          await Future.delayed(const Duration(milliseconds: 500));
-                        },
-                        color: AppColors.primary,
-                        backgroundColor: context.watch<ThemeProvider>().isDarkMode 
-                            ? AppColors.backgroundDark 
-                            : CupertinoColors.white,
-                        child: CustomScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          slivers: [
-                            SliverPadding(
-                              padding: EdgeInsets.fromLTRB(
-                                DesignSystem.spacingM,
-                                DesignSystem.spacingL,
-                                DesignSystem.spacingM,
-                                MediaQuery.of(context).padding.bottom + 120,
+                      // Main content fills the stack
+                      Positioned.fill(
+                        child: RefreshIndicator(
+                          key: _refreshIndicatorKey,
+                          onRefresh: () async {
+                            HapticFeedback.mediumImpact();
+                            await _loadUserData();
+                            await Future.delayed(const Duration(milliseconds: 500));
+                          },
+                          color: AppColors.primary,
+                          backgroundColor: context.watch<ThemeProvider>().isDarkMode 
+                              ? AppColors.backgroundDark 
+                              : CupertinoColors.white,
+                          child: CustomScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            slivers: [
+                              SliverPadding(
+                                padding: EdgeInsets.fromLTRB(
+                                  DesignSystem.spacingM,
+                                  DesignSystem.spacingL,
+                                  DesignSystem.spacingM,
+                                  MediaQuery.of(context).padding.bottom,
+                                ),
+                                sliver: SliverList(
+                                  delegate: SliverChildListDelegate([
+                                    _buildProfileHeader(),
+                                    LayoutHelpers.sectionSpacing,
+                                    _buildProfileStats(),
+                                    LayoutHelpers.largeSpacing,
+                                    _buildBioSection(),
+                                    LayoutHelpers.largeSpacing,
+                                    _buildAwardsSection(),
+                                  ]),
+                                ),
                               ),
-                              sliver: SliverList(
-                                delegate: SliverChildListDelegate([
-                                  _buildProfileHeader(),
-                                  LayoutHelpers.sectionSpacing,
-                                  _buildProfileStats(),
-                                  LayoutHelpers.largeSpacing,
-                                  _buildBioSection(),
-                                  LayoutHelpers.largeSpacing,
-                                  _buildAwardsSection(),
-                                ]),
+                              const SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: SizedBox.shrink(),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       // Floating Action Button
@@ -537,13 +549,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                 );
   }
 
-  void _shareProfile() {
+  Future<void> _shareProfile() async {
     final profileUrl = 'https://openslot.app/profile/${_user?.id ?? 'unknown'}';
     final shareText = _isCurrentUserProfile 
         ? 'Check out my OpenSlot profile!'
         : 'Check out ${_user?.username}\'s OpenSlot profile!';
     
-    Share.share('$shareText\n$profileUrl');
+    await Share.share('$shareText\n$profileUrl');
   }
 
   void _showSignOutConfirmation() {
@@ -1097,10 +1109,7 @@ class _ProfilePageState extends State<ProfilePage> {
     // For this demo, we'll check if the user has completed all basic achievements
     // In a real app, you would check against actual user progress data
     
-    // Check if user already has the key achievements
-    final hasFirstPerformance = _userAwards.any((award) => award.id == AwardsHelper.firstPerformance.id);
-    final hasConnectedSocial = _userAwards.any((award) => award.id == AwardsHelper.connectedSocial.id);
-    final hasFiveEvents = _userAwards.any((award) => award.id == AwardsHelper.fiveEvents.id);
+
     
     // If user hasn't completed major achievements, show progress section
     // For now, only show if they haven't achieved the 50 Open Mics (major achievement)

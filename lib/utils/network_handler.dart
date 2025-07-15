@@ -68,13 +68,8 @@ class NetworkHandler {
       final connectivityResult = await Connectivity().checkConnectivity();
       // Handle both single result and list of results properly
       bool hasConnection = false;
-      if (connectivityResult is List<ConnectivityResult>) {
-        hasConnection = connectivityResult.any((result) => result != ConnectivityResult.none);
-      } else {
-        final result = connectivityResult as ConnectivityResult;
-        hasConnection = result != ConnectivityResult.none;
-      }
-      
+      hasConnection = connectivityResult.any((result) => result != ConnectivityResult.none);
+          
       if (!hasConnection) {
         return false;
       }

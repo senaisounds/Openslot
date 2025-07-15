@@ -1,7 +1,7 @@
 // ignore_for_file: body_might_complete_normally_nullable
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:slotted/common/colors.dart' as app_colors;
+
 import 'package:slotted/common/event_class.dart';
 import 'package:intl/intl.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
@@ -220,8 +220,6 @@ class EventCard extends StatefulWidget {
 
 class _EventCardState extends State<EventCard> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _opacityAnimation;
   bool _isSaved = false;
   final FirebaseAuthService _authService = FirebaseAuthService();
   
@@ -236,22 +234,6 @@ class _EventCardState extends State<EventCard> with SingleTickerProviderStateMix
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.98,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
-
-    _opacityAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
     
     _isSaved = widget.event['isSaved'] ?? false;
     _checkIfSaved();
@@ -426,19 +408,14 @@ class _EventCardState extends State<EventCard> with SingleTickerProviderStateMix
     }
   }
 
-  Color _getCategoryColor() {
-    final normalizedCategory = widget.event['category'].toUpperCase().split(' ')[0];
-    return app_colors.AppColors.eventCategory[normalizedCategory] ?? app_colors.AppColors.primary;
-  }
+
 
   @override
   Widget build(BuildContext context) {
     // Get device metrics for responsive layout
     final screenSize = MediaQuery.of(context).size;
-    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     final isSmallScreen = screenSize.width < 360;
     final isMediumScreen = screenSize.width >= 360 && screenSize.width < 400;
-    final isLargeScreen = screenSize.width >= 400;
     final isTablet = screenSize.width > 600;
     
     // Adjust margins based on screen size

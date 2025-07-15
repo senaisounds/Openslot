@@ -5,7 +5,7 @@ import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:provider/provider.dart';
 import 'package:slotted/providers/theme_provider.dart';
-import 'test_helpers.dart';
+import '../test_helpers.dart';
 
 void main() {
   late MockSlottedUser mockUser;

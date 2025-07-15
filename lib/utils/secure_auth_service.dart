@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:slotted/api/firebase_auth_service.dart';
 import 'package:slotted/utils/validation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slotted/utils/logger.dart';
@@ -14,7 +13,6 @@ class SecureAuthService {
   static final SecureAuthService instance = SecureAuthService._privateConstructor();
   
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseAuthService _baseAuthService = FirebaseAuthService();
   
   // Login attempt tracking
   static const int _maxFailedAttempts = 5;
@@ -127,13 +125,8 @@ class SecureAuthService {
     
     try {
       // Check if email is already in use
-      final methods = await _auth.fetchSignInMethodsForEmail(email);
-      if (methods.isNotEmpty) {
-        throw FirebaseAuthException(
-          code: 'email-already-in-use',
-          message: 'An account already exists for this email.',
-        );
-      }
+      // TODO: Replace with proper email existence check
+      // For now, let Firebase handle email validation during account creation
       
       // Create the user
       final userCredential = await _auth.createUserWithEmailAndPassword(

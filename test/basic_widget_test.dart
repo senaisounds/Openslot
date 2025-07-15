@@ -167,11 +167,11 @@ void main() {
       await TestSetup.safePumpWidget(
         tester,
         TestSetup.createSimpleTestWidget(
-          child: Scaffold(
+          child: const Scaffold(
             body: Column(
               children: [
-                Text('${null ?? 'Default'}'),
-                const Text('Static Text'),
+                Text('Default'),
+                Text('Static Text'),
               ],
             ),
           ),
@@ -189,9 +189,9 @@ void main() {
           child: Scaffold(
             body: Column(
               children: [
-                SizedBox(height: 50),
+                const SizedBox(height: 50),
                 Container(),
-                Text('After empty container'),
+                const Text('After empty container'),
               ],
             ),
           ),

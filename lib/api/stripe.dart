@@ -1,11 +1,9 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 import 'package:slotted/common/event_class.dart';
-import 'package:slotted/utils/network_error_handler.dart';
 import 'package:slotted/utils/logger.dart';
 
 class SlottedStripeError implements Exception {
@@ -19,10 +17,7 @@ class SlottedStripeError implements Exception {
 }
 
 class StripeApi {
-  static String stripeKey =
-      'sk_live_YOUR_NEW_LIVE_SECRET_KEY';
-  static String stripeDebugKey =
-      'sk_test_51RMvr1Q0wBFV119bcCWvuYTtuA28bN7iS2xWZTs02TJdiv1psjISAR75RCsWJtGrlYGw8VCEzNJazTehBETO8WJf00Yyvmjcky';
+  // Stripe secret keys must NOT be present in client code. All secret-key operations must be handled by a secure backend.
 
   static bool _validateApiKey(String key, bool isLiveKey) {
     if (key.isEmpty) {
@@ -43,56 +38,11 @@ class StripeApi {
   }
 
   static String getApiKey(bool debug) {
-    final key = debug ? stripeDebugKey : stripeKey;
-    _validateApiKey(key, !debug);
-    return key;
+    throw UnimplementedError('Stripe secret key usage is not allowed in client code. Use a backend endpoint.');
   }
 
-  static Future<String> createCustomer(
-      {String? cid, bool debug = false}) async {
-    if (cid != null) return cid;
-    
-    // Check connectivity first
-    if (!await NetworkErrorHandler.isConnected()) {
-      throw SlottedStripeError('No internet connection. Please check your connection and try again.');
-    }
-    
-    return await NetworkErrorHandler.executeWithRetry(
-      requestFn: () async {
-        var response = await http.post(
-          Uri.parse('https://api.stripe.com/v1/customers'),
-          headers: {
-            'Authorization': 'Bearer ${getApiKey(debug)}',
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        ).timeout(const Duration(seconds: 10));
-
-        if (response.statusCode != 200) {
-          final errorData = NetworkErrorHandler.parseJson(response.body);
-          throw SlottedStripeError(
-            errorData['error']?['message'] ?? 'Failed to create customer', 
-            originalError: errorData
-          );
-        }
-
-        final responseData = NetworkErrorHandler.parseJson(response.body);
-        if (responseData['id'] == null) {
-          throw SlottedStripeError('Invalid response: Missing customer ID');
-        }
-
-        return response;
-      },
-      requestName: 'Create Stripe customer',
-      isSuccessful: (response) {
-        // Custom success criteria - not just 200-299
-        return response.statusCode == 200 && 
-               NetworkErrorHandler.parseJson(response.body)['id'] != null;
-      },
-      tag: 'Stripe',
-    ).then((response) {
-      final responseData = NetworkErrorHandler.parseJson(response.body);
-      return responseData['id'] as String;
-    });
+  static Future<String> createCustomer({String? cid, bool debug = false}) async {
+    throw UnimplementedError('Customer creation must be handled by a backend endpoint.');
   }
 
   static Future<String> getEphemeralKey(String customerId,
@@ -161,7 +111,7 @@ class StripeApi {
         await Stripe.instance.initPaymentSheet(
           paymentSheetParameters: SetupPaymentSheetParameters(
             paymentIntentClientSecret: paymentIntent['client_secret'],
-            merchantDisplayName: 'Slotted',
+            merchantDisplayName: 'OpenSlot',
             customerId: customer,
             customerEphemeralKeySecret: ephemeralKey,
             style: ThemeMode.dark,
@@ -202,61 +152,14 @@ class StripeApi {
     }
   }
 
-  static Future<dynamic> createPaymentIntent(
-      {required String userId,
-      required double amount,
-      required String currency,
-      String? customerId,
-      String? returnUrl,
-      bool debug = false}) async {
-    try {
-      // Validate input parameters
-      if (amount <= 0) {
-        throw SlottedStripeError('Invalid amount: Amount must be greater than 0');
-      }
-      if (currency.isEmpty) {
-        throw SlottedStripeError('Currency code is required');
-      }
-
-      if (customerId == null) {
-        customerId = await createCustomer(cid: customerId, debug: debug);
-        await FirebaseFirestore.instance.doc('users/$userId').set({
-          '${debug ? 'test-' : ''}customerID': customerId,
-        }, SetOptions(merge: true));
-      }
-
-      Map<String, dynamic> body = {
-        'amount': (amount * 100).toInt().toString(),
-        'currency': currency,
-        'customer': customerId,
-        'setup_future_usage': 'on_session',
-        'payment_method_types[]': 'card',
-        'capture_method': 'manual',
-      };
-
-      var response = await http.post(
-        Uri.parse('https://api.stripe.com/v1/payment_intents'),
-        headers: {
-          'Authorization': 'Bearer ${getApiKey(debug)}',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: body,
-      );
-
-      if (response.statusCode != 200) {
-        final errorData = json.decode(response.body);
-        throw SlottedStripeError(errorData['error']?['message'] ?? 'Failed to create payment intent');
-      }
-
-      return json.decode(response.body);
-    } on FirebaseException catch (e) {
-      throw SlottedStripeError('Database error: ${e.message}');
-    } on http.ClientException catch (e) {
-      throw SlottedStripeError('Network error: ${e.message}');
-    } catch (e) {
-      if (e is SlottedStripeError) rethrow;
-      throw SlottedStripeError('Unexpected error: ${e.toString()}');
-    }
+  static Future<dynamic> createPaymentIntent({
+    required String userId,
+    required double amount,
+    required String currency,
+    String? customerId,
+    String? returnUrl,
+    bool debug = false}) async {
+    throw UnimplementedError('PaymentIntent creation must be handled by a backend endpoint.');
   }
 
   // Add better error handling for Stripe payment process

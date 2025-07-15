@@ -51,91 +51,109 @@ class _DevUISettingsPageState extends State<DevUISettingsPage> {
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _particleCount = prefs.getDouble('dev_particle_count') ?? 105.0;
-      _particleSpeed = prefs.getDouble('dev_particle_speed') ?? 0.05;
-      _particleSize = prefs.getDouble('dev_particle_size') ?? 1.0;
-      _particleOpacity = prefs.getDouble('dev_particle_opacity') ?? 0.6;
-      
-      _mainAnimationDuration = prefs.getDouble('dev_main_duration') ?? 300.0;
-      _particleAnimationDuration = prefs.getDouble('dev_particle_duration') ?? 250.0;
-      _streakAnimationDuration = prefs.getDouble('dev_streak_duration') ?? 200.0;
-      _shapeAnimationDuration = prefs.getDouble('dev_shape_duration') ?? 180.0;
-      
-      _streakCount = prefs.getDouble('dev_streak_count') ?? 14.0;
-      _streakLength = prefs.getDouble('dev_streak_length') ?? 55.0;
-      _streakOpacity = prefs.getDouble('dev_streak_opacity') ?? 0.8;
-      _streakSpeed = prefs.getDouble('dev_streak_speed') ?? 0.05;
-      
-      _shapeCount = prefs.getDouble('dev_shape_count') ?? 20.0;
-      _shapeSize = prefs.getDouble('dev_shape_size') ?? 8.0;
-      _shapeSpeed = prefs.getDouble('dev_shape_speed') ?? 0.07;
-      _shapeOpacity = prefs.getDouble('dev_shape_opacity') ?? 0.7;
-      
-      _spotlightCount = prefs.getDouble('dev_spotlight_count') ?? 6.0;
-      _spotlightSize = prefs.getDouble('dev_spotlight_size') ?? 0.35;
-      _spotlightSpeed = prefs.getDouble('dev_spotlight_speed') ?? 0.05;
-      _spotlightOpacity = prefs.getDouble('dev_spotlight_opacity') ?? 0.7;
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _particleCount = prefs.getDouble('dev_particle_count') ?? 105.0;
+        _particleSpeed = prefs.getDouble('dev_particle_speed') ?? 0.05;
+        _particleSize = prefs.getDouble('dev_particle_size') ?? 1.0;
+        _particleOpacity = prefs.getDouble('dev_particle_opacity') ?? 0.6;
+        
+        _mainAnimationDuration = prefs.getDouble('dev_main_duration') ?? 300.0;
+        _particleAnimationDuration = prefs.getDouble('dev_particle_duration') ?? 250.0;
+        _streakAnimationDuration = prefs.getDouble('dev_streak_duration') ?? 200.0;
+        _shapeAnimationDuration = prefs.getDouble('dev_shape_duration') ?? 180.0;
+        
+        _streakCount = prefs.getDouble('dev_streak_count') ?? 14.0;
+        _streakLength = prefs.getDouble('dev_streak_length') ?? 55.0;
+        _streakOpacity = prefs.getDouble('dev_streak_opacity') ?? 0.8;
+        _streakSpeed = prefs.getDouble('dev_streak_speed') ?? 0.05;
+        
+        _shapeCount = prefs.getDouble('dev_shape_count') ?? 20.0;
+        _shapeSize = prefs.getDouble('dev_shape_size') ?? 8.0;
+        _shapeSpeed = prefs.getDouble('dev_shape_speed') ?? 0.07;
+        _shapeOpacity = prefs.getDouble('dev_shape_opacity') ?? 0.7;
+        
+        _spotlightCount = prefs.getDouble('dev_spotlight_count') ?? 6.0;
+        _spotlightSize = prefs.getDouble('dev_spotlight_size') ?? 0.35;
+        _spotlightSpeed = prefs.getDouble('dev_spotlight_speed') ?? 0.05;
+        _spotlightOpacity = prefs.getDouble('dev_spotlight_opacity') ?? 0.7;
+      });
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Handle error gracefully
+    }
   }
 
   Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('dev_particle_count', _particleCount);
-    await prefs.setDouble('dev_particle_speed', _particleSpeed);
-    await prefs.setDouble('dev_particle_size', _particleSize);
-    await prefs.setDouble('dev_particle_opacity', _particleOpacity);
-    
-    await prefs.setDouble('dev_main_duration', _mainAnimationDuration);
-    await prefs.setDouble('dev_particle_duration', _particleAnimationDuration);
-    await prefs.setDouble('dev_streak_duration', _streakAnimationDuration);
-    await prefs.setDouble('dev_shape_duration', _shapeAnimationDuration);
-    
-    await prefs.setDouble('dev_streak_count', _streakCount);
-    await prefs.setDouble('dev_streak_length', _streakLength);
-    await prefs.setDouble('dev_streak_opacity', _streakOpacity);
-    await prefs.setDouble('dev_streak_speed', _streakSpeed);
-    
-    await prefs.setDouble('dev_shape_count', _shapeCount);
-    await prefs.setDouble('dev_shape_size', _shapeSize);
-    await prefs.setDouble('dev_shape_speed', _shapeSpeed);
-    await prefs.setDouble('dev_shape_opacity', _shapeOpacity);
-    
-    await prefs.setDouble('dev_spotlight_count', _spotlightCount);
-    await prefs.setDouble('dev_spotlight_size', _spotlightSize);
-    await prefs.setDouble('dev_spotlight_speed', _spotlightSpeed);
-    await prefs.setDouble('dev_spotlight_opacity', _spotlightOpacity);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('dev_particle_count', _particleCount);
+      await prefs.setDouble('dev_particle_speed', _particleSpeed);
+      await prefs.setDouble('dev_particle_size', _particleSize);
+      await prefs.setDouble('dev_particle_opacity', _particleOpacity);
+      
+      await prefs.setDouble('dev_main_duration', _mainAnimationDuration);
+      await prefs.setDouble('dev_particle_duration', _particleAnimationDuration);
+      await prefs.setDouble('dev_streak_duration', _streakAnimationDuration);
+      await prefs.setDouble('dev_shape_duration', _shapeAnimationDuration);
+      
+      await prefs.setDouble('dev_streak_count', _streakCount);
+      await prefs.setDouble('dev_streak_length', _streakLength);
+      await prefs.setDouble('dev_streak_opacity', _streakOpacity);
+      await prefs.setDouble('dev_streak_speed', _streakSpeed);
+      
+      await prefs.setDouble('dev_shape_count', _shapeCount);
+      await prefs.setDouble('dev_shape_size', _shapeSize);
+      await prefs.setDouble('dev_shape_speed', _shapeSpeed);
+      await prefs.setDouble('dev_shape_opacity', _shapeOpacity);
+      
+      await prefs.setDouble('dev_spotlight_count', _spotlightCount);
+      await prefs.setDouble('dev_spotlight_size', _spotlightSize);
+      await prefs.setDouble('dev_spotlight_speed', _spotlightSpeed);
+      await prefs.setDouble('dev_spotlight_opacity', _spotlightOpacity);
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Handle error gracefully
+    }
   }
 
   Future<void> _resetToDefaults() async {
-    setState(() {
-      _particleCount = 105.0;
-      _particleSpeed = 0.05;
-      _particleSize = 1.0;
-      _particleOpacity = 0.6;
-      
-      _mainAnimationDuration = 300.0;
-      _particleAnimationDuration = 250.0;
-      _streakAnimationDuration = 200.0;
-      _shapeAnimationDuration = 180.0;
-      
-      _streakCount = 14.0;
-      _streakLength = 55.0;
-      _streakOpacity = 0.8;
-      _streakSpeed = 0.05;
-      
-      _shapeCount = 20.0;
-      _shapeSize = 8.0;
-      _shapeSpeed = 0.07;
-      _shapeOpacity = 0.7;
-      
-      _spotlightCount = 6.0;
-      _spotlightSize = 0.35;
-      _spotlightSpeed = 0.05;
-      _spotlightOpacity = 0.7;
-    });
-    await _saveSettings();
+    try {
+      setState(() {
+        _particleCount = 105.0;
+        _particleSpeed = 0.05;
+        _particleSize = 1.0;
+        _particleOpacity = 0.6;
+        
+        _mainAnimationDuration = 300.0;
+        _particleAnimationDuration = 250.0;
+        _streakAnimationDuration = 200.0;
+        _shapeAnimationDuration = 180.0;
+        
+        _streakCount = 14.0;
+        _streakLength = 55.0;
+        _streakOpacity = 0.8;
+        _streakSpeed = 0.05;
+        
+        _shapeCount = 20.0;
+        _shapeSize = 8.0;
+        _shapeSpeed = 0.07;
+        _shapeOpacity = 0.7;
+        
+        _spotlightCount = 6.0;
+        _spotlightSize = 0.35;
+        _spotlightSpeed = 0.05;
+        _spotlightOpacity = 0.7;
+      });
+      await _saveSettings();
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Handle error gracefully
+    }
   }
 
   Widget _buildSlider({
@@ -533,10 +551,16 @@ class _DevUISettingsPageState extends State<DevUISettingsPage> {
                       child: CupertinoButton(
                         color: app_colors.AppColors.accent,
                         onPressed: () async {
-                          await _saveSettings();
-                          if (mounted) {
-                            Navigator.of(context).pop();
-                          }
+    try {
+                            await _saveSettings();
+                            if (mounted) {
+                              Navigator.of(context).pop();
+                            }
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Handle error gracefully
+    }
                         },
                         child: const Text(
                           'Save & Apply Settings',

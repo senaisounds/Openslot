@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 /// Performance monitoring utility for OpenSlot app
 class PerformanceMonitor {
@@ -159,7 +159,7 @@ class PerformanceMonitor {
       buffer.writeln('   Rating: $rating');
     }
 
-    buffer.writeln('\n' + '=' * 50);
+    buffer.writeln('\n${'=' * 50}');
     return buffer.toString();
   }
 
@@ -174,7 +174,7 @@ class PerformanceMonitor {
   /// Monitor memory usage (iOS/Android specific)
   static Future<MemoryInfo> getMemoryInfo() async {
     try {
-      final memoryInfo = await MethodChannel('performance_monitor')
+      final memoryInfo = await const MethodChannel('performance_monitor')
           .invokeMethod<Map<dynamic, dynamic>>('getMemoryInfo');
       
       return MemoryInfo(

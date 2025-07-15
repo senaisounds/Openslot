@@ -25,53 +25,10 @@ import 'package:path/path.dart' as path;
 import 'package:slotted/pages/location.dart';
 import 'package:slotted/utils/logger.dart';
 import 'package:slotted/common/design_system.dart';
-import 'package:slotted/widgets/ds_button.dart';
+
 import 'package:slotted/widgets/ds_section_header.dart';
-import 'package:flutter/services.dart' show HapticFeedback;
 
-// Add timezone awareness
-final DateFormat _dateFormatter = DateFormat('EEE, MMM d • h:mm a');
-final DateFormat _timeFormatter = DateFormat('h:mm a');
 
-// Helper function to validate and adjust dates with timezone awareness
-DateTime _validateAndAdjustDateTime(DateTime selectedDate) {
-  final now = DateTime.now();
-  
-  // If the selected date is in the past, adjust to next occurrence
-  if (selectedDate.isBefore(now)) {
-    // If it's today but time has passed, move to same time tomorrow
-    if (selectedDate.year == now.year && 
-        selectedDate.month == now.month && 
-        selectedDate.day == now.day) {
-      return selectedDate.add(const Duration(days: 1));
-    }
-    
-    // If it's a past date, move to the same date next year
-    if (selectedDate.isBefore(now.subtract(const Duration(days: 1)))) {
-      return DateTime(
-        now.year + 1,
-        selectedDate.month,
-        selectedDate.day,
-        selectedDate.hour,
-        selectedDate.minute,
-      );
-    }
-  }
-  
-  // Ensure the date is not more than 2 years in the future
-  final maxFutureDate = now.add(const Duration(days: 730));
-  if (selectedDate.isAfter(maxFutureDate)) {
-    return DateTime(
-      maxFutureDate.year,
-      selectedDate.month,
-      selectedDate.day,
-      selectedDate.hour,
-      selectedDate.minute,
-    );
-  }
-  
-  return selectedDate;
-}
 
 class EditEventPage extends StatefulWidget {
   const EditEventPage({super.key, required this.user, this.event});
@@ -2638,58 +2595,7 @@ class EditEventPageState extends State<EditEventPage> {
     return result ?? false;
   }
 
-  Widget _buildCategoryBubble(String category) {
-    final categoryName = category.split(' ')[0].toUpperCase();
-    final bool isSelected = selectedCategory == categoryName;
-    
-    // Get corresponding color based on category
-    Color categoryColor;
-    switch (categoryName) {
-      case 'COMEDY':
-        categoryColor = const Color(0xFFFF6B6B);  // Coral Pink
-        break;
-      case 'DJ':
-        categoryColor = const Color(0xFF4ECDC4);  // Turquoise
-        break;
-      case 'POETRY':
-        categoryColor = const Color(0xFFFFBE0B);  // Sunny Yellow
-        break;
-      case 'MUSIC':
-        categoryColor = const Color(0xFF7209B7);  // Vibrant Purple
-        break;
-      default:
-        categoryColor = AppColors.primary;
-    }
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedCategory = categoryName;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isSelected
-                ? [categoryColor, categoryColor.withValues(alpha: 0.7)]
-                : [categoryColor.withValues(alpha: 0.2), categoryColor.withValues(alpha: 0.2)],
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          category,
-          style: TextStyle(
-            color: isSelected ? AppColors.backgroundLight : AppColors.backgroundLight.withValues(alpha: 0.8),
-            fontSize: 16,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
 
   // Enhanced category bubble with better animations and visual feedback
   Widget _buildEnhancedCategoryBubble(String title, String emoji, String categoryValue) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:slotted/common/colors.dart';
+import 'package:slotted/utils/logger.dart';
 class ThemeProvider extends ChangeNotifier {
   // Always use dark mode, no toggle option
   // No unnecessary methods or state variables
@@ -27,8 +28,16 @@ class ThemeProvider extends ChangeNotifier {
   /// This method doesn't actually change the theme (always dark mode)
   /// but notifies listeners for compatibility with existing code
   Future<void> toggleTheme() async {
-    // App is always in dark mode, so this method does nothing
-    // except notify listeners for compatibility
-    notifyListeners();
+    try {
+      // App is always in dark mode, so this method does nothing
+      // except notify listeners for compatibility
+      notifyListeners();
+    } catch (e, stackTrace) {
+      Logger.e('Error in async operation', 
+              tag: 'ThemeProvider', 
+              error: e, 
+              stackTrace: stackTrace);
+      // Handle error gracefully
+    }
   }
 } 

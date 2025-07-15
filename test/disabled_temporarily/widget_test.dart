@@ -15,12 +15,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:mockito/mockito.dart';
 import 'package:slotted/main.dart';
 import 'package:slotted/providers/theme_provider.dart';
-import 'test_helpers.dart';
+import '../test_helpers.dart';
 
 void main() {
   late MockFirebaseAuth mockAuth;
   late MockFlutterLocalNotificationsPlugin mockNotifications;
-  late MockUser mockUser;
+
 
   setUpAll(() async {
     // Setup Firebase for testing
@@ -33,7 +33,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     mockAuth = MockFirebaseAuth();
     mockNotifications = MockFlutterLocalNotificationsPlugin();
-    mockUser = MockUser();
+
     
     // Mock the auth state changes
     when(mockAuth.authStateChanges())

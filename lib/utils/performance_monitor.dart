@@ -14,7 +14,7 @@ class PerformanceMonitor {
     _initialized = true;
     
     if (kDebugMode) {
-      print('🔧 PerformanceMonitor initialized');
+      // PerformanceMonitor initialized
     }
   }
 
@@ -22,7 +22,7 @@ class PerformanceMonitor {
   static void setEnabled(bool enabled) {
     _enabled = enabled;
     if (kDebugMode) {
-      print('🎯 PerformanceMonitor ${enabled ? 'enabled' : 'disabled'}');
+      // PerformanceMonitor ${enabled ? 'enabled' : 'disabled'}
     }
   }
 
@@ -30,7 +30,7 @@ class PerformanceMonitor {
   static void trackFramePerformance(String operation) {
     if (_enabled && kDebugMode) {
       SchedulerBinding.instance.addPostFrameCallback((_) {
-        print('🎯 Frame completed for: $operation');
+        // Frame completed for: $operation
       });
     }
   }
@@ -38,7 +38,7 @@ class PerformanceMonitor {
   /// Track memory usage for components
   static void trackMemoryUsage(String component) {
     if (_enabled && kDebugMode) {
-      print('💾 Memory check for: $component');
+      // Memory check for: $component
     }
   }
 

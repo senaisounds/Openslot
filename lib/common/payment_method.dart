@@ -52,6 +52,7 @@ class PaymentMethod {
       case 'cashApp':
         return PaymentMethodType.cashApp;
       case 'other':
+        return PaymentMethodType.other;
       default:
         return PaymentMethodType.other;
     }
@@ -68,7 +69,6 @@ class PaymentMethod {
       case PaymentMethodType.cashApp:
         return 'cashApp';
       case PaymentMethodType.other:
-      default:
         return 'other';
     }
   }
@@ -95,7 +95,6 @@ class PaymentMethod {
       case PaymentMethodType.cashApp:
         return 'Cash App';
       case PaymentMethodType.other:
-      default:
         return 'Other';
     }
   }

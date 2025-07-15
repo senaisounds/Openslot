@@ -94,33 +94,41 @@ class ErrorHandler {
     String? title,
     VoidCallback? onRetry,
   }) async {
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red),
-            const SizedBox(width: 8),
-            Text(title ?? 'Error'),
+    try {
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red),
+              const SizedBox(width: 8),
+              Text(title ?? 'Error'),
+            ],
+          ),
+          content: Text(getUserFriendlyMessage(error)),
+          actions: [
+            if (onRetry != null)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onRetry();
+                },
+                child: const Text('Retry'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
           ],
         ),
-        content: Text(getUserFriendlyMessage(error)),
-        actions: [
-          if (onRetry != null)
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                onRetry();
-              },
-              child: const Text('Retry'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+      );
+          } catch (e, stackTrace) {
+        Logger.e('Error in async operation', 
+                tag: 'ErrorHandler', 
+                error: e, 
+                stackTrace: stackTrace);
+      // Handle error gracefully
+    }
   }
   
   /// Get a user-friendly error message for Firebase Auth errors

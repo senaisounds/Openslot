@@ -38,20 +38,38 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   /// Default authentication action if none provided
   Future<void> _defaultAuthAction(BuildContext context, bool isSignUp, VoidCallback onComplete) async {
-    // Default implementation just completes the callback
-    onComplete();
+    try {
+      // Default implementation just completes the callback
+      onComplete();
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Handle error gracefully
+    }
   }
   
   /// Default reservation action if none provided
   Future<void> _defaultReserveAction(event_class.Event event, SlottedUser slottedUser) async {
-    // Default empty implementation
-    Logger.d('Default reserve action called for event: ${event.id}', tag: 'Home_page');
+    try {
+      // Default empty implementation
+      Logger.d('Default reserve action called for event: ${event.id}', tag: 'Home_page');
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Handle error gracefully
+    }
   }
   
   /// Default delete event action if none provided
   Future<void> _defaultDeleteEvent(String eventId) async {
-    // Default empty implementation
-    Logger.d('Default delete action called for event: $eventId', tag: 'Home_page');
+    try {
+      // Default empty implementation
+      Logger.d('Default delete action called for event: $eventId', tag: 'Home_page');
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Handle error gracefully
+    }
   }
   
   @override

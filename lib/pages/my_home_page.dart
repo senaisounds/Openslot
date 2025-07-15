@@ -17,10 +17,10 @@ import 'package:slotted/pages/live.dart';
 import 'package:slotted/pages/event_details.dart';
 import 'package:flutter/services.dart';
 
-import 'package:device_calendar/device_calendar.dart' as DeviceCalendar;
-import 'package:timezone/timezone.dart' as tz;
+
+
 import 'package:maps_launcher/maps_launcher.dart';
-import 'package:slotted/pages/notifications_page.dart' hide kAccentColor, kBackgroundDark, kPrimaryColor, kBackgroundLight, kHighlightColor;
+
 import 'package:slotted/pages/profile_page.dart';
 import 'package:slotted/pages/my_events.dart';
 import 'package:slotted/pages/events_map_page.dart' hide kPrimaryColor, kSecondaryColor, kAccentColor, kHighlightColor, kBackgroundDark, kBackgroundLight;
@@ -34,7 +34,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:slotted/common/city_data.dart';
 import 'package:slotted/widgets/enhanced_event_card.dart';
 import 'package:slotted/widgets/moving_background.dart';
-import 'package:slotted/common/responsive_system.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
 class MyHomePage extends StatefulWidget {
   final User? user;
@@ -210,7 +209,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   int _currentTutorialStep = 0;
   final List<Map<String, dynamic>> _tutorialSteps = [
     {
-      'title': 'Welcome to Slotted!',
+      'title': 'Welcome to OpenSlot!',
       'description': 'Your personal event discovery platform. Let\'s take a quick tour to help you get started!',
     },
     {
@@ -231,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     },
     {
       'title': 'You\'re All Set!',
-      'description': 'Now you\'re ready to discover and join amazing events. Enjoy using Slotted!',
+      'description': 'Now you\'re ready to discover and join amazing events. Enjoy using OpenSlot!',
     },
   ];
 
@@ -262,31 +261,16 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   // Location filter state
   bool _showLocationFilter = false;
   String _selectedDistanceFilter = 'All';
-  final List<String> _distanceOptions = ['All', '5 km', '10 km', '25 km', '50 km', '100 km'];
+  final List<String> _distanceOptions = ['All', '5 mi', '10 mi', '25 mi', '50 mi', '100 mi'];
   LatLng _currentPosition = const LatLng(40.7128, -74.0060); // Default to NYC
   
   // Dynamic title tracking
-  String _currentSectionTitle = 'Slotted';
+  String _currentSectionTitle = 'OpenSlot';
 // Initialize animation controllers and animations
   late AnimationController _gradientController;
-  late Animation<double> _gradientAnimation;
   late AnimationController _navAnimationController;  // Add separate controller for nav animations
 
-  late final Animation<double> _colorAnimation = CurvedAnimation(
-    parent: _gradientController,
-    curve: Curves.easeInOut,
-  ).drive(Tween<double>(
-    begin: 0.0,
-    end: 1.0,
-  ));
 
-  late final Animation<double> _waveAnimation = CurvedAnimation(
-    parent: _gradientController,
-    curve: Curves.linear,
-  ).drive(Tween<double>(
-    begin: 0.0,
-    end: 2 * math.pi,
-  ));
 
   // Initialize Firestore early
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -318,7 +302,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
               padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
               onPressed: () {
                 node.unfocus();
-                setState(() {});
+                if (mounted) setState(() {});
               },
               child: const Text(
                 'Done',
@@ -393,7 +377,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
 
       // Get current position
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       if (mounted) {
@@ -424,9 +410,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
       systemNavigationBarIconBrightness: Brightness.light,
     ));
 
-    // Initialize controllers
-    _pageController = PageController();
-    
     // Initialize animation controllers
     _gradientController = AnimationController(
       duration: const Duration(milliseconds: 2000),
@@ -438,14 +421,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
       vsync: this,
     )..repeat(reverse: true);
 
-    // Initialize gradient animation
-    _gradientAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _gradientController,
-      curve: Curves.easeInOut,
-    ));
+
 
     // Initialize scroll controller with optimized debounced updates
     eventsScrollController.addListener(() {
@@ -485,7 +461,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
         } else if (currentScrollPosition >= todayThreshold) {
           newTitle = 'Today';
         } else {
-          newTitle = 'Slotted';
+          newTitle = 'OpenSlot';
         }
         
         if (newTitle != _currentSectionTitle) {
@@ -556,7 +532,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     // Initialize location
     _initializeLocation();
     
-    // Initialize page controller
+    // Initialize page controller EARLY to prevent lookup failures
     _pageController = PageController(initialPage: 0);
     
     // Only start animations if not in test mode
@@ -647,15 +623,23 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     _slideshowTimer?.cancel();
     _slideshowTimer = Timer(const Duration(seconds: 5), () {
       if (mounted && _pageController.hasClients) {
-        setState(() {
-          _currentPage = (_currentPage + 1) % _slideshowImages.length;
+        try {
+          setState(() {
+            _currentPage = (_currentPage + 1) % _slideshowImages.length;
+          });
           _pageController.animateToPage(
             _currentPage,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
           );
-        });
-        _startSlideshow();
+          _startSlideshow();
+        } catch (e) {
+          Logger.e('Error in slideshow animation: $e', tag: 'MyHomePage');
+          // Restart slideshow after error
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) _startSlideshow();
+          });
+        }
       }
     });
   }
@@ -719,8 +703,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
         Logger.d('Total events before location filter: ${events.length}', tag: 'My_home_page');
         
         // For all cities, use the standard distance-based filtering
-        // Filter events within roughly 50km of the city center
-        const double maxDistance = 50.0; // kilometers
+        // Filter events within roughly 50mi of the city center
+        const double maxDistance = 50.0; // miles
         locationFilteredEvents = events.where((event) {
           // Skip events with invalid coordinates (0,0)
           if (event.location.latitude == 0 && event.location.longitude == 0) {
@@ -749,7 +733,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
           Logger.d('Event: ${event.name}', tag: 'My_home_page');
           Logger.d('  Location: (${event.location.latitude}, ${event.location.longitude})', tag: 'My_home_page');
           Logger.d('  Address: ${event.address}', tag: 'My_home_page');
-          Logger.d('  Distance from city center: ${distance.toStringAsFixed(2)}km', tag: 'My_home_page');
+          Logger.d('  Distance from city center: ${distance.toStringAsFixed(2)}mi', tag: 'My_home_page');
           Logger.d('  Address match: $addressMatch', tag: 'My_home_page');
           Logger.d('  City search term: $citySearchTerm', tag: 'My_home_page');
           Logger.d('  Will include event: ${distance <= maxDistance || addressMatch}', tag: 'My_home_page');
@@ -771,8 +755,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     if (hasDistanceFilter) {
       Logger.d('Applying distance filter: $_selectedDistanceFilter', tag: 'My_home_page');
       
-      // Parse the selected distance (e.g., "5 km" -> 5.0)
-      final maxDistanceKm = double.tryParse(_selectedDistanceFilter.split(' ')[0]) ?? 50.0;
+      // Parse the selected distance (e.g., "5 mi" -> 5.0)
+      final maxDistanceMi = double.tryParse(_selectedDistanceFilter.split(' ')[0]) ?? 50.0;
       
       distanceFilteredEvents = events.where((event) {
         // Skip events with invalid coordinates (0,0)
@@ -790,11 +774,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
         );
         
         Logger.d('Event: ${event.name}', tag: 'My_home_page');
-        Logger.d('  Distance from current location: ${distance.toStringAsFixed(2)}km', tag: 'My_home_page');
-        Logger.d('  Max distance: ${maxDistanceKm}km', tag: 'My_home_page');
-        Logger.d('  Will include: ${distance <= maxDistanceKm}', tag: 'My_home_page');
+        Logger.d('  Distance from current location: ${distance.toStringAsFixed(2)}mi', tag: 'My_home_page');
+        Logger.d('  Max distance: ${maxDistanceMi}mi', tag: 'My_home_page');
+        Logger.d('  Will include: ${distance <= maxDistanceMi}', tag: 'My_home_page');
         
-        return distance <= maxDistanceKm;
+        return distance <= maxDistanceMi;
       }).toList();
       
       Logger.d('Events after distance filter: ${distanceFilteredEvents.length}', tag: 'My_home_page');
@@ -916,7 +900,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   }
 
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    const double earthRadius = 6371.0; // Earth's radius in kilometers
+    const double earthRadius = 3959.0; // Earth's radius in miles
     final double dLat = _toRadians(lat2 - lat1);
     final double dLon = _toRadians(lon2 - lon1);
     
@@ -1542,12 +1526,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                               ),
                             ),
                             const SizedBox(height: 8),
-                            CupertinoButton(
-                              onPressed: () {
-                                setState(() {});
-                              },
-                              child: const Text('Try Again'),
-                            ),
+                                                            CupertinoButton(
+                                  onPressed: () {
+                                    if (mounted) setState(() {});
+                                  },
+                                  child: const Text('Try Again'),
+                                ),
                           ],
                         ),
                       );
@@ -1592,7 +1576,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                                 const SizedBox(height: 8),
                                 CupertinoButton(
                                   onPressed: () {
-                                    setState(() {});
+                                    if (mounted) setState(() {});
                                   },
                                   child: const Text('Try Again'),
                                 ),
@@ -1781,7 +1765,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                         ),
                       ),
                       Text(
-                        'Discover events near you',
+                        'Find your next open slot',
                         style: TextStyle(
                           fontSize: 12, // Slightly reduced font size
                           color: kBackgroundLight.withValues(alpha: 0.7),
@@ -2171,12 +2155,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                 builder: (context, fadeValue, child) {
                   return Opacity(
                     opacity: fadeValue,
-                                          child: StatefulBuilder(
-                        builder: (context, setState) {
-                          bool isHovered = false;
-                          return MouseRegion(
-                            onEnter: (_) => setState(() => isHovered = true),
-                            onExit: (_) => setState(() => isHovered = false),
                           child: EnhancedEventCard(
                         event: event,
                         currentUser: slottedUser,
@@ -2184,9 +2162,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                         onShare: () => _handleQuickShare(event),
                         onSave: () => _handleQuickSave(event),
                         onReserve: slottedUser != null ? (event) => widget.reserveAction(event, slottedUser) : null,
-                      ),
-                        );
-                      },
                     ),
                   );
                 },
@@ -2198,591 +2173,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     );
   }
 
-  Widget _buildEventContainer(EventClass.Event event, SlottedUser? slottedUser, double hoverValue) {
-    // Get category colors
-    final categoryColor = eventCategoryColors[event.category] ?? kPrimary;
-    
-    return Center( // Added Center widget to center the container
-      child: Container(
-        width: context.layout.maxContentWidth < MediaQuery.of(context).size.width 
-            ? context.layout.maxContentWidth // Use responsive max width
-            : null, // Let it fill available width with margins
-        margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: context.watch<ThemeProvider>().isDarkMode
-              ? kBackgroundDark.withValues(alpha: 0.7)
-              : CupertinoColors.white,
-          borderRadius: BorderRadius.circular(kBorderRadiusLarge),
-          border: Border.all(
-            color: categoryColor.withValues(alpha: 0.2),
-            width: 1.5,
-          ),
-          boxShadow: [
-            // Primary shadow for depth
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08 + (0.04 * hoverValue)),
-              blurRadius: 16 + (8 * hoverValue),
-              offset: Offset(0, 4 + (2 * hoverValue)),
-              spreadRadius: 0,
-            ),
-            // Secondary shadow for softness
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04 + (0.02 * hoverValue)),
-              blurRadius: 8 + (4 * hoverValue),
-              offset: Offset(0, 2 + (1 * hoverValue)),
-              spreadRadius: 0,
-            ),
-            // Category-colored accent shadow
-            BoxShadow(
-              color: categoryColor.withValues(alpha: 0.06 + (0.04 * hoverValue)),
-              blurRadius: 12 + (6 * hoverValue),
-              offset: Offset(0, 6 + (3 * hoverValue)),
-              spreadRadius: -2,
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(kBorderRadiusLarge),
-            onTap: () => _navigateToEventDetails(event),
-            child: Stack(
-              children: [
-                // Event cover image if available
-                if (event.coverUrl.isNotEmpty)
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(kBorderRadiusLarge),
-                      child: CachedNetworkImage(
-                        imageUrl: event.coverUrl,
-                        fit: BoxFit.cover,
-                        color: kBackgroundDark.withValues(alpha: 0.7),
-                        colorBlendMode: BlendMode.darken,
-                        memCacheWidth: 400,  // Optimize memory usage
-                        memCacheHeight: 240, // 400x240 for 16:9 aspect ratio
-                      ),
-                    ),
-                  ),
-                // Decorative accent
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(kBorderRadiusLarge),
-                    ),
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
-                          colors: [
-                            categoryColor.withValues(alpha: 0.15),
-                            categoryColor.withValues(alpha: 0.05),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.5, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Main content
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top section with category, price, and key status
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Left side: Category and Price
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildEventCategory(event),
-                              const SizedBox(height: 8),
-                              // Price badge - more prominent
-                                Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                  color: event.price > 0 
-                                      ? kPrimary.withValues(alpha: 0.9)
-                                      : CupertinoColors.systemGreen.withValues(alpha: 0.9),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: (event.price > 0 ? kPrimary : CupertinoColors.systemGreen)
-                                            .withValues(alpha: 0.25),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.1),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                child: Text(
-                                  event.price > 0 ? '\$${event.price.toStringAsFixed(0)}' : 'FREE',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.5,
-                                  ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          
-                          // Right side: Date and primary status only
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                              _buildDateCard(event),
-                              const SizedBox(height: 8),
-                              // Show only the most critical status
-                              if (event.live)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: CupertinoColors.systemRed.withValues(alpha: 0.9),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const LiveIndicator(),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'LIVE',
-                                        style: TextStyle(
-                                          color: CupertinoColors.white.withValues(alpha: 0.95),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              if (!event.live && event.isFull)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: CupertinoColors.destructiveRed.withValues(alpha: 0.9),
-                                    borderRadius: BorderRadius.circular(8),
-                                      ),
-                                  child: Text(
-                                        'SOLD OUT',
-                                        style: TextStyle(
-                                      color: CupertinoColors.white.withValues(alpha: 0.95),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                ),
-                              if (!event.live && !event.isFull && event.attendees.length >= event.capacity * 0.8)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: CupertinoColors.systemOrange.withValues(alpha: 0.9),
-                                    borderRadius: BorderRadius.circular(8),
-                                      ),
-                                  child: Text(
-                                    'FILLING UP',
-                                        style: TextStyle(
-                                      color: CupertinoColors.white.withValues(alpha: 0.95),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.3,
-                                        ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // Event title - improved typography
-                      Text(
-                                    event.name,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                          fontSize: 20, // Larger font
-                          fontWeight: FontWeight.w700, // Bolder weight
-                                      letterSpacing: -0.5,
-                                      height: 1.2,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Host info - improved design
-                      Row(
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: categoryColor.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 3,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              CupertinoIcons.person_fill,
-                              size: 16,
-                              color: categoryColor,
-                            ),
-                      ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Hosted by ${event.hostName}',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                                            const SizedBox(height: 12),
-                      
-                                              // Time and location in one clean container
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: categoryColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: categoryColor.withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        child: Column(
-                          children: [
-                            // Time row
-                            Row(
-                              children: [
-                                Icon(
-                                  CupertinoIcons.clock_fill,
-                                  size: 18,
-                                  color: categoryColor,
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  DateFormat('h:mm a').format(event.date),
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: categoryColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    event.timeLimit > 0 ? '${(event.timeLimit / 60).toStringAsFixed(1)}h' : '1h',
-                                    style: TextStyle(
-                                      color: categoryColor,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                          ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            // Location row
-                            Row(
-                          children: [
-                            Icon(
-                              CupertinoIcons.location_solid,
-                                  size: 18,
-                              color: categoryColor,
-                            ),
-                                const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                event.address,
-                                style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.9),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            CupertinoButton(
-                                  padding: EdgeInsets.zero,
-                              onPressed: () {
-                                HapticFeedback.selectionClick();
-                                MapsLauncher.launchQuery(event.address);
-                              },
-                              child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                      color: categoryColor.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  CupertinoIcons.map_fill,
-                                      size: 18,
-                                  color: categoryColor,
-                                ),
-                              ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Capacity progress bar
-                      if (!event.ended && event.capacity > 0) ...[
-                        const SizedBox(height: 8),
-                                                                            Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: kPrimary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: kPrimary.withValues(alpha: 0.2),
-                                width: 1.0,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 3,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Capacity',
-                                    style: TextStyle(
-                                      color: kBackgroundLight.withValues(alpha: 0.9),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${event.attendees.length}/${event.capacity}',
-                                    style: TextStyle(
-                                      color: kBackgroundLight.withValues(alpha: 0.7),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: event.attendees.length / event.capacity,
-                                  backgroundColor: kPrimary.withValues(alpha: 0.2),
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    event.attendees.length >= event.capacity * 0.8
-                                        ? CupertinoColors.systemOrange
-                                        : categoryColor,
-                                  ),
-                                  minHeight: 4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Quick action buttons row
-                      _buildQuickActionButtons(event, categoryColor),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // Bottom section - attendees and primary action
-                      Row(
-                        children: [
-                          // Attendee avatars with +N count
-                          if (event.attendees.isNotEmpty) 
-                            _buildCompactAttendeesAvatars(event)
-                          else
-                            // Show placeholder avatars for testing
-                            _buildTestAttendeesAvatars(),
-                          const Spacer(),
-                          // Primary action button - more prominent
-                          _buildPrimaryActionButton(event, slottedUser, categoryColor),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  
 
   // Improved event card helper methods
-  Widget _buildTestAttendeesAvatars() {
-    return SizedBox(
-      width: 88, // 3 avatars * 20 + 28
-      height: 28,
-      child: Stack(
-        children: [
-          // First avatar
-          Positioned(
-            left: 0,
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: kPrimary.withValues(alpha: 0.8),
-                border: Border.all(color: Colors.white, width: 2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                CupertinoIcons.person_fill,
-                size: 16,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          // Second avatar
-          Positioned(
-            left: 20,
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: kSecondary.withValues(alpha: 0.8),
-                border: Border.all(color: Colors.white, width: 2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                CupertinoIcons.person_fill,
-                size: 16,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          // Third avatar with count
-          Positioned(
-            left: 40,
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: kAccent.withValues(alpha: 0.8),
-                border: Border.all(color: Colors.white, width: 2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Center(
-                child: Text(
-                  '+5',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
-  Widget _buildCompactAttendeesAvatars(EventClass.Event event) {
-    final displayAttendeeIds = event.attendees.take(3).toList();
-    final totalAvatars = event.attendees.length > 3 ? 4 : displayAttendeeIds.length;
-    final stackWidth = totalAvatars > 0 ? (totalAvatars - 1) * 20.0 + 28.0 : 28.0;
-    
-    return SizedBox(
-      width: stackWidth,
-      height: 28,
-      child: Stack(
-        children: [
-          ...displayAttendeeIds.asMap().entries.map((entry) {
-            final index = entry.key;
-            final attendeeId = entry.value;
-            
-            return Positioned(
-              left: index * 20.0, // Use positioning instead of negative margins
-              child: _buildCompactAttendeeAvatar(attendeeId),
-            );
-          }),
-          if (event.attendees.length > 3) ...[
-            Positioned(
-              left: 3 * 20.0, // Position the "+X" avatar
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: kPrimary.withValues(alpha: 0.8),
-                  border: Border.all(color: Colors.white, width: 2),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Text(
-                    '+${event.attendees.length - 3}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
   Widget _buildCompactAttendeeAvatar(String attendeeId) {
     return FutureBuilder<DocumentSnapshot>(
@@ -3931,7 +3326,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
       builder: (BuildContext context) {
         // Auto-dismiss after 2 seconds
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted && Navigator.of(context).canPop()) {
+          if (mounted && context.mounted && Navigator.of(context).canPop()) {
             Navigator.of(context).pop();
           }
         });
@@ -3965,79 +3360,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     );
   }
 
-  // Helper method to format duration
-  String _formatDuration(int minutes) {
-    final hours = minutes ~/ 60;
-    final mins = minutes % 60;
-    
-    if (hours > 0) {
-      return mins > 0 ? '${hours}h ${mins}m' : '${hours}h';
-    } else {
-      return '${mins}m';
-    }
-  }
 
-  Widget _buildEventCategory(EventClass.Event event) {
-    final rawCategory = event.category.toUpperCase();
-    final categoryColor = eventCategoryColors[rawCategory] ?? kPrimary;
-    final emoji = _getCategoryEmoji(rawCategory);
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8, // Reduced from 12
-        vertical: 4, // Reduced from 6
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            categoryColor,
-            categoryColor.withValues(alpha: 0.8),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(8), // Reduced from kBorderRadiusLarge
-        border: Border.all(
-          color: categoryColor.withValues(alpha: 0.5),
-          width: 1.0, // Reduced from 1.5
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: categoryColor.withValues(alpha: 0.2),
-            blurRadius: 4, // Reduced from 8
-            offset: const Offset(0, 1), // Reduced from 2
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _getCategoryIcon(event.category),
-            size: 12, // Reduced from 14
-            color: kBackgroundLight,
-          ),
-          const SizedBox(width: 4), // Reduced from 6
-          Text(
-            event.category.toUpperCase(),
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: kBackgroundLight,
-              fontSize: 11, // Reduced from 13
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(width: 2), // Reduced from 4
-          Text(
-            emoji,
-            style: const TextStyle(
-              fontSize: 12, // Reduced from 14
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
+  
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
@@ -4054,79 +3379,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     }
   }
 
-  Widget _buildDateCard(EventClass.Event event) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = DateTime(today.year, today.month, today.day + 1);
-    final eventDate = event.date;
-    
-    String monthShort = '';
-    String dayNum = '';
-    String dayName = '';
-    
-    // Format the date components
-    final month = eventDate.month;
-    final monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    final dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    
-    monthShort = monthNames[month - 1];
-    dayNum = eventDate.day.toString();
-    
-    // Get day name (e.g., MON, TUE)
-    final weekday = eventDate.weekday; // 1 = Monday, 7 = Sunday
-    dayName = dayNames[weekday - 1];
-    
-    // Check if it's today or tomorrow
-    final eventDateOnly = DateTime(eventDate.year, eventDate.month, eventDate.day);
-    if (eventDateOnly.isAtSameMomentAs(today)) {
-      dayName = 'TODAY';
-    } else if (eventDateOnly.isAtSameMomentAs(tomorrow)) {
-      dayName = 'TOMORROW';
-    }
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // Reduced padding
-      decoration: BoxDecoration(
-        color: kPrimary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12), // Reduced from kBorderRadiusLarge
-        border: Border.all(
-          color: kPrimary.withValues(alpha: 0.2),
-          width: 1.0,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            monthShort,
-            style: TextStyle(
-              color: kBackgroundLight.withValues(alpha: 0.7),
-              fontSize: 12, // Reduced from default
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 2), // Reduced spacing
-          Text(
-            dayNum,
-            style: const TextStyle(
-              color: kBackgroundLight,
-              fontSize: 16, // Reduced from default
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 2), // Reduced spacing
-          Text(
-            dayName,
-            style: TextStyle(
-              color: kBackgroundLight.withValues(alpha: 0.7),
-              fontSize: 10, // Reduced from default
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   void _navigateToEventDetails(EventClass.Event event) {
     // Navigate to event details page
@@ -4265,60 +3518,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     );
   }
 
-  Widget _buildProfileIcon({bool isSelected = false}) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: widget.user == null
-          ? null
-          : FirebaseFirestore.instance.doc('users/${widget.user!.uid}').snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || widget.user == null) {
-          return Icon(
-            isSelected ? CupertinoIcons.person_fill : CupertinoIcons.person,
-            size: 24,
-          );
-        }
-        
-        final user = SlottedUser.fromDocument(snapshot.data!);
-        if (user.photoUrl.isEmpty) {
-          return Icon(
-            isSelected ? CupertinoIcons.person_fill : CupertinoIcons.person,
-            size: 24,
-          );
-        }
 
-        return Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isSelected
-                  ? context.watch<ThemeProvider>().primaryColor
-                  : context.watch<ThemeProvider>().isDarkMode
-                      ? kBackgroundDark.withValues(alpha: 0.5)
-                      : CupertinoColors.white,
-              width: isSelected ? 1.5 : 1,
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: user.photoUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Icon(
-                isSelected ? CupertinoIcons.person_fill : CupertinoIcons.person,
-                size: 24,
-              ),
-              errorWidget: (context, url, error) => Icon(
-                isSelected ? CupertinoIcons.person_fill : CupertinoIcons.person,
-                size: 24,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -4531,67 +3731,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     return events;
   }
 
-  Widget _buildAttendeeAvatar(String attendeeId) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .doc('users/$attendeeId')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return _buildAvatarPlaceholder();
-        }
+  
 
-        final user = SlottedUser.fromDocument(snapshot.data!);
-        return Container(
-          width: 40,
-          height: 40,
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: kBackgroundLight.withValues(alpha: 0.3),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: kPrimary.withValues(alpha: 0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: user.photoUrl.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: user.photoUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => _buildAvatarPlaceholder(),
-                    errorWidget: (context, url, error) => _buildAvatarPlaceholder(),
-                  )
-                : _buildAvatarPlaceholder(),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAvatarPlaceholder() {
-    return Container(
-      width: 40,
-      height: 40,
-      margin: const EdgeInsets.only(right: 8),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: kPrimary.withValues(alpha: 0.1),
-      ),
-      child: Icon(
-        CupertinoIcons.person_fill,
-        size: 20,
-        color: kPrimary.withValues(alpha: 0.5),
-      ),
-    );
-  }
+  
 
   // Add this new method to show a notification when no events are found
   void _showNoEventsNotification(String city) {
@@ -4685,197 +3827,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     });
   }
 
-  // Method to provide a light haptic feedback for UI interactions
-  void _lightHapticFeedback() {
-    HapticFeedback.lightImpact();
-  }
 
-  // Method to provide medium haptic feedback for more significant actions
-  void _mediumHapticFeedback() {
-    HapticFeedback.mediumImpact();
-  }
 
   // Add this method to handle favoriting an event with animation and feedback
-  void _handleDoubleTapToFavorite(EventClass.Event event, BuildContext itemContext) {
-    _mediumHapticFeedback();
-    
-    // Add favorite logic here
-    // event.isFavorite = !event.isFavorite;
-    
-    // Show a heart animation overlay
-    final RenderBox box = itemContext.findRenderObject() as RenderBox;
-    final position = box.localToGlobal(Offset.zero);
-    final size = box.size;
 
-    final OverlayState overlayState = Overlay.of(context);
-    OverlayEntry? overlayEntry;
-    
-    overlayEntry = OverlayEntry(
-      builder: (context) {
-        return Positioned(
-          left: position.dx + size.width / 2 - 40,
-          top: position.dy + size.height / 2 - 40,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.elasticOut,
-            builder: (context, value, child) {
-              return Transform.scale(
-                scale: value,
-                child: Opacity(
-                  opacity: 2.0 - value * 2.0, // Fade out as animation progresses past 0.5
-                  child: const Icon(
-                    CupertinoIcons.heart_fill,
-                    color: CupertinoColors.systemRed,
-                    size: 80,
-                  ),
-                ),
-              );
-            },
-            onEnd: () {
-              overlayEntry?.remove();
-            },
-          ),
-        );
-      },
-    );
-    
-    overlayState.insert(overlayEntry);
-    
-    // You would also update your database or state here
-    setState(() {
-      // Update your state
-    });
-  }
 
-  // Method to add long-press preview feature
-  void _showEventPreview(EventClass.Event event, BuildContext itemContext) {
-    _lightHapticFeedback();
-    
-    final RenderBox box = itemContext.findRenderObject() as RenderBox;
-    final position = box.localToGlobal(Offset.zero);
-    final size = box.size;
-    
-    final OverlayState overlayState = Overlay.of(context);
-    OverlayEntry? overlayEntry;
-    
-    overlayEntry = OverlayEntry(
-      builder: (context) {
-        return Positioned(
-          left: position.dx - 20,
-          top: position.dy - 10,
-          width: size.width + 40,
-          height: size.height + 100,
-          child: Material(
-            color: Colors.transparent,
-            child: GestureDetector(
-              onTap: () {
-                overlayEntry?.remove();
-              },
-              child: TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.8, end: 1.0),
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: kBackgroundDark.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: kPrimary.withValues(alpha: 0.2),
-                            blurRadius: 15,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  event.name,
-                                  style: const TextStyle(
-                                    color: CupertinoColors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Quick preview - tap for details",
-                                  style: TextStyle(
-                                    color: CupertinoColors.white.withValues(alpha: 0.7),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                  children: [
-                                    _buildQuickActionButton(
-                                      icon: CupertinoIcons.calendar_badge_plus,
-                                      label: "Reserve",
-                                      onTap: () {
-                                        _mediumHapticFeedback();
-                                        overlayEntry?.remove();
-                                        // Add your reserve logic here
-                                      },
-                                      categoryColor: kPrimary,
-                                    ),
-                                    _buildQuickActionButton(
-                                      icon: CupertinoIcons.heart,
-                                      label: "Favorite",
-                                      onTap: () {
-                                        _lightHapticFeedback();
-                                        overlayEntry?.remove();
-                                        // Add your favorite logic here
-                                      },
-                                      categoryColor: kPrimary,
-                                    ),
-                                    _buildQuickActionButton(
-                                      icon: CupertinoIcons.share,
-                                      label: "Share",
-                                      onTap: () {
-                                        _lightHapticFeedback();
-                                        overlayEntry?.remove();
-                                        // Add your share logic here
-                                      },
-                                      categoryColor: kPrimary,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
-    
-    // Add the overlay
-    overlayState.insert(overlayEntry);
-    
-    // Remove after a short duration
-    Future.delayed(const Duration(seconds: 3), () {
-      if (overlayEntry?.mounted ?? false) {
-        overlayEntry?.remove();
-      }
-    });
-  }
+
 
   // Helper method to get test profile pictures for demonstration
   String? _getTestProfilePicture(String username) {
@@ -4904,17 +3861,7 @@ class ButtonConfig {
   });
 }
 
-class _CustomNavigationDestination {
-  final Widget icon;
-  final Widget selectedIcon;
-  final String label;
 
-  const _CustomNavigationDestination({
-    required this.icon,
-    required this.selectedIcon,
-    required this.label,
-  });
-}
 
 extension StringExtension on String {
   String capitalize() {

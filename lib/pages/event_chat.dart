@@ -8,7 +8,7 @@ import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/utils/logger.dart';
 import 'dart:async';
-import 'dart:math' as math;
+
 
 class EventChatPage extends StatefulWidget {
   const EventChatPage({
@@ -36,9 +36,7 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
   bool _isSending = false;
   bool _isLoadingMore = false;
   bool _hasMoreMessages = true;
-  final Set<String> _typingUsers = {};
-  StreamSubscription<QuerySnapshot>? _messagesSubscription;
-  StreamSubscription<QuerySnapshot>? _typingSubscription;
+  // Unused fields removed for optimization
   Timer? _typingTimer;
 // Pagination
   static const int _messagesPerPage = 20;
@@ -57,7 +55,6 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
     _setupMessageListener();
     // Temporarily disable complex features that might cause issues
   }
-
 
   
   void _initializeAnimations() {
@@ -95,35 +92,6 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
       } else {
         _sendButtonController?.reverse();
         // _updateTypingStatus(false);
-      }
-    });
-  }
-  
-  void _setupTypingListener() {
-    _typingSubscription = FirebaseFirestore.instance
-        .collection('events')
-        .doc(widget.event.id)
-        .collection('typing')
-        .snapshots()
-        .listen((snapshot) {
-      if (mounted) {
-        setState(() {
-          _typingUsers.clear();
-          for (final doc in snapshot.docs) {
-            if (doc.id != widget.user?.uid) {
-              final data = doc.data();
-              final isTyping = data['isTyping'] as bool? ?? false;
-              final lastUpdate = data['lastUpdate'] as Timestamp?;
-              
-              if (isTyping && lastUpdate != null) {
-                final timeDiff = DateTime.now().difference(lastUpdate.toDate());
-                if (timeDiff.inSeconds < 5) {
-                  _typingUsers.add(doc.id);
-                }
-              }
-            }
-          }
-        });
       }
     });
   }
@@ -227,7 +195,7 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || _currentUser == null || _isSending) {
+    if (_messageController.text.trim().isEmpty || _isSending) {
       return;
     }
 
@@ -243,6 +211,24 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
     HapticFeedback.lightImpact();
 
     try {
+      String? senderPhotoUrl = widget.user?.photoURL;
+      String? senderName = widget.user?.displayName ?? 'Unknown';
+      String? senderId = widget.user?.uid;
+
+      // Try to get the latest photoUrl and username from Firestore
+      if (senderId != null) {
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(senderId).get();
+        if (userDoc.exists) {
+          final data = userDoc.data() ?? {};
+          if (data['photoUrl'] != null && (data['photoUrl'] as String).isNotEmpty) {
+            senderPhotoUrl = data['photoUrl'];
+          }
+          if (data['username'] != null && (data['username'] as String).isNotEmpty) {
+            senderName = data['username'];
+          }
+        }
+      }
+
       final messageRef = FirebaseFirestore.instance
           .collection('events')
           .doc(widget.event.id)
@@ -251,9 +237,9 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
           
       await messageRef.set({
         'text': message,
-        'senderId': widget.user!.uid,
-        'senderName': _currentUser!.username,
-        'senderPhotoUrl': _currentUser!.photoUrl,
+        'senderId': senderId,
+        'senderName': senderName,
+        'senderPhotoUrl': senderPhotoUrl ?? '',
         'timestamp': FieldValue.serverTimestamp(),
         'messageId': messageRef.id,
         'edited': false,
@@ -346,86 +332,140 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
   }
 
   Widget _buildMessageList() {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      itemCount: 10, // Placeholder
-      itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            'Message $index',
-            style: const TextStyle(color: Colors.white),
-          ),
-        );
-      },
-    );
-  }
-  
-  Widget _buildTypingIndicator() {
-    if (_typingUsers.isEmpty) return const SizedBox.shrink();
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: CupertinoColors.systemGrey.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedBuilder(
-                  animation: _typingIndicatorController ?? const AlwaysStoppedAnimation(0.0),
-                  builder: (context, child) {
-                    return Row(
-                      children: List.generate(3, (index) {
-                        final delay = index * 0.3;
-                        final animationValue = ((_typingIndicatorController?.value ?? 0.0) - delay).clamp(0.0, 1.0);
-                        final opacity = math.sin(animationValue * math.pi);
-                        
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 1),
-                          child: Opacity(
-                            opacity: 0.3 + (opacity * 0.7),
-                            child: Container(
-                              width: 4,
-                              height: 4,
-                              decoration: const BoxDecoration(
-                                color: CupertinoColors.white,
-                                shape: BoxShape.circle,
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('events')
+          .doc(widget.event.id)
+          .collection('messages')
+          .orderBy('timestamp')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
+        final messages = snapshot.data!.docs;
+        final currentUserId = widget.user?.uid;
+        return ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(16),
+          itemCount: messages.length,
+          itemBuilder: (context, index) {
+            final msg = messages[index].data() as Map<String, dynamic>;
+            final isMe = msg['senderId'] == currentUserId;
+            final senderName = msg['senderName'] ?? 'Unknown';
+            final senderPhotoUrl = msg['senderPhotoUrl'] ?? '';
+            final text = msg['text'] ?? '';
+            final isHost = msg['senderId'] == widget.event.host;
+            // Optionally format timestamp
+            String? timeString;
+            if (msg['timestamp'] != null && msg['timestamp'] is Timestamp) {
+              final dt = (msg['timestamp'] as Timestamp).toDate();
+              timeString = "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+            }
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!isMe) ...[
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundImage: senderPhotoUrl.isNotEmpty ? NetworkImage(senderPhotoUrl) : null,
+                      child: senderPhotoUrl.isEmpty ? const Icon(CupertinoIcons.person, size: 18) : null,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                      children: [
+                        if (!isMe)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                senderName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: CupertinoColors.systemGrey,
+                                ),
+                              ),
+                              if (isHost) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEE7D30), // AppColors.slottedOrange
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'HOST',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isMe
+                                ? AppColors.accent.withValues(alpha: 0.7)
+                                : AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(18),
+                              topRight: const Radius.circular(18),
+                              bottomLeft: Radius.circular(isMe ? 18 : 4),
+                              bottomRight: Radius.circular(isMe ? 4 : 18),
+                            ),
+                          ),
+                          child: Text(
+                            text,
+                            style: TextStyle(
+                              color: isMe ? Colors.white : CupertinoColors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        if (timeString != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, left: 2, right: 2),
+                            child: Text(
+                              timeString,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: CupertinoColors.systemGrey2,
                               ),
                             ),
                           ),
-                        );
-                      }),
-                    );
-                  },
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _typingUsers.length == 1 
-                      ? 'Someone is typing...'
-                      : '${_typingUsers.length} people are typing...',
-                  style: TextStyle(
-                    color: CupertinoColors.white.withValues(alpha: 0.7),
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+                  if (isMe) ...[
+                    const SizedBox(width: 8),
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundImage: widget.user?.photoURL != null && widget.user!.photoURL!.isNotEmpty
+                          ? NetworkImage(widget.user!.photoURL!)
+                          : null,
+                      child: (widget.user?.photoURL == null || widget.user!.photoURL!.isEmpty)
+                          ? const Icon(CupertinoIcons.person, size: 18)
+                          : null,
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -500,22 +540,5 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
     );
   }
 
-  String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
-    final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    final period = dateTime.hour < 12 ? 'AM' : 'PM';
-    final time = '$hour:$minute $period';
-
-    if (messageDate == today) {
-      return 'Today, $time';
-    } else if (messageDate == today.subtract(const Duration(days: 1))) {
-      return 'Yesterday, $time';
-    } else {
-      return '${dateTime.month}/${dateTime.day}/${dateTime.year}, $time';
-    }
-  }
 } 

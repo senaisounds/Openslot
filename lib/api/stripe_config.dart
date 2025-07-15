@@ -13,7 +13,7 @@ class StripeConfig {
   
   /// The publishable key for Stripe in production mode
   static const String livePublishableKey = 
-    'pk_live_YOUR_NEW_LIVE_PUBLISHABLE_KEY';
+    'pk_live_51RMvqtLG1bcPbzSkidplOFw9WRtacYKtwu4JCHQ0ELEO3whKHrKgGQ1GnYyEVNVdue3vlK7fMz386PJsg8uzyLPn00oybarvuz';
   
   /// Get the appropriate publishable key based on debug mode
   static String getPublishableKey(bool isDebug) {

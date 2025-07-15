@@ -182,7 +182,8 @@ class Logger {
     
     // In debug mode, print to console
     if (kDebugMode) {
-      print(logEntry);
+      // Use debugPrint instead of print for better Flutter integration
+      debugPrint(logEntry);
     }
     
     // In production, write to log file
@@ -199,7 +200,7 @@ class Logger {
     _logFile?.writeAsString('$logEntry\n', mode: FileMode.append).catchError((e) {
       // Only log file write errors in debug mode to prevent spam
       if (kDebugMode && _logFile != null) {
-        print('Failed to write to log file: $e');
+        debugPrint('Failed to write to log file: $e');
         // Disable further file logging attempts after first failure
         _logFile = null;
       }

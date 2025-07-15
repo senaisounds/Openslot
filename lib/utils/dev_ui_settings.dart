@@ -1,5 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:slotted/utils/logger.dart';
+
 class DevUISettings {
   static DevUISettings? _instance;
   static DevUISettings get instance => _instance ??= DevUISettings._();
@@ -11,43 +13,51 @@ class DevUISettings {
   bool _loaded = false;
   
   Future<void> loadSettings() async {
-    if (_loaded) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    
-    _cache = {
-      // Particle System
-      'particle_count': prefs.getDouble('dev_particle_count') ?? 105.0,
-      'particle_speed': prefs.getDouble('dev_particle_speed') ?? 0.05,
-      'particle_size': prefs.getDouble('dev_particle_size') ?? 1.0,
-      'particle_opacity': prefs.getDouble('dev_particle_opacity') ?? 0.6,
+    try {
+      if (_loaded) return;
       
-      // Animation Durations
-      'main_duration': prefs.getDouble('dev_main_duration') ?? 300.0,
-      'particle_duration': prefs.getDouble('dev_particle_duration') ?? 250.0,
-      'streak_duration': prefs.getDouble('dev_streak_duration') ?? 200.0,
-      'shape_duration': prefs.getDouble('dev_shape_duration') ?? 180.0,
+      final prefs = await SharedPreferences.getInstance();
       
-      // Streaks
-      'streak_count': prefs.getDouble('dev_streak_count') ?? 14.0,
-      'streak_length': prefs.getDouble('dev_streak_length') ?? 55.0,
-      'streak_opacity': prefs.getDouble('dev_streak_opacity') ?? 0.8,
-      'streak_speed': prefs.getDouble('dev_streak_speed') ?? 0.05,
+      _cache = {
+        // Particle System
+        'particle_count': prefs.getDouble('dev_particle_count') ?? 105.0,
+        'particle_speed': prefs.getDouble('dev_particle_speed') ?? 0.05,
+        'particle_size': prefs.getDouble('dev_particle_size') ?? 1.0,
+        'particle_opacity': prefs.getDouble('dev_particle_opacity') ?? 0.6,
+        
+        // Animation Durations
+        'main_duration': prefs.getDouble('dev_main_duration') ?? 300.0,
+        'particle_duration': prefs.getDouble('dev_particle_duration') ?? 250.0,
+        'streak_duration': prefs.getDouble('dev_streak_duration') ?? 200.0,
+        'shape_duration': prefs.getDouble('dev_shape_duration') ?? 180.0,
+        
+        // Streaks
+        'streak_count': prefs.getDouble('dev_streak_count') ?? 14.0,
+        'streak_length': prefs.getDouble('dev_streak_length') ?? 55.0,
+        'streak_opacity': prefs.getDouble('dev_streak_opacity') ?? 0.8,
+        'streak_speed': prefs.getDouble('dev_streak_speed') ?? 0.05,
+        
+        // Shapes
+        'shape_count': prefs.getDouble('dev_shape_count') ?? 20.0,
+        'shape_size': prefs.getDouble('dev_shape_size') ?? 8.0,
+        'shape_speed': prefs.getDouble('dev_shape_speed') ?? 0.07,
+        'shape_opacity': prefs.getDouble('dev_shape_opacity') ?? 0.7,
+        
+        // Spotlights
+        'spotlight_count': prefs.getDouble('dev_spotlight_count') ?? 6.0,
+        'spotlight_size': prefs.getDouble('dev_spotlight_size') ?? 0.35,
+        'spotlight_speed': prefs.getDouble('dev_spotlight_speed') ?? 0.05,
+        'spotlight_opacity': prefs.getDouble('dev_spotlight_opacity') ?? 0.7,
+      };
       
-      // Shapes
-      'shape_count': prefs.getDouble('dev_shape_count') ?? 20.0,
-      'shape_size': prefs.getDouble('dev_shape_size') ?? 8.0,
-      'shape_speed': prefs.getDouble('dev_shape_speed') ?? 0.07,
-      'shape_opacity': prefs.getDouble('dev_shape_opacity') ?? 0.7,
-      
-      // Spotlights
-      'spotlight_count': prefs.getDouble('dev_spotlight_count') ?? 6.0,
-      'spotlight_size': prefs.getDouble('dev_spotlight_size') ?? 0.35,
-      'spotlight_speed': prefs.getDouble('dev_spotlight_speed') ?? 0.05,
-      'spotlight_opacity': prefs.getDouble('dev_spotlight_opacity') ?? 0.7,
-    };
-    
-    _loaded = true;
+      _loaded = true;
+    } catch (e, stackTrace) {
+      Logger.e('Error in async operation', 
+              tag: 'DevUISettings', 
+              error: e, 
+              stackTrace: stackTrace);
+      // Handle error gracefully
+    }
   }
   
   double get(String key, double defaultValue) {

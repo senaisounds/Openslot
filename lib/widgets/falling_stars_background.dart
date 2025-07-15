@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:slotted/common/colors.dart';
 
 
 enum StarType { star, dot, sparkle }
@@ -213,7 +214,7 @@ class _FallingStarsBackgroundState extends State<FallingStarsBackground>
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.black,
+      color: AppColors.backgroundDark,
       child: AnimatedBuilder(
         animation: _animationController,
         builder: (context, child) {

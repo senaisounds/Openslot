@@ -463,16 +463,31 @@ class AppStyling {
   static const double desktopBreakpoint = 1024;
   
   static bool isMobile(BuildContext context) {
-    return MediaQuery.of(context).size.width < mobileBreakpoint;
+    try {
+      return MediaQuery.of(context).size.width < mobileBreakpoint;
+    } catch (e) {
+      debugPrint('Error in operation: $e');
+      return false; // Default to false if error
+    }
   }
   
   static bool isTablet(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    return width >= mobileBreakpoint && width < desktopBreakpoint;
+    try {
+      final width = MediaQuery.of(context).size.width;
+      return width >= mobileBreakpoint && width < desktopBreakpoint;
+    } catch (e) {
+      debugPrint('Error in operation: $e');
+      return false; // Default to false if error
+    }
   }
   
   static bool isDesktop(BuildContext context) {
-    return MediaQuery.of(context).size.width >= desktopBreakpoint;
+    try {
+      return MediaQuery.of(context).size.width >= desktopBreakpoint;
+    } catch (e) {
+      debugPrint('Error in operation: $e');
+      return false; // Default to false if error
+    }
   }
 }
 

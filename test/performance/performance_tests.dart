@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:slotted/common/event_class.dart';
-import 'package:slotted/common/slotted_user.dart';
 import 'performance_monitor.dart';
 import '../test_setup.dart';
 
@@ -75,7 +74,7 @@ void main() {
         name: 'Test Event $index',
         host: 'host-$index',
         hostName: 'Host $index',
-        date: DateTime.now().add(Duration(hours: index)).toIso8601String(),
+        date: DateTime.now().add(Duration(hours: index)),
         slots: 10 + index,
         price: index * 5.0,
         attendees: [],
@@ -85,7 +84,6 @@ void main() {
         address: '$index Test Street',
         category: 'Music',
         isPrivate: false,
-        location: {'latitude': 40.7128, 'longitude': -74.0060},
       ));
 
       final renderTime = await PerformanceMonitor.measureAsync(
@@ -158,9 +156,9 @@ void main() {
       final inputTime = await PerformanceMonitor.measureAsync(
         'text_input_performance',
         () async {
-          await TestSetup.safeEnterText(tester, find.byController(nameController), 'John Doe');
-          await TestSetup.safeEnterText(tester, find.byController(emailController), 'john.doe@example.com');
-          await TestSetup.safeEnterText(tester, find.byController(bioController), 'This is a test bio with multiple lines.\nSecond line of the bio.');
+          await tester.enterText(find.byType(TextField).first, 'John Doe');
+          await tester.enterText(find.byType(TextField).at(1), 'john.doe@example.com');
+          await tester.enterText(find.byType(TextField).at(2), 'This is a test bio with multiple lines.\nSecond line of the bio.');
         },
       );
 
@@ -304,7 +302,7 @@ void main() {
       print('Batch operation stats: $stats');
     });
 
-    test('Performance thresholds and alerts', () {
+    test('Performance thresholds and alerts', () async {
       final performanceThresholds = {
         'widget_rendering': 100.0, // ms
         'database_query': 500.0,   // ms
@@ -328,8 +326,11 @@ void main() {
         final shouldPass = scenario['shouldPass'] as bool;
         final threshold = performanceThresholds[operation]!;
 
-        // Simulate the measurement
-        PerformanceMonitor._metrics.putIfAbsent(operation, () => []).add(duration);
+        // Simulate the measurement using the public API
+        PerformanceMonitor.startMeasurement(operation);
+        // Simulate work for the specified duration
+        await Future.delayed(Duration(microseconds: (duration * 1000).round()));
+        PerformanceMonitor.endMeasurement(operation);
 
         // Check threshold
         final passesThreshold = duration <= threshold;
@@ -341,8 +342,8 @@ void main() {
       for (final entry in performanceThresholds.entries) {
         final operation = entry.key;
         final threshold = entry.value;
-        final measurements = PerformanceMonitor._metrics[operation] ?? [];
-        final avgDuration = measurements.isEmpty ? 0.0 : measurements.reduce((a, b) => a + b) / measurements.length;
+        final stats = PerformanceMonitor.getStats(operation);
+        final avgDuration = stats?.average ?? 0.0;
         final status = avgDuration <= threshold ? '✅ PASS' : '❌ FAIL';
         print('$operation: ${avgDuration.toStringAsFixed(2)}ms (threshold: ${threshold}ms) $status');
       }

@@ -118,7 +118,7 @@ class ChatStreamOptimizer {
   final StreamController<List<dynamic>> _controller = 
       StreamController<List<dynamic>>.broadcast();
   Timer? _batchTimer;
-  List<dynamic> _pendingMessages = [];
+  final List<dynamic> _pendingMessages = [];
   bool _hasPendingBatch = false;
 
   Stream<List<dynamic>> get stream => _controller.stream;

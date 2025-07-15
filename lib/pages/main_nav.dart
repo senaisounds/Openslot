@@ -4,12 +4,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:slotted/api/stripe.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/common/constants.dart' as constants;
@@ -20,8 +17,8 @@ import 'package:slotted/pages/login_page.dart';
 import 'package:slotted/utils/logger.dart';
 import 'package:slotted/common/private_event_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:slotted/config/environment_config.dart';
 
-import 'package:slotted/common/colors.dart';
 // Animation constants from constants.dart
 const kAnimationDurationLong = constants.kAnimationDurationLong;
 const kAnimationDurationMedium = constants.kAnimationDurationMedium;
@@ -55,8 +52,6 @@ final FocusNode authFocusNode = FocusNode();
   late final List<Widget> tabViews;
 
   final TextEditingController phoneController = TextEditingController();
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final bool _hasCheckedUser = false;
 
   Future<String> reserveAction(
       dynamic paymentIntent, Event event, SlottedUser slottedUser) async {
@@ -288,27 +283,23 @@ final FocusNode authFocusNode = FocusNode();
 
       // Continue with payment and reservation if password verification passed
       if (event.price > 0 && !(isReserved || isWaitlisted)) {
-        paymentIntent = await StripeApi.createPaymentIntent(
-          userId: slottedUser.id,
-          amount: event.price,
-          currency: 'USD',
-          customerId: widget.debug
-              ? slottedUser.testCustomerID
-              : slottedUser.customerID,
+        final clientSecret = await createPaymentIntentOnBackend(
+          amount: (event.price * 100).toInt(),
+          currency: 'usd',
+          customerId: widget.debug ? slottedUser.testCustomerID : slottedUser.customerID,
           debug: widget.debug,
         );
-        final stripeCustomerId = paymentIntent['customer'];
-        final ephemeralKey = await StripeApi.getEphemeralKey(stripeCustomerId,
-            debug: widget.debug);
-
-        await StripeApi.pay(
-            paymentIntent: paymentIntent,
-            customer: stripeCustomerId,
-            ephemeralKey: ephemeralKey,
-            event: event);
+        if (clientSecret == null) throw Exception('No client secret returned');
+        await Stripe.instance.initPaymentSheet(
+          paymentSheetParameters: SetupPaymentSheetParameters(
+            paymentIntentClientSecret: clientSecret,
+            merchantDisplayName: 'OpenSlot',
+          ),
+        );
+        await Stripe.instance.presentPaymentSheet();
       }
 
-      await reserveAction(paymentIntent, event, slottedUser);
+      await reserveAction('', event, slottedUser);
       
       // Show success message
       if (!mounted) return;
@@ -419,7 +410,6 @@ final FocusNode authFocusNode = FocusNode();
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        final loggedIn = snapshot.hasData;
         return CupertinoPageScaffold(
           resizeToAvoidBottomInset: false,
           child: MyHomePage(
@@ -440,18 +430,7 @@ final FocusNode authFocusNode = FocusNode();
     );
   }
 
-  IconData _getHeaderIcon() {
-    switch (titleString) {
-      case 'My Events':
-        return CupertinoIcons.star_circle_fill;
-      case 'Open Slot':
-        return CupertinoIcons.sparkles;
-      case 'Profile':
-        return CupertinoIcons.person_crop_circle_fill;
-      default:
-        return CupertinoIcons.sparkles;
-    }
-  }
+
 
   Future<void> _authAction(BuildContext context, bool loggedIn,
       {Function()? completion}) async {
@@ -499,236 +478,34 @@ final FocusNode authFocusNode = FocusNode();
     }
   }
 
-  Future<void> _adjustTimeLimit(Event event, BuildContext context, String currentTime) async {
-    final timeOptions = [1, 2, 3, 5, 10, 15];
-    int selectedTime = int.tryParse(currentTime) ?? 5;
-    selectedTime = selectedTime == 0 ? 1 : selectedTime;
-    bool isInfinite = event.timeLimit == 0;
 
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.backgroundDark,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: StatefulBuilder(
-          builder: (context, setState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundLight.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        CupertinoIcons.infinite,
-                        color: isInfinite ? AppColors.accent : Colors.grey,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        "Unlimited Time",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: isInfinite ? AppColors.accent : Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  CupertinoSwitch(
-                    value: isInfinite,
-                    activeTrackColor: AppColors.accent,
-                    onChanged: (value) {
-                      setState(() {
-                        isInfinite = value;
-                        if (!isInfinite && selectedTime < 1) {
-                          selectedTime = 5;
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-              if (!isInfinite) ...[
-                const SizedBox(height: 24),
-                Text(
-                  "$selectedTime minutes",
-                  style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: timeOptions.map((time) {
-                    final isSelected = selectedTime == time;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedTime = time;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.accent : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected ? AppColors.accent : Colors.grey.withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: Text(
-                          "$time min",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isSelected ? Colors.black : Colors.white,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 24),
-                SliderTheme(
-                  data: SliderThemeData(
-                    activeTrackColor: AppColors.accent,
-                    inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
-                    thumbColor: AppColors.accent,
-                    trackHeight: 4,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
-                  ),
-                  child: Slider(
-                    min: 1,
-                    max: 30,
-                    divisions: 29,
-                    value: selectedTime.toDouble().clamp(1, 30),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedTime = value.round();
-                      });
-                    },
-                  ),
-                ),
-              ],
-              const SizedBox(height: 30),
-              Row(
-                children: [
-                  Expanded(
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: () async {
-                        try {
-                          final int timeLimit = isInfinite ? 0 : selectedTime;
-                          await _retryOperation(
-                            operation: () => FirebaseFirestore.instance
-                                .doc('events/${event.id}')
-                                .update({
-                                  'timeLimit': timeLimit,
-                                  'performerStart': timeLimit > 0 ? DateTime.now() : null,
-                                }),
-                            operationName: 'Updating time limit',
-                          );
-                          Navigator.of(context).pop();
-                        } catch (e) {
-                          // Handle error
-                        }
-                      },
-                      child: const Text(
-                        'Save',
-                        style: TextStyle(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Future<void> _showErrorDialog(String message, {Function()? retryAction}) async {
-    await showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          if (retryAction != null)
-            CupertinoDialogAction(
-              child: const Text('Retry'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                retryAction();
-              },
-            ),
-        ],
-      ),
-    );
-  }
 
-  Future<T> _retryOperation<T>({
-    required Future<T> Function() operation,
-    required String operationName,
-    int maxRetries = 3,
-    Duration delay = const Duration(seconds: 1),
-  }) async {
-    int attempts = 0;
-    while (true) {
-      try {
-        attempts++;
-        return await operation();
-      } catch (e) {
-        if (attempts >= maxRetries) {
-          Logger.e('Failed $operationName after $attempts attempts: $e', tag: 'Main_nav');
-          rethrow;
-        }
-        await Future.delayed(delay * attempts);
-      }
-    }
+
+
+}
+
+Future<String?> createPaymentIntentOnBackend({
+  required int amount, // in cents
+  required String currency,
+  String? customerId,
+  bool debug = true,
+}) async {
+  final url = '${EnvironmentConfig.apiBaseUrl}/createPaymentIntent';
+  final response = await http.post(
+    Uri.parse(url),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'amount': amount.toString(),
+      'currency': currency,
+      'customerId': customerId,
+      'debug': debug,
+    }),
+  );
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return data['clientSecret'];
+  } else {
+    throw Exception('Failed to create PaymentIntent: \\${response.body}');
   }
 }

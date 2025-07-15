@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import 'package:slotted/common/colors.dart';
 import 'package:slotted/utils/dev_ui_settings.dart';
+import 'package:slotted/utils/logger.dart';
 
 // Particle types
 enum ParticleType {
@@ -94,11 +96,19 @@ class _MovingBackgroundState extends State<MovingBackground>
   }
   
   Future<void> _loadDevSettings() async {
-    await DevUISettings.instance.loadSettings();
-    
-    // Skip controller recreation to maintain smooth animation during hot reload
-    // The default durations are already ultra-slow and work great
-    // This prevents animation stopping during development
+    try {
+      await DevUISettings.instance.loadSettings();
+      
+      // Skip controller recreation to maintain smooth animation during hot reload
+      // The default durations are already ultra-slow and work great
+      // This prevents animation stopping during development
+    } catch (e, stackTrace) {
+      Logger.e('Error in async operation', 
+              tag: 'MovingBackground', 
+              error: e, 
+              stackTrace: stackTrace);
+      // Handle error gracefully
+    }
   }
 
   @override
@@ -139,14 +149,14 @@ class _MovingBackgroundState extends State<MovingBackground>
     // replace expensive 4-controller animation with simple static container
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.black,
+        color: AppColors.backgroundDark,
         // Add subtle gradient for depth without expensive animations
         gradient: RadialGradient(
           center: Alignment(0.3, -0.5),
           radius: 1.5,
           colors: [
-            Color(0xFF1A1A1A), // Slightly lighter center
-            Colors.black,       // Pure black edges
+            AppColors.backgroundMedium, // Slightly lighter center
+            AppColors.backgroundDark,   // Pure black edges
           ],
         ),
       ),

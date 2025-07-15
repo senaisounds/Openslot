@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:slotted/common/event_class.dart' as EventClass;
+import 'package:mockito/mockito.dart';
+import 'package:slotted/common/event_class.dart' as event_class;
 import 'package:slotted/pages/my_home_page.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
@@ -16,7 +17,7 @@ void main() {
   // Currently disabled due to Firebase initialization issues
   group('MyHomePage Widget Tests', () {
     late FakeFirebaseFirestore fakeFirestore;
-    late List<EventClass.Event> testEvents;
+    late List<event_class.Event> testEvents;
     late DateTime now;
     late DateTime today;
     late DateTime tomorrow;
@@ -30,7 +31,7 @@ void main() {
       dayAfterTomorrow = today.add(const Duration(days: 2));
 
       testEvents = [
-        EventClass.Event.empty()
+        event_class.Event.empty()
           ..name = 'Today Event'
           ..date = today
           ..ended = false
@@ -44,7 +45,7 @@ void main() {
           ..live = false
           ..isPrivate = false
           ..location = const LatLng(0, 0),
-        EventClass.Event.empty()
+        event_class.Event.empty()
           ..name = 'Tomorrow Event'
           ..date = tomorrow
           ..ended = false
@@ -58,7 +59,7 @@ void main() {
           ..live = false
           ..isPrivate = false
           ..location = const LatLng(0, 0),
-        EventClass.Event.empty()
+        event_class.Event.empty()
           ..name = 'Upcoming Event'
           ..date = dayAfterTomorrow
           ..ended = false
@@ -72,7 +73,7 @@ void main() {
           ..live = false
           ..isPrivate = false
           ..location = const LatLng(0, 0),
-        EventClass.Event.empty()
+        event_class.Event.empty()
           ..name = 'Ended Event'
           ..date = today.subtract(const Duration(days: 1))
           ..ended = true
@@ -129,7 +130,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
       } catch (e) {
         // If timeout occurs, continue with test
-        print('Pump timeout occurred, continuing test: $e');
+        debugPrint('Pump timeout occurred, continuing test: $e');
       }
     }
 
@@ -138,11 +139,10 @@ void main() {
       await addTestEventsToFirestore();
       await pumpMyHomePage(tester);
 
-      // Debug: Print all Text widgets in the tree
+      // Debug: Find all Text widgets in the tree for debugging
       final texts = tester.allWidgets.whereType<Text>().map((text) => 
         '${text.data}: ${text.style?.fontSize}, ${text.style?.fontWeight}, ${text.style?.color}').toList();
-      print('Found Text widgets:');
-      texts.forEach(print);
+      debugPrint('Found Text widgets: ${texts.length}');
 
       // Find event names with more relaxed criteria
       final todayEvent = find.text('Today Event');
@@ -261,6 +261,9 @@ void main() {
       // Create a mock user
       final mockUser = MockUser();
       
+      // Use the mock user to avoid unused variable warning
+      when(mockUser.uid).thenReturn('test-user-id');
+      
       // Pump the widget with the mock user
       await tester.pumpWidget(
         MediaQuery(
@@ -273,7 +276,7 @@ void main() {
               reserveAction: (event, user) async {
                 // Simulate successful reservation by updating the event in Firestore
                 final eventDoc = fakeFirestore.collection('events').doc(event.id);
-                final currentEvent = EventClass.Event.fromDocument(await eventDoc.get());
+                final currentEvent = event_class.Event.fromDocument(await eventDoc.get());
                 currentEvent.attendees.add(mockUser.uid);
                 await eventDoc.update(currentEvent.toDocument());
               },
@@ -316,14 +319,8 @@ void main() {
   // BASIC TESTS - These tests don't require Firebase
   // Use these tests for CI/CD pipelines and quick development feedback
   group('Basic MyHomePage Tests', () {
-    late FakeFirebaseFirestore fakeFirestore;
-    late DateTime now;
-    late DateTime today;
-
     setUp(() {
-      fakeFirestore = FakeFirebaseFirestore();
-      now = DateTime.now();
-      today = DateTime(now.year, now.month, now.day, 20, 0); // 8 PM today
+      // Basic setup for simple tests that don't require complex mocking
     });
 
     // Create a wrapper widget that provides the necessary mocks

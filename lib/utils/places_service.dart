@@ -105,17 +105,29 @@ abstract class PlacesService {
 class MobilePlacesService implements PlacesService {
   @override
   Future<List<PlacePrediction>> searchPlaces(String query) async {
-    // Mobile implementation (could connect to a REST API instead of JS interop)
-    // For now, just return an empty list
-    debugPrint('Mobile implementation of searchPlaces called with: $query');
-    return [];
+    try {
+      // Mobile implementation (could connect to a REST API instead of JS interop)
+      // For now, just return an empty list
+      debugPrint('Mobile implementation of searchPlaces called with: $query');
+      return [];
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return []; // Return empty list on error
+    }
   }
 
   @override
   Future<PlaceDetails?> getPlaceDetails(String placeId) async {
-    // Mobile implementation
-    // For now, just return null
-    debugPrint('Mobile implementation of getPlaceDetails called with: $placeId');
-    return null;
+    try {
+      // Mobile implementation
+      // For now, just return null
+      debugPrint('Mobile implementation of getPlaceDetails called with: $placeId');
+      return null;
+    } catch (e, stackTrace) {
+      debugPrint('Error in async operation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return null; // Return null on error
+    }
   }
 } 

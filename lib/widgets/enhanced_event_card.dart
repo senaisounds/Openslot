@@ -239,7 +239,7 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
       ...baseShadow,
       ...elevatedShadow.map((shadow) => shadow.copyWith(
         color: shadow.color.withAlpha(
-          (shadow.color.alpha * _elevationAnimation.value).round(),
+          (shadow.color.a * _elevationAnimation.value).round(),
         ),
       )),
     ];
@@ -707,8 +707,8 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
 
   /// Build the save button with different visual states for saved/unsaved
   Widget _buildSaveButton() {
-    final buttonSize = widget.isCompact ? 32.0 : 32.0;
-    final iconSize = widget.isCompact ? 16.0 : 16.0;
+    const buttonSize = 32.0;
+    const iconSize = 16.0;
     
     return StatefulBuilder(
       builder: (context, setLocalState) {
@@ -746,7 +746,7 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
                   : isSaved
                     ? Colors.grey.withValues(alpha: 0.4)  // Subtle gray border when saved
                     : Colors.white.withValues(alpha: 0.1),  // Default border
-                width: isPressed ? 2 : (isSaved ? 2 : 1)  // Thicker border when pressed or saved
+                width: isPressed || isSaved ? 2 : 1  // Thicker border when pressed or saved
               ),
               boxShadow: isPressed 
                 ? [
@@ -796,8 +796,8 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final buttonSize = widget.isCompact ? 32.0 : 32.0;
-    final iconSize = widget.isCompact ? 16.0 : 16.0;
+    const buttonSize = 32.0;
+    const iconSize = 16.0;
     
     return StatefulBuilder(
       builder: (context, setState) {
@@ -864,16 +864,16 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
   }
 
   Widget _buildCategoryChip() {
-    final topPadding = widget.isCompact ? AppStyling.spacingLarge : AppStyling.spacingLarge;
-    final leftPadding = widget.isCompact ? AppStyling.spacingLarge : AppStyling.spacingLarge;
-    final iconSize = widget.isCompact ? 12.0 : 12.0;
+    const topPadding = AppStyling.spacingLarge;
+    const leftPadding = AppStyling.spacingLarge;
+    const iconSize = 12.0;
     
     return Positioned(
       top: topPadding,
       left: leftPadding,
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: widget.isCompact ? AppStyling.spacingSmall : AppStyling.spacingSmall,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppStyling.spacingSmall,
           vertical: AppStyling.spacingXSmall,
         ),
         decoration: BoxDecoration(

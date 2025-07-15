@@ -6,7 +6,7 @@ import 'package:slotted/providers/theme_provider.dart';
 import 'package:slotted/pages/settings_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'test_helpers.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('Theme Widget Tests', () {

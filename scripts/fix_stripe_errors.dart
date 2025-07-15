@@ -7,7 +7,7 @@ void main() async {
   try {
     final file = File(stripeApiPath);
     if (!await file.exists()) {
-      print('Error: Stripe API file not found at $stripeApiPath');
+      // Error: Stripe API file not found at $stripeApiPath
       return;
     }
     
@@ -19,7 +19,7 @@ void main() async {
     final matches = patternMatchRegex.allMatches(content);
     
     if (matches.isNotEmpty) {
-      print('Found ${matches.length} string pattern matches in switch statements');
+      // Found ${matches.length} string pattern matches in switch statements
       
       // Check if we need to add the StripeErrorCode enum
       if (!content.contains('enum StripeErrorCode')) {
@@ -49,7 +49,7 @@ enum StripeErrorCode {
                      enumDefinition + 
                      content.substring(endOfClass + 1);
             
-            print('Added StripeErrorCode enum with ${errorCodes.length} values');
+            // Added StripeErrorCode enum with ${errorCodes.length} values
           }
         }
       }
@@ -73,12 +73,12 @@ enum StripeErrorCode {
       );
       
       await file.writeAsString(content);
-      print('Fixed $fixedErrors Stripe error code pattern matching issues');
+      // Fixed $fixedErrors Stripe error code pattern matching issues
     } else {
-      print('No string pattern matches found in switch statements');
+      // No string pattern matches found in switch statements
     }
     
   } catch (e) {
-    print('Error processing Stripe API file: $e');
+    // Error processing Stripe API file: $e
   }
 } 

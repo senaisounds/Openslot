@@ -71,7 +71,7 @@ class Award {
       'icon': _getStringFromIcon(icon),
       'type': type.toString().split('.').last,
       'rarity': rarity.toString().split('.').last,
-      'colors': colors.map((color) => color.value).toList(),
+      'colors': colors.map((color) => color.toARGB32()).toList(),
       'earnedDate': earnedDate?.toIso8601String(),
     };
   }

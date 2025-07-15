@@ -47,8 +47,7 @@ class _AttendeesPageState extends State<AttendeesPage> {
 
   Future<void> _fetchUserData() async {
     for (String performerId in widget.attendees) {
-      final doc =
-          await FirebaseFirestore.instance.doc('users/$performerId').get();
+      final doc = await FirebaseFirestore.instance.doc('users/$performerId').get();
       if (doc.exists) {
         final username = doc.get('username') as String? ?? performerId;
         final photoUrl = doc.get('photoUrl') as String? ?? placeholderImage;
@@ -237,6 +236,7 @@ class _AttendeesPageState extends State<AttendeesPage> {
                                 );
                               } else {
                                 if (!mounted) return;
+                                if (!context.mounted) return;
                                 showCupertinoDialog(
                                   context: context,
                                   builder: (context) => CupertinoAlertDialog(
