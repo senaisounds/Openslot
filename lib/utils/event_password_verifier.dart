@@ -12,7 +12,7 @@ class EventPasswordVerifier {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: {
-          'eventId': eventId,
+          'eventID': eventId,
           'password': password,
         },
       ).timeout(const Duration(seconds: 10));

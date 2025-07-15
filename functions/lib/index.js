@@ -59,17 +59,12 @@ exports.verifyEventPassword = functions.https.onRequest(async (req, res) => {
             res.status(500).send({ error: 'Event has no password set' });
             return;
         }
-        // Compare passwords (both should be URL-encoded)
-        const decodedReceivedPassword = decodeURIComponent(password);
-        const encodedStoredPassword = encodeURIComponent(eventData.password);
-        const encodedReceivedPassword = encodeURIComponent(decodedReceivedPassword);
-        if (encodedStoredPassword !== encodedReceivedPassword) {
+        // Compare passwords directly
+        if (eventData.password !== password) {
             console.error('Invalid password provided for event:', {
                 eventID,
                 storedPassword: eventData.password,
-                receivedPassword: decodedReceivedPassword,
-                encodedStoredPassword,
-                encodedReceivedPassword
+                receivedPassword: password
             });
             res.status(401).send({ error: 'Invalid password' });
             return;

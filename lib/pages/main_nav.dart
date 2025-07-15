@@ -237,7 +237,7 @@ final FocusNode authFocusNode = FocusNode();
             },
             body: {
               'eventID': event.id,
-              'password': Uri.encodeComponent(password),
+              'password': password,
             },
           ).timeout(const Duration(seconds: 10));
 
