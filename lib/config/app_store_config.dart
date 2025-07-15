@@ -10,8 +10,8 @@ class AppStoreConfig {
   // App Store metadata
   static const String description = 'Open Slot - Find and join local events happening near you! Discover, reserve, and join events in your city.';
   static const String keywords = 'events,local,comedy,music,poetry,dj,performances,shows,open mic,entertainment,tickets,live,nearby';
-  static const String supportUrl = 'https://www.openslotapp.com/support';
-  static const String privacyUrl = 'https://www.openslotapp.com/privacy';
+  static const String supportUrl = 'https://openslot.me/support.html';
+  static const String privacyUrl = 'https://openslot.me/privacy.html';
 
   // App Store requirements
   static const String ageRating = '4+';

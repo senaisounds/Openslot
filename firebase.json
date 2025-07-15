@@ -28,12 +28,8 @@
       ],
       "rewrites": [
         {
-          "source": "/flutter-app",
-          "destination": "/flutter-app.html"
-        },
-        {
-          "source": "/flutter-app/**",
-          "destination": "/flutter-app.html"
+          "source": "**",
+          "destination": "/index.html"
         }
       ]
     },
@@ -47,12 +43,8 @@
       ],
       "rewrites": [
         {
-          "source": "/flutter-app",
-          "destination": "/flutter-app.html"
-        },
-        {
-          "source": "/flutter-app/**",
-          "destination": "/flutter-app.html"
+          "source": "**",
+          "destination": "/index.html"
         }
       ]
     },

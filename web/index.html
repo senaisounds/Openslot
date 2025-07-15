@@ -63,6 +63,29 @@
       font-size: 18px;
       font-weight: 500;
     }
+
+    .error-message {
+      color: #ff6b6b;
+      font-size: 16px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .retry-button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .retry-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -76,21 +99,37 @@
   <script src="flutter.js" defer></script>
   <script>
     window.addEventListener('load', function(ev) {
+      // Simple Flutter initialization
       _flutter.loader.loadEntrypoint({
         serviceWorker: {
           serviceWorkerVersion: null,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            return appRunner.runApp();
+          }).then(function() {
+            // Successfully loaded the app
+            document.getElementById('loading').style.display = 'none';
+          }).catch(function(error) {
+            console.error('Failed to run OpenSlot app:', error);
+            showError();
+          });
         }
-      }).then(function(engineInitializer) {
-        return engineInitializer.initializeEngine();
-      }).then(function(appRunner) {
-        return appRunner.runApp();
-      }).then(function() {
-        document.getElementById('loading').style.display = 'none';
       }).catch(function(error) {
-        console.error('Failed to initialize OpenSlot:', error);
-        document.querySelector('.status-message').textContent = 'Loading failed. Please refresh the page.';
+        console.error('Failed to load Flutter entrypoint:', error);
+        showError();
       });
     });
+
+    function showError() {
+      const loadingDiv = document.getElementById('loading');
+      loadingDiv.innerHTML = `
+        <div class="logo">OpenSlot</div>
+        <div class="tagline">Find your next open slot</div>
+        <div class="error-message">Failed to load application</div>
+        <button class="retry-button" onclick="location.reload()">Try Again</button>
+      `;
+    }
   </script>
 </body>
 </html>

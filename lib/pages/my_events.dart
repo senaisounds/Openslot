@@ -92,24 +92,7 @@ class MyEventsPageState extends State<MyEventsPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // Back arrow indicator
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: GestureDetector(
-                                      onTap: () => Navigator.of(context).pop(),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        child: const Icon(
-                                          CupertinoIcons.chevron_left,
-                                          color: CupertinoColors.systemOrange,
-                                          size: 24,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+
                                 if (slottedUser!.isHost) ...[
                                   // Tab Bar Section
                                   Padding(
