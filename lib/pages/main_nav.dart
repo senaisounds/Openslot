@@ -288,13 +288,25 @@ final FocusNode authFocusNode = FocusNode();
 
       // Continue with payment and reservation if password verification passed
       if (event.price > 0 && !(isReserved || isWaitlisted)) {
+        // Log customer ID info for debugging
+        StripeApi.logCustomerIdInfo(slottedUser, widget.debug);
+        
+        // Get customer ID from user data
+        String? customerId = StripeApi.getCustomerIdFromUser(slottedUser, widget.debug);
+        
+        // Ensure customer ID is valid before creating payment intent
+        customerId = await StripeApi.ensureValidCustomerId(customerId, slottedUser.id, widget.debug);
+        
+        // Update user data with valid customer ID
+        await FirebaseFirestore.instance.doc('users/${slottedUser.id}').set({
+          '${widget.debug ? 'testCustomerID' : 'customerID'}': customerId,
+        }, SetOptions(merge: true));
+        
         paymentIntent = await StripeApi.createPaymentIntent(
           userId: slottedUser.id,
           amount: event.price,
           currency: 'USD',
-          customerId: widget.debug
-              ? slottedUser.testCustomerID
-              : slottedUser.customerID,
+          customerId: customerId,
           debug: widget.debug,
         );
         final stripeCustomerId = paymentIntent['customer'];

@@ -218,11 +218,29 @@ class StripeApi {
         throw SlottedStripeError('Currency code is required');
       }
 
-      if (customerId == null) {
+      // Ensure customer ID exists and is valid
+      if (customerId == null || customerId.isEmpty) {
         customerId = await createCustomer(cid: customerId, debug: debug);
         await FirebaseFirestore.instance.doc('users/$userId').set({
-          '${debug ? 'test-' : ''}customerID': customerId,
+          '${debug ? 'testCustomerID' : 'customerID'}': customerId,
         }, SetOptions(merge: true));
+      } else {
+        // Validate existing customer ID by checking if it exists in Stripe
+        try {
+          await http.get(
+            Uri.parse('https://api.stripe.com/v1/customers/$customerId'),
+            headers: {
+              'Authorization': 'Bearer ${getApiKey(debug)}',
+            },
+          ).timeout(const Duration(seconds: 5));
+        } catch (e) {
+          // Customer doesn't exist, create a new one
+          Logger.d('Customer ID $customerId not found in Stripe, creating new customer', tag: 'Stripe');
+          customerId = await createCustomer(cid: null, debug: debug);
+          await FirebaseFirestore.instance.doc('users/$userId').set({
+            '${debug ? 'testCustomerID' : 'customerID'}': customerId,
+          }, SetOptions(merge: true));
+        }
       }
 
       Map<String, dynamic> body = {
@@ -305,5 +323,51 @@ class StripeApi {
       Logger.d('Failed to initialize Stripe: $e', tag: 'Stripe');
       throw SlottedStripeError('Failed to initialize Stripe: ${e.toString()}');
     }
+  }
+
+  // Utility method to ensure customer ID is valid
+  static Future<String> ensureValidCustomerId(String? customerId, String userId, bool debug) async {
+    if (customerId == null || customerId.isEmpty) {
+      Logger.d('No customer ID provided, creating new customer', tag: 'Stripe');
+      return await createCustomer(cid: null, debug: debug);
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.stripe.com/v1/customers/$customerId'),
+        headers: {
+          'Authorization': 'Bearer ${getApiKey(debug)}',
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        Logger.d('Customer ID $customerId is valid', tag: 'Stripe');
+        return customerId;
+      } else {
+        // Customer doesn't exist, create new one
+        Logger.d('Customer ID $customerId not found in Stripe (status: ${response.statusCode}), creating new customer', tag: 'Stripe');
+        return await createCustomer(cid: null, debug: debug);
+      }
+    } catch (e) {
+      // Customer doesn't exist or network error, create new one
+      Logger.d('Error validating customer ID $customerId: $e', tag: 'Stripe');
+      return await createCustomer(cid: null, debug: debug);
+    }
+  }
+
+  // Utility method to get customer ID from user data
+  static String? getCustomerIdFromUser(SlottedUser user, bool debug) {
+    final customerId = debug ? user.testCustomerID : user.customerID;
+    Logger.d('Getting customer ID for user ${user.id} (debug: $debug): $customerId', tag: 'Stripe');
+    return customerId;
+  }
+
+  // Debug method to log customer ID information
+  static void logCustomerIdInfo(SlottedUser user, bool debug) {
+    Logger.d('Customer ID info for user ${user.id}:', tag: 'Stripe');
+    Logger.d('  Debug mode: $debug', tag: 'Stripe');
+    Logger.d('  customerID: ${user.customerID}', tag: 'Stripe');
+    Logger.d('  testCustomerID: ${user.testCustomerID}', tag: 'Stripe');
+    Logger.d('  Selected ID: ${getCustomerIdFromUser(user, debug)}', tag: 'Stripe');
   }
 }

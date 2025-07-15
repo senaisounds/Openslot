@@ -56,7 +56,7 @@ class SlottedUser {
       slottedUser.id = document.id;
       slottedUser.bio = docData['bio'] ?? '';
       slottedUser.customerID = docData['customerID'];
-      slottedUser.testCustomerID = docData['test-customerID'];
+      slottedUser.testCustomerID = docData['testCustomerID'];
       slottedUser.photoUrl = docData['photoUrl'] ?? '';
       slottedUser.instagram = docData['instagram'] ?? '';
       slottedUser.isHost = docData['isHost'] ?? false;
@@ -114,7 +114,7 @@ class SlottedUser {
       'instagram': instagram,
       'isFirstTimer': isFirstTimer,
       'customerID': customerID,
-      'test-customerID': testCustomerID,
+      'testCustomerID': testCustomerID,
       'isHost': isHost,
       'openMics': openMics,
       'pushToken': pushToken,
