@@ -370,111 +370,114 @@ class EditEventPageState extends State<EditEventPage> {
                     ),
                     child: Column(
                 children: <Widget>[
-                  // Event Name Section
+                  // Primary Event Information Group
                   Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                      const DSSectionHeader(
-                        title: 'Event Name',
-                        icon: CupertinoIcons.textformat,
-                        showBorder: false,
-                        padding: EdgeInsets.zero,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Event Name Section
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const DSSectionHeader(
+                            title: 'Event Name',
+                            icon: CupertinoIcons.textformat,
+                            showBorder: false,
+                            padding: EdgeInsets.zero,
+                          ),
+                          LayoutHelpers.sectionSpacing,
+                          _buildTextField(
+                            key: const Key('name_field'),
+                        controller: eventNameController,
+                        focusNode: eventNameNode,
+                            placeholder: 'Give your event a catchy name',
+                        textCapitalization: TextCapitalization.characters,
+                        onChanged: (value) {
+                          setState(() {
+                            eventNameController.text = value.toUpperCase();
+                          });
+                        },
+                          ),
+                        ],
                       ),
-                      LayoutHelpers.sectionSpacing,
-                      Container(
-                        decoration: ComponentStyles.card,
-                        child: _buildTextField(
-                          key: const Key('name_field'),
-                      controller: eventNameController,
-                      focusNode: eventNameNode,
-                          placeholder: 'Give your event a catchy name',
-                      textCapitalization: TextCapitalization.characters,
-                      onChanged: (value) {
-                        setState(() {
-                          eventNameController.text = value.toUpperCase();
-                        });
-                      },
-                        ),
+
+                      LayoutHelpers.mediumSpacing,
+
+                      // Category Selection
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const DSSectionHeader(
+                            title: 'Event Category',
+                            icon: CupertinoIcons.tag,
+                            showBorder: false,
+                            padding: EdgeInsets.zero,
+                          ),
+                          LayoutHelpers.sectionSpacing,
+                          Container(
+                            height: 100,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildEnhancedCategoryBubble('Comedy', '🤣', 'comedy'),
+                                  LayoutHelpers.horizontalSpacingM,
+                                  _buildEnhancedCategoryBubble('DJ', '🎧', 'dj'),
+                                  LayoutHelpers.horizontalSpacingM,
+                                  _buildEnhancedCategoryBubble('Poetry', '✍️', 'poetry'),
+                                  LayoutHelpers.horizontalSpacingM,
+                                  _buildEnhancedCategoryBubble('Music', '🎼', 'music'),
+                                  LayoutHelpers.horizontalSpacingM,
+                                  _buildEnhancedCategoryBubble('Other', '🎭', 'other'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
 
                   LayoutHelpers.largeSpacing,
 
-                  // Category Selection
+                  // Event Details Group
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const DSSectionHeader(
-                        title: 'Event Category',
-                        icon: CupertinoIcons.tag,
-                        showBorder: false,
-                        padding: EdgeInsets.zero,
-                      ),
-                      LayoutHelpers.sectionSpacing,
-                  Container(
-                        height: 120,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                              _buildEnhancedCategoryBubble('Comedy', '🤣', 'comedy'),
-                              LayoutHelpers.horizontalSpacingM,
-                              _buildEnhancedCategoryBubble('DJ', '🎧', 'dj'),
-                              LayoutHelpers.horizontalSpacingM,
-                              _buildEnhancedCategoryBubble('Poetry', '✍️', 'poetry'),
-                              LayoutHelpers.horizontalSpacingM,
-                              _buildEnhancedCategoryBubble('Music', '🎼', 'music'),
-                              LayoutHelpers.horizontalSpacingM,
-                              _buildEnhancedCategoryBubble('Other', '🎭', 'other'),
-                        ],
-                      ),
-                    ),
-                  ),
-                    ],
-                  ),
-
-                  LayoutHelpers.largeSpacing,
-
-                  // Date and Time Section
-                  Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                      const DSSectionHeader(
-                        title: 'When is your event?',
+                        title: 'Event Details',
                         icon: CupertinoIcons.calendar,
                         showBorder: false,
                         padding: EdgeInsets.zero,
                       ),
                       LayoutHelpers.sectionSpacing,
-                      Container(
-                        decoration: ComponentStyles.card,
-                        child: _buildTextField(
-                          key: const Key('date_field'),
-                      controller: eventDate,
-                      focusNode: eventDateNode,
-                          placeholder: 'Select date and time',
-                      readOnly: true,
-                      onTap: () => _showDatePicker(context, now),
-                        ),
+                      
+                      // Date and Time
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'When is your event?',
+                            style: DesignSystem.caption.copyWith(
+                              color: DesignSystem.primaryOrange,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          LayoutHelpers.smallSpacing,
+                          _buildTextField(
+                            key: const Key('date_field'),
+                        controller: eventDate,
+                        focusNode: eventDateNode,
+                            placeholder: 'Select date and time',
+                        readOnly: true,
+                        onTap: () => _showDatePicker(context, now),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
 
-                  LayoutHelpers.largeSpacing,
+                      LayoutHelpers.mediumSpacing,
 
-                  // Slots and Price Section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                      const DSSectionHeader(
-                        title: 'Event Details',
-                        icon: CupertinoIcons.tickets,
-                        showBorder: false,
-                        padding: EdgeInsets.zero,
-                      ),
-                      LayoutHelpers.sectionSpacing,
+                      // Capacity and Pricing
                       Row(
                         children: [
                           Expanded(
@@ -482,23 +485,20 @@ class EditEventPageState extends State<EditEventPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                    'Available Slots',
+                                  'Available Slots',
                                   style: DesignSystem.caption.copyWith(
                                     color: DesignSystem.primaryOrange,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    fontWeight: FontWeight.w600,
                                   ),
+                                ),
                                 LayoutHelpers.smallSpacing,
-                                Container(
-                                  decoration: ComponentStyles.card,
-                                  child: _buildTextField(
+                                _buildTextField(
                                   key: const Key('slots_field'),
-                      controller: eventSlots,
-                      focusNode: eventSlotsNode,
+                              controller: eventSlots,
+                              focusNode: eventSlotsNode,
                                   placeholder: 'Number of slots',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    ),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                 ),
                               ],
                             ),
@@ -512,52 +512,22 @@ class EditEventPageState extends State<EditEventPage> {
                                   'Price per Slot',
                                   style: DesignSystem.caption.copyWith(
                                     color: DesignSystem.primaryOrange,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    fontWeight: FontWeight.w600,
                                   ),
+                                ),
                                 LayoutHelpers.smallSpacing,
-                                Container(
-                                  decoration: ComponentStyles.elevatedCard,
-                                  child: _buildTextField(
+                                _buildTextField(
                                   key: const Key('price_field'),
-                      controller: eventPrice,
-                      focusNode: eventPriceNode,
+                              controller: eventPrice,
+                              focusNode: eventPriceNode,
                                   placeholder: 'Set price',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                                  ),
-                    ),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+                                ),
                               ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    ],
-                  ),
-
-                  LayoutHelpers.largeSpacing,
-
-                  // Rules Section
-                  Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                      const DSSectionHeader(
-                        title: 'Event Rules',
-                        icon: CupertinoIcons.doc_text,
-                        showBorder: false,
-                        padding: EdgeInsets.zero,
-                      ),
-                      LayoutHelpers.sectionSpacing,
-                      Container(
-                        decoration: ComponentStyles.card,
-                        child: _buildTextField(
-                          key: const Key('rules_field'),
-                      controller: eventRules,
-                      focusNode: eventRulesNode,
-                          placeholder: 'Add your event rules (Optional)',
-                      maxLines: null,
-                      minLines: 3,
-                    ),
+                        ],
                       ),
                     ],
                   ),
@@ -566,8 +536,8 @@ class EditEventPageState extends State<EditEventPage> {
 
                   // Location Section
                   Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       const DSSectionHeader(
                         title: 'Location',
                         icon: CupertinoIcons.location,
@@ -575,268 +545,129 @@ class EditEventPageState extends State<EditEventPage> {
                         padding: EdgeInsets.zero,
                       ),
                       LayoutHelpers.sectionSpacing,
-                      Container(
-                        decoration: ComponentStyles.elevatedCard,
-                        child: _buildTextField(
-                          key: const Key('location_field'),
-                      controller: eventLocation,
-                      focusNode: eventLocationNode,
-                          placeholder: 'Select event location',
-                      readOnly: true,
-                      onTap: () => _selectLocation(context, eventLocation, eventLocationData),
-                        ),
-                    ),
-                      ],
+                      _buildTextField(
+                        key: const Key('location_field'),
+                    controller: eventLocation,
+                    focusNode: eventLocationNode,
+                        placeholder: 'Select event location',
+                    readOnly: true,
+                    onTap: () => _selectLocation(context, eventLocation, eventLocationData),
+                      ),
+                    ],
                   ),
 
                   LayoutHelpers.largeSpacing,
 
-                  // Private Event Toggle with Enhanced Design
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.2),
-                          AppColors.secondary.withValues(alpha: 0.2),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: CupertinoButton(
-                      key: const Key('private_event_toggle'),
-                      padding: const EdgeInsets.all(16),
-                      onPressed: () {
-                        setState(() {
-                          isPrivate = !isPrivate;
-                        });
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Private Event',
-                            style: TextStyle(
-                              color: AppColors.backgroundLight.withValues(alpha: 0.9),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Icon(
-                            isPrivate ? CupertinoIcons.lock_fill : CupertinoIcons.lock_open_fill,
-                            color: isPrivate ? AppColors.highlight : AppColors.backgroundLight.withValues(alpha: 0.5),
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                    if (isPrivate) ...[
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.secondary.withValues(alpha: 0.2),
-                            AppColors.primary.withValues(alpha: 0.2),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: AppColors.secondary.withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
+                  // Additional Information Group
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Rules Section
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
-                            child: Text(
-                              'Event Password',
-                              style: TextStyle(
-                                color: AppColors.accent,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          const DSSectionHeader(
+                            title: 'Event Rules',
+                            icon: CupertinoIcons.doc_text,
+                            showBorder: false,
+                            padding: EdgeInsets.zero,
                           ),
-                      _buildTextField(
-                            key: const Key('password_field'),
-                        controller: eventPassword,
-                        focusNode: eventPasswordNode,
-                            placeholder: 'Set event password',
-                        obscureText: true,
+                          LayoutHelpers.sectionSpacing,
+                          _buildTextField(
+                            key: const Key('rules_field'),
+                        controller: eventRules,
+                        focusNode: eventRulesNode,
+                            placeholder: 'Add your event rules (Optional)',
+                        maxLines: null,
+                        minLines: 3,
+                          ),
+                        ],
                       ),
-                    ],
-                      ),
-                    ),
-                  ],
 
-                  // Image Upload Section
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Image Upload Section
+                      LayoutHelpers.mediumSpacing,
+
+                      // Private Event Toggle
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: DesignSystem.borderLight.withValues(alpha: 0.3),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: CupertinoButton(
+                          key: const Key('private_event_toggle'),
+                          padding: const EdgeInsets.all(16),
+                          onPressed: () {
+                            setState(() {
+                              isPrivate = !isPrivate;
+                            });
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Private Event',
+                                style: TextStyle(
+                                  color: DesignSystem.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Icon(
+                                isPrivate ? CupertinoIcons.lock_fill : CupertinoIcons.lock_open_fill,
+                                color: isPrivate ? DesignSystem.primaryOrange : DesignSystem.textTertiary,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      if (isPrivate) ...[
                         Container(
-                          width: double.infinity,
-                          height: 180,
-                          margin: const EdgeInsets.only(bottom: 20),
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                           decoration: BoxDecoration(
-                            color: AppColors.backgroundDark.withValues(alpha: 0.1),
+                            color: Colors.transparent,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              width: 1.5,
+                              color: DesignSystem.borderLight.withValues(alpha: 0.3),
+                              width: 0.5,
                             ),
                           ),
-                          child: Stack(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Preview of selected image or placeholder
-                              _imageFile != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(15),
-                                      child: Image.file(
-                                        _imageFile!,
-                                        width: double.infinity,
-                                        height: 180,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    )
-                                  : Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            CupertinoIcons.photo,
-                                            size: 50,
-                                            color: AppColors.primary.withValues(alpha: 0.5),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          const Text(
-                                            'Add Cover Image',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.primary,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          const Text(
-                                            'Tap to select',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: AppColors.backgroundDark,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                              
-                              // Tap area for selecting image
-                              Positioned.fill(
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(15),
-                                    onTap: _pickEventImage,
-                                    splashColor: AppColors.primary.withValues(alpha: 0.1),
+                              const Padding(
+                                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                child: Text(
+                                  'Event Password',
+                                  style: TextStyle(
+                                    color: DesignSystem.primaryOrange,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
-                              
-                              // Upload status indicator
-                              if (_isUploading)
-                                Positioned(
-                                  bottom: 0,
-                                  left: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.backgroundDark.withValues(alpha: 0.7),
-                                      borderRadius: const BorderRadius.only(
-                                        bottomLeft: Radius.circular(15),
-                                        bottomRight: Radius.circular(15),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const CupertinoActivityIndicator(
-                                          radius: 8,
-                                          color: AppColors.backgroundLight,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            _uploadStatus,
-                                            style: const TextStyle(
-                                              color: AppColors.backgroundLight,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                
-                              // Change image button if image is selected
-                              if (_imageFile != null && !_isUploading)
-                                Positioned(
-                                  bottom: 10,
-                                  right: 10,
-                                  child: CupertinoButton(
-                                    padding: EdgeInsets.zero,
-                                    onPressed: _pickEventImage,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.backgroundDark.withValues(alpha: 0.75),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            CupertinoIcons.photo,
-                                            color: AppColors.backgroundLight,
-                                            size: 16,
-                                          ),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'Change',
-                                            style: TextStyle(
-                                              color: AppColors.backgroundLight,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                              _buildTextField(
+                                key: const Key('password_field'),
+                            controller: eventPassword,
+                            focusNode: eventPasswordNode,
+                                placeholder: 'Set event password',
+                            obscureText: true,
+                              ),
                             ],
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
 
-                  // Enhanced Image Upload Section
+                  LayoutHelpers.largeSpacing,
+
+                  // Image Upload Section
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -892,33 +723,18 @@ class EditEventPageState extends State<EditEventPage> {
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+      margin: const EdgeInsets.fromLTRB(8, 0, 8, 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: hasFocus ? [
-            DesignSystem.primaryOrange.withValues(alpha: 0.1),
-            DesignSystem.primaryOrange.withValues(alpha: 0.05),
-          ] : [
-            AppColors.backgroundDark.withValues(alpha: 0.3),
-            AppColors.backgroundDark.withValues(alpha: 0.2),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
+        color: hasFocus 
+            ? DesignSystem.primaryOrange.withValues(alpha: 0.08)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: hasFocus 
-              ? DesignSystem.primaryOrange.withValues(alpha: 0.5)
-              : Colors.transparent,
-          width: hasFocus ? 2 : 0,
+              ? DesignSystem.primaryOrange.withValues(alpha: 0.6)
+              : DesignSystem.borderLight.withValues(alpha: 0.3),
+          width: hasFocus ? 1.5 : 0.5,
         ),
-        boxShadow: hasFocus ? [
-          BoxShadow(
-            color: DesignSystem.primaryOrange.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ] : null,
       ),
       child: Stack(
         alignment: Alignment.centerRight,
@@ -929,10 +745,10 @@ class EditEventPageState extends State<EditEventPage> {
         controller: controller,
         focusNode: focusNode,
             padding: EdgeInsets.fromLTRB(
-              16,
-              isNameField && hasContent ? 20 : 16,
-              16,
-              16,
+              12,
+              isNameField && hasContent ? 16 : 12,
+              12,
+              12,
             ),
         readOnly: readOnly,
             obscureText: obscureText && !showPassword,
@@ -960,15 +776,15 @@ class EditEventPageState extends State<EditEventPage> {
         minLines: minLines,
         decoration: null,
         style: TextStyle(
-              color: AppColors.backgroundLight.withValues(alpha: 0.95),
-              fontSize: isDateField ? 18 : (isNameField ? 18 : 16),
+              color: DesignSystem.textPrimary,
+              fontSize: isDateField ? 14 : (isNameField ? 14 : 13),
               fontWeight: isDateField || isNameField ? FontWeight.w600 : FontWeight.w500,
-              letterSpacing: isDateField ? -0.5 : (isNameField ? 1.0 : 0),
+              letterSpacing: isDateField ? -0.3 : (isNameField ? 0.5 : 0),
             ),
             placeholder: isNameField && hasContent ? '' : placeholder,
-        placeholderStyle: TextStyle(
-              color: AppColors.backgroundLight.withValues(alpha: 0.4),
-          fontSize: 16,
+        placeholderStyle: const TextStyle(
+              color: DesignSystem.textTertiary,
+          fontSize: 13,
               fontWeight: FontWeight.w400,
             ),
             suffix: _buildTextFieldSuffix(isDateField, obscureText, controller),
@@ -976,8 +792,8 @@ class EditEventPageState extends State<EditEventPage> {
           // Floating label for name field
           if (isNameField && hasContent) 
             Positioned(
-              left: 16,
-              top: 6,
+              left: 12,
+              top: 4,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 200),
                 opacity: hasContent ? 1.0 : 0.0,
@@ -985,7 +801,7 @@ class EditEventPageState extends State<EditEventPage> {
                   'Event Name',
                   style: TextStyle(
                     color: DesignSystem.primaryOrange.withValues(alpha: 0.8),
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1036,7 +852,14 @@ class EditEventPageState extends State<EditEventPage> {
   // Enhanced image upload section with better UX
   Widget _buildImageUploadSection() {
     return Container(
-      decoration: ComponentStyles.card,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: DesignSystem.borderLight.withValues(alpha: 0.3),
+          width: 0.5,
+        ),
+      ),
       child: Column(
         children: [
           if (_imageFile != null) ...[
@@ -2633,33 +2456,19 @@ class EditEventPageState extends State<EditEventPage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          width: 90,
-          height: 90,
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isSelected
-                  ? [categoryColor, categoryColor.withValues(alpha: 0.8)]
-                  : [
-                      categoryColor.withValues(alpha: 0.15),
-                      categoryColor.withValues(alpha: 0.1),
-                    ],
-            ),
-            borderRadius: BorderRadius.circular(20),
+            color: isSelected
+                ? categoryColor.withValues(alpha: 0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isSelected 
                   ? categoryColor.withValues(alpha: 0.8)
                   : categoryColor.withValues(alpha: 0.3),
               width: isSelected ? 2 : 1,
             ),
-            boxShadow: isSelected ? [
-              BoxShadow(
-                color: categoryColor.withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ] : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -2667,18 +2476,18 @@ class EditEventPageState extends State<EditEventPage> {
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  fontSize: isSelected ? 28 : 24,
+                  fontSize: isSelected ? 22 : 20,
                 ),
                 child: Text(emoji),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   color: isSelected 
-                      ? Colors.white 
-                      : Colors.white.withValues(alpha: 0.8),
-                  fontSize: isSelected ? 12 : 11,
+                      ? categoryColor
+                      : DesignSystem.textSecondary,
+                  fontSize: isSelected ? 11 : 10,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
                 child: Text(

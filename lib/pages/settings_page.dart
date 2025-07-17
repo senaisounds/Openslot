@@ -103,6 +103,96 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
     }
   }
 
+  // Handle account deletion
+  Future<void> _handleDeleteAccount() async {
+    // Show confirmation dialog first
+    final bool shouldDelete = await showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data including events, reservations, and profile information.'
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Delete Account'),
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+      ),
+    ) ?? false;
+    
+    if (!shouldDelete) return;
+    
+    setState(() {
+      _isLoggingOut = true;
+    });
+    
+    try {
+      // Delete user data from Firestore first
+      if (widget.user != null) {
+        await _authService.deleteUserData(widget.user!.uid);
+      }
+      
+      // Delete the Firebase Auth user
+      await _authService.deleteUser();
+      
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
+      
+      // Show success message
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Account Deleted'),
+          content: const Text('Your account has been successfully deleted.'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.pop(context);
+                // Navigate to login page and remove all previous routes
+                Navigator.of(context).pushAndRemoveUntil(
+                  CupertinoPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
+      // Show error dialog
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Delete Account Failed'),
+          content: Text('An error occurred while deleting your account: $e'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoggingOut = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -216,6 +306,14 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                           trailing: _isLoggingOut 
                             ? const CupertinoActivityIndicator() 
                             : null,
+                          isDarkMode: isDarkMode,
+                          isDestructive: true,
+                        ),
+                        _buildSettingItem(
+                          context,
+                          icon: CupertinoIcons.delete,
+                          title: 'Delete Account',
+                          onTap: _handleDeleteAccount,
                           isDarkMode: isDarkMode,
                           isDestructive: true,
                         ),

@@ -377,7 +377,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         builder: (context) => CupertinoActionSheet(
         title: Text(_isCurrentUserProfile ? 'Profile Actions' : '${_user?.username}\'s Profile'),
                           actions: [
-          if (_isCurrentUserProfile) ...[
+                    if (_isCurrentUserProfile) ...[
                             CupertinoActionSheetAction(
                               onPressed: () {
                                 Navigator.pop(context);
@@ -400,7 +400,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   Text('Edit Profile'),
                 ],
               ),
-                            ),
+            ),
+
                             CupertinoActionSheetAction(
                               onPressed: () {
                                 Navigator.pop(context);
@@ -503,6 +504,39 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ],
                                   ),
           ),
+          // Delete Account button (only for current user)
+          if (_isCurrentUserProfile)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                HapticFeedback.lightImpact();
+                _openSupportPage();
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.question_circle, color: AppColors.primary),
+                  SizedBox(width: 8),
+                  Text('Contact Support'),
+                ],
+              ),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                HapticFeedback.lightImpact();
+                _showDeleteAccountConfirmation();
+              },
+              isDestructiveAction: true,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.delete, color: CupertinoColors.destructiveRed),
+                  SizedBox(width: 8),
+                  Text('Delete Account'),
+                ],
+              ),
+            ),
           // Sign Out button (only for current user)
           if (_isCurrentUserProfile)
             CupertinoActionSheetAction(
@@ -550,12 +584,42 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _shareProfile() async {
-    final profileUrl = 'https://openslot.app/profile/${_user?.id ?? 'unknown'}';
+    final profileUrl = 'https://openslot.me/profile/${_user?.id ?? 'unknown'}';
     final shareText = _isCurrentUserProfile 
         ? 'Check out my OpenSlot profile!'
         : 'Check out ${_user?.username}\'s OpenSlot profile!';
     
     await Share.share('$shareText\n$profileUrl');
+  }
+
+  void _openSupportPage() async {
+    // Use email support for immediate App Store approval
+    final emailUri = Uri.parse('mailto:support@openslot.me?subject=OpenSlot Support Request&body=Hello OpenSlot Support Team,%0D%0A%0D%0AI need help with my OpenSlot app.%0D%0A%0D%0AUser ID: ${_user?.id ?? 'Not logged in'}%0D%0A%0D%0APlease describe your issue below:%0D%0A%0D%0A');
+    
+    try {
+      if (await canLaunchUrl(emailUri)) {
+        await launchUrl(emailUri);
+      } else {
+        // Show error if email can't be launched
+        if (mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Email Not Available'),
+              content: const Text('Please email us directly at support@openslot.me'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      Logger.e('Error launching email: $e', tag: 'Profile_page');
+    }
   }
 
   void _showSignOutConfirmation() {
@@ -650,6 +714,132 @@ class _ProfilePageState extends State<ProfilePage> {
           builder: (context) => CupertinoAlertDialog(
             title: const Text('Sign Out Failed'),
             content: Text('An error occurred while signing out: ${e.toString()}'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  void _showDeleteAccountConfirmation() {
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(
+          'Delete Account',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: context.watch<ThemeProvider>().textColor,
+          ),
+        ),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            'Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data including events, reservations, and profile information.',
+            style: TextStyle(
+              fontSize: 14,
+              color: context.watch<ThemeProvider>().textColor.withValues(alpha: 0.8),
+              height: 1.4,
+            ),
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+              HapticFeedback.lightImpact();
+            },
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text(
+              'Delete Account',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              HapticFeedback.mediumImpact();
+              await _performDeleteAccount();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDeleteAccount() async {
+    try {
+      // Show loading state
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+        });
+      }
+
+      // Delete user data from Firestore first
+      if (_user != null) {
+        await _authService.deleteUserData(_user!.id);
+      }
+      
+      // Delete the Firebase Auth user
+      await _authService.deleteUser();
+      
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
+      
+      // Show success message
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Account Deleted'),
+          content: const Text('Your account has been successfully deleted.'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.pop(context);
+                // Navigate to login page and remove all previous routes
+                Navigator.of(context).pushAndRemoveUntil(
+                  CupertinoPageRoute(
+                    builder: (context) => const LoginPage(),
+                  ),
+                  (route) => false,
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      Logger.e('Error deleting account: $e', tag: 'Profile_page');
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        // Show error dialog
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Delete Account Failed'),
+            content: Text('An error occurred while deleting your account: ${e.toString()}'),
             actions: [
               CupertinoDialogAction(
                 child: const Text('OK'),

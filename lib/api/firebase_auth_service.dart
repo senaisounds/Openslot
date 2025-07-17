@@ -560,4 +560,51 @@ class FirebaseAuthService {
       return false;
     }
   }
+
+  // Delete user data from Firestore
+  Future<void> deleteUserData(String uid) async {
+    if (uid.isEmpty) {
+      throw AuthException('invalid-user-id', 'User ID cannot be empty');
+    }
+
+    for (int attempt = 0; attempt < _maxRetries; attempt++) {
+      try {
+        // Delete user document from Firestore
+        await firestore.collection('users').doc(uid).delete();
+        Logger.d('User data deleted for user $uid', tag: 'Auth');
+        return;
+      } catch (e, stackTrace) {
+        final isLastAttempt = attempt == _maxRetries - 1;
+        final errorMsg = 'Error deleting user data (attempt ${attempt + 1}/$_maxRetries): $e';
+        
+        if (isLastAttempt) {
+          Logger.e(errorMsg, tag: 'Auth', error: e, stackTrace: stackTrace);
+          throw AuthException('delete-user-data-failed', 'Failed to delete user data', originalError: e);
+        } else {
+          Logger.w(errorMsg, tag: 'Auth');
+          await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+        }
+      }
+    }
+  }
+
+  // Delete the current user from Firebase Auth
+  Future<void> deleteUser() async {
+    final user = firebaseAuth.currentUser;
+    if (user == null) {
+      throw AuthException('no-current-user', 'No user is currently signed in');
+    }
+
+    try {
+      await user.delete();
+      Logger.d('User deleted from Firebase Auth: ${user.uid}', tag: 'Auth');
+    } on FirebaseAuthException catch (e, stackTrace) {
+      final message = _getAuthErrorMessage(e);
+      Logger.e('Error deleting user: $message', tag: 'Auth', error: e, stackTrace: stackTrace);
+      throw AuthException(e.code, message, originalError: e);
+    } catch (e, stackTrace) {
+      Logger.e('Unexpected error deleting user: $e', tag: 'Auth', error: e, stackTrace: stackTrace);
+      throw AuthException('delete-user-failed', 'An unexpected error occurred while deleting user', originalError: e);
+    }
+  }
 }

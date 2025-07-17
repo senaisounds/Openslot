@@ -50,10 +50,18 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   
-  # If the request is not for a file or directory
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
+  # Serve specific HTML files directly (support, privacy, terms)
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^(support|privacy|terms)\.html$ - [L]
   
-  # Redirect everything else to index.html
+  # Don't redirect if the file exists
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+  
+  # Don't redirect if the directory exists
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  
+  # Redirect everything else to index.html for Flutter router
   RewriteRule ^(.*)$ /index.html [L]
 </IfModule> 

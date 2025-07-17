@@ -35,6 +35,16 @@ We automatically collect certain information about your device and how you inter
 - App usage statistics
 - Log data
 
+### Location Information
+
+With your explicit permission, we collect:
+- Precise location data to show you nearby events
+- General location data for regional event preferences
+
+### Payment Information
+
+We collect payment transaction data (amount, status, payment method) but do not store actual credit card numbers. Payment processing is handled securely by Stripe.
+
 ## How We Use Your Information
 
 We use the information we collect to:
@@ -44,12 +54,17 @@ We use the information we collect to:
 - Respond to your inquiries and support requests
 - Analyze usage patterns to enhance user experience
 - Prevent fraudulent activities
+- Show you relevant events based on your location and preferences
 
 ## Data Storage and Security
 
 Your information is stored on secure servers and we implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.
 
 Payment information is processed through Stripe, which maintains high-security standards for handling financial data.
+
+### Data Retention
+
+We retain your information for as long as your account is active or as needed to provide services. You may request deletion of your account and associated data at any time.
 
 ## Third-Party Services
 
@@ -59,6 +74,13 @@ Our app uses the following third-party services:
 - Apple Pay (Payment Processing)
 
 Each of these services has their own privacy policies governing how they handle your data.
+
+## Information Sharing
+
+We never sell your personal information to third parties. We may share information:
+- With venues when you sign up for events (name, performer type, contact info)
+- With trusted service providers who help us operate the app
+- When required by law or to protect our rights and safety
 
 ## Your Rights
 
@@ -74,6 +96,10 @@ To exercise these rights, please contact us using the information provided below
 ## Children's Privacy
 
 Our app is not intended for children under 13 years of age, and we do not knowingly collect personal information from children under 13.
+
+## International Transfers
+
+Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers.
 
 ## Changes to This Privacy Policy
 

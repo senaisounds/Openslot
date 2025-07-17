@@ -10,7 +10,6 @@ import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/pages/live.dart';
 import 'package:slotted/widgets/enhanced_event_card.dart';
 // import 'package:slotted/common/design_system.dart'; // Will be used for other improvements
-import 'package:slotted/widgets/ds_button.dart';
 import 'package:slotted/widgets/ds_section_header.dart';
 
 class MyEventsPage extends StatefulWidget {
@@ -49,6 +48,41 @@ class MyEventsPageState extends State<MyEventsPage> {
     return CupertinoPageScaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: CupertinoColors.black,
+      navigationBar: CupertinoNavigationBar(
+        backgroundColor: CupertinoColors.black.withValues(alpha: 0.95),
+        border: Border(
+          bottom: BorderSide(
+            color: complementaryColor.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: complementaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              CupertinoIcons.back,
+              color: complementaryColor,
+              size: 20,
+            ),
+          ),
+        ),
+        middle: Text(
+          'My Events',
+          style: TextStyle(
+            color: complementaryColor,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+      ),
       child: SafeArea(
         child: Container(
           decoration: const BoxDecoration(
@@ -167,15 +201,46 @@ class MyEventsPageState extends State<MyEventsPage> {
                                   // Create Event Button Section
                                   if (slottedUser.isHost) ...[
                                     Padding(
-                                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                                      child: DSPrimaryButton(
-                                        text: 'Create Event',
-                                        icon: CupertinoIcons.add_circled,
-                                        onPressed: () => Navigator.of(context).push(
-                                          CupertinoPageRoute(
-                                            builder: (context) => EditEventPage(
-                                              user: slottedUser,
+                                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.transparent,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: complementaryColor.withValues(alpha: 0.6),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: CupertinoButton(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                            horizontal: 24,
+                                          ),
+                                          onPressed: () => Navigator.of(context).push(
+                                            CupertinoPageRoute(
+                                              builder: (context) => EditEventPage(
+                                                user: slottedUser,
+                                              ),
                                             ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                CupertinoIcons.add_circled,
+                                                color: complementaryColor,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Create Event',
+                                                style: TextStyle(
+                                                  color: complementaryColor,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),

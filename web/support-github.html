@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenSlot Support - Get Help & Contact Us</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 2px solid #f0f0f0;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .contact-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .contact-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .contact-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .contact-card p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .contact-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .contact-link:hover {
+            background: #5a6fd8;
+        }
+
+        .faq-item {
+            background: white;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .faq-question {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .faq-answer {
+            padding: 20px;
+            display: none;
+        }
+
+        .faq-answer.active {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #f0f0f0;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .contact-methods {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">OpenSlot</div>
+            <div class="tagline">Find your next open slot</div>
+        </div>
+
+        <div class="section">
+            <h2>📞 Contact Support</h2>
+            <p>We're here to help! Choose your preferred way to get in touch with our support team.</p>
+            
+            <div class="contact-methods">
+                <div class="contact-card">
+                    <h3>📧 Email Support</h3>
+                    <p>Get detailed help via email</p>
+                    <a href="mailto:support@openslot.me" class="contact-link">Email Us</a>
+                </div>
+                
+                <div class="contact-card">
+                    <h3>💬 In-App Support</h3>
+                    <p>Contact us directly from the app</p>
+                    <p><em>Open the app and go to Profile → Contact Support</em></p>
+                </div>
+                
+                <div class="contact-card">
+                    <h3>🐛 Report Bug</h3>
+                    <p>Found a bug? Let us know!</p>
+                    <a href="mailto:bugs@openslot.me" class="contact-link">Report Bug</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>❓ Frequently Asked Questions</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">How do I create an event?</div>
+                <div class="faq-answer">
+                    <p>To create an event, tap the "+" button in the bottom navigation bar. Fill in your event details including title, description, date, time, and location. You can also add photos and set ticket prices.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">How do I delete my account?</div>
+                <div class="faq-answer">
+                    <p>To delete your account, open the app and go to Profile → Profile Actions → Delete Account. You'll be asked to confirm your decision. Note that this action cannot be undone.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">How do I get paid for my events?</div>
+                <div class="faq-answer">
+                    <p>To receive payouts, go to Profile → Payout Settings and add your payment method. You can choose from bank account, PayPal, Venmo, or Cash App. Payouts are processed after your event ends.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">Can I edit my event after creating it?</div>
+                <div class="faq-answer">
+                    <p>Yes! Go to My Events, find your event, and tap the edit icon. You can modify most details as long as the event hasn't started yet.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">How do I save events I'm interested in?</div>
+                <div class="faq-answer">
+                    <p>When browsing events, tap the bookmark icon to save an event. You can view all your saved events by going to Profile → Saved Events.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFAQ(this)">What if I need to cancel my event?</div>
+                <div class="faq-answer">
+                    <p>Go to My Events, find your event, and tap the delete icon. You'll be asked to confirm the cancellation. Refunds will be processed automatically for any tickets sold.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔒 Privacy & Data</h2>
+            <p>We take your privacy seriously. Here's how we handle your data:</p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>You can delete your account at any time through the app</li>
+                <li>Your personal data is encrypted and securely stored</li>
+                <li>We don't sell your personal information to third parties</li>
+                <li>You can request a copy of your data by emailing us</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2024 OpenSlot. All rights reserved.</p>
+            <p><a href="https://openslot.me/privacy.html" style="color: #667eea;">Privacy Policy</a> | <a href="https://openslot.me/terms.html" style="color: #667eea;">Terms of Service</a></p>
+        </div>
+    </div>
+
+    <script>
+        function toggleFAQ(element) {
+            const answer = element.nextElementSibling;
+            const isActive = answer.classList.contains('active');
+            
+            // Close all FAQ answers
+            document.querySelectorAll('.faq-answer').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Open clicked answer if it wasn't already open
+            if (!isActive) {
+                answer.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html> 
