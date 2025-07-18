@@ -8,11 +8,10 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:intl/intl.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:latlong2/latlong.dart' as latlong2;
-import 'package:location_picker_flutter_map/location_picker_flutter_map.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/constants.dart';
 import 'package:slotted/common/event_class.dart';
@@ -25,53 +24,11 @@ import 'package:path/path.dart' as path;
 import 'package:slotted/pages/location.dart';
 import 'package:slotted/utils/logger.dart';
 import 'package:slotted/common/design_system.dart';
-import 'package:slotted/widgets/ds_button.dart';
+
 import 'package:slotted/widgets/ds_section_header.dart';
-import 'package:flutter/services.dart' show HapticFeedback;
+import 'package:flutter/services.dart' show HapticFeedback, FilteringTextInputFormatter, TextInputFormatter;
 
-// Add timezone awareness
-final DateFormat _dateFormatter = DateFormat('EEE, MMM d • h:mm a');
-final DateFormat _timeFormatter = DateFormat('h:mm a');
 
-// Helper function to validate and adjust dates with timezone awareness
-DateTime _validateAndAdjustDateTime(DateTime selectedDate) {
-  final now = DateTime.now();
-  
-  // If the selected date is in the past, adjust to next occurrence
-  if (selectedDate.isBefore(now)) {
-    // If it's today but time has passed, move to same time tomorrow
-    if (selectedDate.year == now.year && 
-        selectedDate.month == now.month && 
-        selectedDate.day == now.day) {
-      return selectedDate.add(const Duration(days: 1));
-    }
-    
-    // If it's a past date, move to the same date next year
-    if (selectedDate.isBefore(now.subtract(const Duration(days: 1)))) {
-      return DateTime(
-        now.year + 1,
-        selectedDate.month,
-        selectedDate.day,
-        selectedDate.hour,
-        selectedDate.minute,
-      );
-    }
-  }
-  
-  // Ensure the date is not more than 2 years in the future
-  final maxFutureDate = now.add(const Duration(days: 730));
-  if (selectedDate.isAfter(maxFutureDate)) {
-    return DateTime(
-      maxFutureDate.year,
-      selectedDate.month,
-      selectedDate.day,
-      selectedDate.hour,
-      selectedDate.minute,
-    );
-  }
-  
-  return selectedDate;
-}
 
 class EditEventPage extends StatefulWidget {
   const EditEventPage({super.key, required this.user, this.event});
@@ -104,7 +61,7 @@ class EditEventPageState extends State<EditEventPage> {
   bool isPrivate = false;
   bool showPassword = false;
   bool isLoading = false;
-  LatLong? eventLocationData;
+  latlong2.LatLng? eventLocationData;
   final textController = BoardDateTimeTextController();
   final dateFormatter = DateFormat('EEE, MMM d • h:mm a');
   String _selectedQuickFilter = '';
@@ -2307,7 +2264,7 @@ class EditEventPageState extends State<EditEventPage> {
       event.host = widget.user!.id;
       event.hostName = widget.user!.username;
 
-      final finalLatData = eventLocationData ?? const LatLong(0, 0);
+              final finalLatData = eventLocationData ?? const latlong2.LatLng(0, 0);
       event.location = latlong2.LatLng(finalLatData.latitude, finalLatData.longitude);
       event.address = eventLocation.text;
 
@@ -2853,7 +2810,7 @@ class EditEventPageState extends State<EditEventPage> {
   }
 
   Future<void> _selectLocation(BuildContext context,
-      TextEditingController controller, LatLong? eventLocation) async {
+      TextEditingController controller, latlong2.LatLng? eventLocation) async {
     if (!mounted) return;
     
     try {
@@ -2882,7 +2839,7 @@ class EditEventPageState extends State<EditEventPage> {
                           
                           setState(() {
                             controller.text = address;
-                            eventLocationData = LatLong(latitude, longitude);
+                            eventLocationData = latlong2.LatLng(latitude, longitude);
                           });
                         } catch (e) {
                           _showLocationError('Invalid coordinates format: latitude and longitude must be numbers', controller: controller);

@@ -17,10 +17,10 @@ import 'package:slotted/pages/live.dart';
 import 'package:slotted/pages/event_details.dart';
 import 'package:flutter/services.dart';
 
-import 'package:device_calendar/device_calendar.dart' as DeviceCalendar;
-import 'package:timezone/timezone.dart' as tz;
+
+
 import 'package:maps_launcher/maps_launcher.dart';
-import 'package:slotted/pages/notifications_page.dart' hide kAccentColor, kBackgroundDark, kPrimaryColor, kBackgroundLight, kHighlightColor;
+
 import 'package:slotted/pages/profile_page.dart';
 import 'package:slotted/pages/my_events.dart';
 import 'package:slotted/pages/events_map_page.dart' hide kPrimaryColor, kSecondaryColor, kAccentColor, kHighlightColor, kBackgroundDark, kBackgroundLight;

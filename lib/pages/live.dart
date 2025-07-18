@@ -13,6 +13,7 @@ import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/attendees_page.dart';
 import 'package:slotted/pages/event_details.dart';
 import 'package:slotted/pages/profile_page.dart';
+import 'package:slotted/utils/logger.dart';
 import 'package:torch_light/torch_light.dart';
 
 const placeholderImage =
@@ -325,7 +326,7 @@ class LivePageState extends State<LivePage> {
       });
     } catch (e) {
       // Handle errors, e.g., device doesn't have a flashlight
-      print('Error toggling flashlight: $e');
+      Logger.e('Error toggling flashlight: $e', error: e);
     }
   }
 
@@ -391,8 +392,8 @@ class LivePageState extends State<LivePage> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  CupertinoColors.systemBlue.withOpacity(0.1),
-                  CupertinoColors.systemPurple.withOpacity(0.1),
+                                  CupertinoColors.systemBlue.withValues(alpha: 0.1),
+                CupertinoColors.systemPurple.withValues(alpha: 0.1),
                 ],
               ),
             ),
@@ -467,7 +468,7 @@ class LivePageState extends State<LivePage> {
                                           ? Container(
                                               decoration: BoxDecoration(
                                                 color: CupertinoColors.black
-                                                    .withOpacity(0.3),
+                                                    .withValues(alpha: 0.3),
                                                 borderRadius:
                                                     BorderRadius.circular(120),
                                               ),
@@ -488,12 +489,12 @@ class LivePageState extends State<LivePage> {
                                                       fontWeight:
                                                           FontWeight.bold,
                                                       color: AppColors.slottedOrange
-                                                          .withOpacity(0.0),
+                                                          .withValues(alpha: 0.0),
                                                       shadows: [
                                                         Shadow(
                                                           blurRadius: 12,
                                                           color: AppColors.slottedOrange
-                                                              .withOpacity(0.6),
+                                                              .withValues(alpha: 0.6),
                                                           offset: const Offset(
                                                               0, 0),
                                                         ),
@@ -507,7 +508,7 @@ class LivePageState extends State<LivePage> {
                                           : Container(
                                               decoration: BoxDecoration(
                                                 color: CupertinoColors.black
-                                                    .withOpacity(0.3),
+                                                    .withValues(alpha: 0.3),
                                                 borderRadius:
                                                     BorderRadius.circular(120),
                                               ),
@@ -532,7 +533,7 @@ class LivePageState extends State<LivePage> {
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         color: AppColors.slottedOrange
-                                                            .withOpacity(0.0),
+                                                            .withValues(alpha: 0.0),
                                                         // shadows: [
                                                         //   Shadow(
                                                         //     blurRadius: 12,
@@ -666,7 +667,7 @@ class LivePageState extends State<LivePage> {
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: CupertinoColors.systemBackground
-                                    .withOpacity(0.2),
+                                    .withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               height: 72,
@@ -1269,7 +1270,7 @@ class LivePageState extends State<LivePage> {
                                       // flex: 2,
                                       child: CupertinoButton(
                                         padding: EdgeInsets.zero,
-                                        minSize: 58,
+                                        minimumSize: const Size(58, 58),
                                         borderRadius: BorderRadius.circular(20),
                                         onPressed: () => _endEvent(),
                                         color: CupertinoColors.systemRed,
@@ -1285,7 +1286,7 @@ class LivePageState extends State<LivePage> {
                                     flex: 4,
                                     child: CupertinoButton(
                                       padding: EdgeInsets.zero,
-                                      minSize: 58,
+                                      minimumSize: const Size(58, 58),
                                       borderRadius: BorderRadius.circular(20),
                                       onPressed: event.live
                                           ? (event.performer != null
