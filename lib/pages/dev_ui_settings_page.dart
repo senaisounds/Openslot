@@ -554,7 +554,11 @@ class _DevUISettingsPageState extends State<DevUISettingsPage> {
     try {
                             await _saveSettings();
                             if (mounted) {
-                              Navigator.of(context).pop();
+                              // Store context reference to avoid async gap issues
+                              final currentContext = context;
+                              if (currentContext.mounted) {
+                                Navigator.of(currentContext).pop();
+                              }
                             }
     } catch (e, stackTrace) {
       debugPrint('Error in async operation: $e');

@@ -12,7 +12,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/date_components.dart';
 import 'package:slotted/common/event_class.dart';
-import 'package:maps_launcher/maps_launcher.dart';
+import 'package:url_launcher/url_launcher.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:slotted/common/slotted_user.dart';
@@ -41,19 +41,20 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   bool actionPending = false;
 
   Future<String> reserveAction(dynamic paymentIntent, Event event,
-      SlottedUser slottedUser, User user) async {
+      SlottedUser slottedUser, User user, {bool passwordVerified = false}) async {
     var response = await http.post(
       Uri.parse(
           'https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: {
-        'eventID': event.id,
-        'userID': user.uid,
-        'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
-        'debug': widget.debug ? 'true' : 'false',
-      },
+              body: {
+          'eventID': event.id,
+          'userID': user.uid,
+          'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
+          'debug': widget.debug ? 'true' : 'false',
+          'passwordVerified': passwordVerified ? 'true' : 'false',
+        },
     );
     return response.body;
   }
@@ -189,7 +190,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         await Stripe.instance.presentPaymentSheet();
       }
 
-      await reserveAction('', event, slottedUser, user);
+      await reserveAction('', event, slottedUser, user, passwordVerified: false);
     } catch (e) {
       String errorMessage =
           'There was an error processing your payment. Please try again.\n$e';
@@ -206,9 +207,11 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       // Error handled by dialog
 
       if (!cancelled) {
-        if (!context.mounted) return;
+        // Store context reference to avoid async gap issues
+        final currentContext = context;
+        if (!currentContext.mounted) return;
         showCupertinoDialog(
-          context: context,
+          context: currentContext,
           builder: (context) {
             return CupertinoAlertDialog(
               title: const Text('Error'),
@@ -351,11 +354,16 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                   const SizedBox(height: 10),
                                   CupertinoButton(
                                     onPressed: () async {
-                                      MapsLauncher.launchQuery(event.address)
-                                          .catchError((error) {
-                                                                                                 // Launch error handled silently
-                                        return true;
-                                      });
+                                      try {
+                                        final query = Uri.encodeComponent(event.address);
+                                        final url = Uri.parse('https://maps.google.com/maps?q=$query');
+                                        
+                                        if (await canLaunchUrl(url)) {
+                                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                                        }
+                                      } catch (error) {
+                                        // Launch error handled silently
+                                      }
                                     },
             padding: EdgeInsets.zero,
                                     child: Text(

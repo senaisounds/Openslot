@@ -7,7 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
-import 'package:slotted/common/event_class.dart' as EventClass;
+import 'package:slotted/common/event_class.dart' as event_class;
 import 'package:slotted/common/constants.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
@@ -19,7 +19,7 @@ import 'package:flutter/services.dart';
 
 
 
-import 'package:maps_launcher/maps_launcher.dart';
+
 
 import 'package:slotted/pages/profile_page.dart';
 import 'package:slotted/pages/my_events.dart';
@@ -31,7 +31,6 @@ import 'package:provider/provider.dart';
 import 'package:slotted/providers/theme_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:slotted/common/city_data.dart';
 import 'package:slotted/widgets/enhanced_event_card.dart';
 import 'package:slotted/widgets/moving_background.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
@@ -39,7 +38,7 @@ class MyHomePage extends StatefulWidget {
   final User? user;
   final bool debug;
   final Future<void> Function(BuildContext, bool, VoidCallback) authAction;
-  final Future<void> Function(EventClass.Event, SlottedUser) reserveAction;
+  final Future<void> Function(event_class.Event, SlottedUser) reserveAction;
   final Future<void> Function(String) deleteEvent;
   final FirebaseFirestore? firestore;
   final bool isTest;
@@ -255,7 +254,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   // Search functionality
   bool _showSearchOverlay = false;
   final TextEditingController _searchController = TextEditingController();
-  List<EventClass.Event> _searchResults = [];
+  List<event_class.Event> _searchResults = [];
   bool _isSearching = false;
   
   // Location filter state
@@ -319,19 +318,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     );
   }
 
-  /// Safe velocity calculation without accessing protected members
+  /// Safe velocity calculation using manual position tracking
   double _calculateScrollVelocity() {
     if (!eventsScrollController.hasClients) return 0.0;
-    
-    try {
-      // Try to get velocity from scroll activity if available
-      final activity = eventsScrollController.position.activity;
-      if (activity != null) {
-        return activity.velocity;
-      }
-    } catch (e) {
-      // Fallback to manual calculation if activity access fails
-    }
     
     // Calculate velocity based on scroll position changes over time
     final currentTime = DateTime.now().millisecondsSinceEpoch;
@@ -343,11 +332,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
       
       if (timeDelta > 0) {
         _lastScrollTime = currentTime;
+        _lastScrollPosition = currentPosition;
         return (positionDelta / timeDelta) * 1000; // Convert to pixels per second
       }
     }
     
     _lastScrollTime = currentTime;
+    _lastScrollPosition = currentPosition;
     return 0.0;
   }
 
@@ -452,12 +443,26 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
         final upcomingThreshold = isScrollingDown ? 1800 : 1500;
         final endedThreshold = isScrollingDown ? 2400 : 2100;
         
+        // Determine title based on scroll position
         if (currentScrollPosition >= endedThreshold) {
           newTitle = 'Ended';
         } else if (currentScrollPosition >= upcomingThreshold) {
           newTitle = 'Upcoming';
         } else if (currentScrollPosition >= tomorrowThreshold) {
-          newTitle = 'Tomorrow';
+          // Check if we're past tomorrow's date
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final effectiveYear = today.year < 2025 ? 2025 : today.year;
+          final baseDate = DateTime(effectiveYear, today.month, today.day);
+          final tomorrow = DateTime(baseDate.year, baseDate.month, baseDate.day + 1);
+          
+          // If today is past tomorrow's date, show the actual date
+          if (now.isAfter(tomorrow)) {
+            final tomorrowFormatted = DateFormat('MMM d').format(tomorrow);
+            newTitle = tomorrowFormatted;
+          } else {
+            newTitle = 'Tomorrow';
+          }
         } else if (currentScrollPosition >= todayThreshold) {
           newTitle = 'Today';
         } else {
@@ -554,7 +559,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
       final effectiveYear = today.year < 2025 ? 2025 : today.year;
       
       for (var doc in snapshot.docs) {
-        final event = EventClass.Event.fromDocument(doc);
+        final event = event_class.Event.fromDocument(doc);
         if (event.date.year < 2025) {
           final newDate = DateTime(
             effectiveYear,
@@ -676,17 +681,16 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   }
 
   // Optimize event filtering
-  List<EventClass.Event> _filterEvents(List<EventClass.Event> events, String query) {
-    List<EventClass.Event> filteredEvents = events;
+  List<event_class.Event> _filterEvents(List<event_class.Event> events, String query) {
+    List<event_class.Event> filteredEvents = events;
     
     // Create separate lists for category, time, and location filters
-    List<EventClass.Event> categoryFilteredEvents = [];
-    List<EventClass.Event> timeFilteredEvents = [];
-    List<EventClass.Event> locationFilteredEvents = [];
-    List<EventClass.Event> distanceFilteredEvents = [];
+    List<event_class.Event> categoryFilteredEvents = [];
+    List<event_class.Event> timeFilteredEvents = [];
+    List<event_class.Event> distanceFilteredEvents = [];
     bool hasTimeFilter = selectedTimeFilter.isNotEmpty;
     bool hasCategoryFilter = query.isNotEmpty;
-    bool hasLocationFilter = false; // Temporarily disable location filtering to debug loading issue
+    // Location filtering temporarily disabled for debugging
     bool hasDistanceFilter = _selectedDistanceFilter != 'All';
     
     Logger.d('Filtering events:', tag: 'My_home_page');
@@ -695,61 +699,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     Logger.d('Selected category filter: $query', tag: 'My_home_page');
     
     // Apply location filter if a specific city is selected
-    if (hasLocationFilter) {
-      final cityCoords = cityCoordinates[selectedCity];
-      if (cityCoords != null) {
-        Logger.d('Filtering events for city: $selectedCity', tag: 'My_home_page');
-        Logger.d('City coordinates: ${cityCoords.latitude}, ${cityCoords.longitude}', tag: 'My_home_page');
-        Logger.d('Total events before location filter: ${events.length}', tag: 'My_home_page');
-        
-        // For all cities, use the standard distance-based filtering
-        // Filter events within roughly 50mi of the city center
-        const double maxDistance = 50.0; // miles
-        locationFilteredEvents = events.where((event) {
-          // Skip events with invalid coordinates (0,0)
-          if (event.location.latitude == 0 && event.location.longitude == 0) {
-            Logger.d('Event has invalid coordinates: ${event.name}', tag: 'My_home_page');
-            return false;
-          }
-          
-          // More flexible city name matching
-          String citySearchTerm = selectedCity;
-          // For compound city names, also try matching just the first word
-          if (selectedCity.contains(' ')) {
-            citySearchTerm = selectedCity.split(' ')[0];
-          }
-          
-          // Check if the event address contains the city name (case insensitive)
-          final bool addressMatch = event.address.toLowerCase().contains(citySearchTerm.toLowerCase());
-          
-          // Also check distance for events with valid coordinates
-          final distance = _calculateDistance(
-            cityCoords.latitude,
-            cityCoords.longitude,
-            event.location.latitude,
-            event.location.longitude,
-          );
-          
-          Logger.d('Event: ${event.name}', tag: 'My_home_page');
-          Logger.d('  Location: (${event.location.latitude}, ${event.location.longitude})', tag: 'My_home_page');
-          Logger.d('  Address: ${event.address}', tag: 'My_home_page');
-          Logger.d('  Distance from city center: ${distance.toStringAsFixed(2)}mi', tag: 'My_home_page');
-          Logger.d('  Address match: $addressMatch', tag: 'My_home_page');
-          Logger.d('  City search term: $citySearchTerm', tag: 'My_home_page');
-          Logger.d('  Will include event: ${distance <= maxDistance || addressMatch}', tag: 'My_home_page');
-          
-          // Return true if either the distance is within range OR the address contains the city
-          return distance <= maxDistance || addressMatch;
-        }).toList();
-        
-        Logger.d('Events after location filter: ${locationFilteredEvents.length}', tag: 'My_home_page');
-        for (var event in locationFilteredEvents) {
-          Logger.d('  Included event: ${event.name}', tag: 'My_home_page');
-          Logger.d('    Address: ${event.address}', tag: 'My_home_page');
-          Logger.d('    Location: (${event.location.latitude}, ${event.location.longitude})', tag: 'My_home_page');
-        }
-      }
-    }
+    // TODO: Re-enable location filtering when needed
+    // Location filtering is temporarily disabled for debugging
     
     // Apply distance filter if active
     if (hasDistanceFilter) {
@@ -869,29 +820,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     }
     
     // Combine all active filters
-    if (hasLocationFilter) {
-      filteredEvents = locationFilteredEvents;
-      Logger.d('Applied location filter', tag: 'My_home_page');
-    }
-    
     if (hasDistanceFilter) {
-      filteredEvents = filteredEvents.where((event) {
-        return distanceFilteredEvents.any((e) => e.id == event.id);
-      }).toList();
+      filteredEvents = distanceFilteredEvents;
       Logger.d('Applied distance filter', tag: 'My_home_page');
-    }
-    
-    if (hasCategoryFilter) {
-      filteredEvents = filteredEvents.where((event) {
-        return categoryFilteredEvents.any((e) => e.id == event.id);
-      }).toList();
+    } else if (hasCategoryFilter) {
+      filteredEvents = categoryFilteredEvents;
       Logger.d('Applied category filter', tag: 'My_home_page');
-    }
-    
-    if (hasTimeFilter) {
-      filteredEvents = filteredEvents.where((event) {
-        return timeFilteredEvents.any((e) => e.id == event.id);
-      }).toList();
+    } else if (hasTimeFilter) {
+      filteredEvents = timeFilteredEvents;
       Logger.d('Applied time filter', tag: 'My_home_page');
     }
     
@@ -918,7 +854,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   }
 
   // Optimize event list building
-  Widget _buildEventsList(List<EventClass.Event> events, SlottedUser? slottedUser) {
+  Widget _buildEventsList(List<event_class.Event> events, SlottedUser? slottedUser) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final effectiveYear = today.year < 2025 ? 2025 : today.year;
@@ -1174,7 +1110,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     );
   }
 
-  Widget _buildSlideshow(List<EventClass.Event> events) {
+  Widget _buildSlideshow(List<event_class.Event> events) {
     if (_slideshowImages.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -2118,7 +2054,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     );
   }
 
-  Widget _buildListItem(EventClass.Event event, SlottedUser? slottedUser) {
+  Widget _buildListItem(event_class.Event event, SlottedUser? slottedUser) {
     return Center( // Added Center widget to center the event card
       child: SizedBox(
         width: MediaQuery.of(context).size.width > 600 
@@ -2126,22 +2062,53 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
             : MediaQuery.of(context).size.width * 0.9, // 90% of screen width for smaller screens
         child: Stack(
           children: [
-            // Timeline line
+            // Enhanced Timeline line - more subtle and elegant
             Positioned(
               top: 0,
               bottom: 0,
               left: 32,
               child: Container(
-                width: 2,
+                width: 1.5, // Slightly thinner
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      kPrimary.withValues(alpha: 0.2),
-                      kSecondary.withValues(alpha: 0.2),
+                      Colors.transparent,
+                      kPrimary.withValues(alpha: 0.08), // Much more subtle
+                      kPrimary.withValues(alpha: 0.12),
+                      kPrimary.withValues(alpha: 0.08),
+                      Colors.transparent,
                     ],
+                    stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kPrimary.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Subtle connection dots
+            Positioned(
+              top: 20,
+              left: 31.25,
+              child: Container(
+                width: 3,
+                height: 3,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: kPrimary.withValues(alpha: 0.15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kPrimary.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -2179,95 +2146,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   
 
 
-  Widget _buildCompactAttendeeAvatar(String attendeeId) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.doc('users/$attendeeId').get(),
-      builder: (context, snapshot) {
-        Widget avatarContent;
-        
-        if (snapshot.hasData && snapshot.data != null) {
-          try {
-            final user = SlottedUser.fromDocument(snapshot.data!);
-            
-            // Debug logging
-            Logger.d('Avatar for user ${user.username}: photoUrl="${user.photoUrl}"', tag: 'Avatar');
-            
-            // Check for test profile picture first, then user's actual photo
-            String? imageUrl = user.photoUrl.isNotEmpty ? user.photoUrl : _getTestProfilePicture(user.username);
-            
-            // Check if we have a valid photo URL
-            if (imageUrl != null && imageUrl.isNotEmpty && _isValidImageUrl(imageUrl)) {
-              avatarContent = CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.cover,
-                memCacheWidth: 56,   // 2x for retina displays
-                memCacheHeight: 56,  // Optimizes memory usage
-                placeholder: (context, url) => _buildLoadingAvatar(),
-                errorWidget: (context, url, error) {
-                  Logger.w('Failed to load avatar image: $error', tag: 'Avatar');
-                  return _buildColorfulInitialAvatar(user.username, attendeeId);
-                },
-              );
-            } else {
-              // Use colorful initial avatar for users without valid photos
-              Logger.d('Using initial avatar for ${user.username} (no valid photo)', tag: 'Avatar');
-              avatarContent = _buildColorfulInitialAvatar(user.username, attendeeId);
-            }
-          } catch (e) {
-            Logger.w('Error loading user data for avatar: $e', tag: 'Avatar');
-            // Use colorful initial avatar with fallback
-            avatarContent = _buildColorfulInitialAvatar('', attendeeId);
-          }
-        } else {
-          // Loading or error state - show loading placeholder
-          avatarContent = _buildLoadingAvatar();
-        }
 
-        return Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: avatarContent,
-          ),
-        );
-      },
-    );
-  }
 
-  // Helper method to validate image URLs
-  bool _isValidImageUrl(String url) {
-    if (url.isEmpty) return false;
-    
-    // Check if it's a valid URL format
-    try {
-      final uri = Uri.parse(url);
-      if (!uri.hasScheme || (!uri.scheme.startsWith('http') && !uri.scheme.startsWith('https'))) {
-        return false;
-      }
-      
-      // Check if it has a valid host
-      if (uri.host.isEmpty) {
-        return false;
-      }
-      
-      return true;
-    } catch (e) {
-      Logger.w('Invalid URL format: $url', tag: 'Avatar');
-      return false;
-    }
-  }
+
 
   // Search functionality
   Widget _buildSearchOverlay() {
@@ -2536,7 +2417,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     );
   }
 
-  Widget _buildSearchResultCard(EventClass.Event event) {
+  Widget _buildSearchResultCard(event_class.Event event) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -3035,242 +2916,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
 
   
 
-  // Helper method for loading state
-  Widget _buildLoadingAvatar() {
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Center(
-        child: SizedBox(
-          width: 12,
-          height: 12,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
-          ),
-        ),
-      ),
-    );
-  }
 
-  // Helper method to create colorful initial avatars
-  Widget _buildColorfulInitialAvatar(String username, String userId) {
-    // Get the first letter of the username, or use 'U' for unknown
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'U';
-    
-    // Generate a consistent color based on the user ID
-    final colorIndex = userId.hashCode.abs() % _avatarColors.length;
-    final backgroundColor = _avatarColors[colorIndex];
-    
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: Text(
-          initial,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
 
-  // Define a set of vibrant colors for avatars
-  static const List<Color> _avatarColors = [
-    Color(0xFFE53E3E), // Red
-    Color(0xFF9F7AEA), // Purple  
-    Color(0xFF38A169), // Green
-    Color(0xFF3182CE), // Blue
-    Color(0xFFD69E2E), // Orange/Yellow
-    Color(0xFFE53E3E), // Red variant
-    Color(0xFF805AD5), // Purple variant
-    Color(0xFF319795), // Teal
-    Color(0xFFDD6B20), // Orange
-    Color(0xFF2B6CB0), // Blue variant
-    Color(0xFFD53F8C), // Pink
-    Color(0xFF38B2AC), // Teal variant
-  ];
 
-  Widget _buildPrimaryActionButton(EventClass.Event event, SlottedUser? slottedUser, Color categoryColor) {
-    String buttonText = 'View Details';
-    Color buttonColor = categoryColor;
-    IconData buttonIcon = CupertinoIcons.eye_fill;
-    
-    if (event.live) {
-      buttonText = 'Join Live';
-      buttonColor = CupertinoColors.systemRed;
-      buttonIcon = CupertinoIcons.video_camera_solid;
-    } else if (event.isFull) {
-      buttonText = 'Join Waitlist';
-      buttonColor = CupertinoColors.systemGrey;
-      buttonIcon = CupertinoIcons.clock_fill;
-    } else if (!event.ended && event.date.isAfter(DateTime.now())) {
-      buttonText = event.price > 0 ? 'Book Now' : 'Join Free';
-      buttonIcon = event.price > 0 ? CupertinoIcons.creditcard_fill : CupertinoIcons.checkmark_circle_fill;
-    }
-    
-    return Container(
-      height: 44,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            buttonColor,
-            buttonColor.withValues(alpha: 0.8),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: buttonColor.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        onPressed: () => _handlePrimaryAction(event, slottedUser),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              buttonIcon,
-              size: 16,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              buttonText,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  void _handlePrimaryAction(EventClass.Event event, SlottedUser? slottedUser) {
-    HapticFeedback.selectionClick();
-    
-    if (event.live) {
-      // TODO: Navigate to live stream
-      _navigateToEventDetails(event);
-    } else if (event.isFull) {
-      // TODO: Join waitlist
-      _navigateToEventDetails(event);
-    } else if (!event.ended && event.date.isAfter(DateTime.now())) {
-      // TODO: Handle booking/joining
-      _navigateToEventDetails(event);
-    } else {
-      _navigateToEventDetails(event);
-    }
-  }
 
-  Widget _buildQuickActionButtons(EventClass.Event event, Color categoryColor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildQuickActionButton(
-          icon: CupertinoIcons.heart,
-          label: 'Save',
-          onTap: () => _handleQuickSave(event),
-          categoryColor: categoryColor,
-        ),
-        _buildQuickActionButton(
-          icon: CupertinoIcons.share,
-          label: 'Share',
-          onTap: () => _handleQuickShare(event),
-          categoryColor: categoryColor,
-        ),
-        _buildQuickActionButton(
-          icon: CupertinoIcons.calendar_badge_plus,
-          label: 'Calendar',
-          onTap: () => _handleAddToCalendar(event),
-          categoryColor: categoryColor,
-        ),
-        _buildQuickActionButton(
-          icon: CupertinoIcons.location,
-          label: 'Directions',
-          onTap: () => _handleDirections(event),
-          categoryColor: categoryColor,
-        ),
-      ],
-    );
-  }
 
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required Color categoryColor,
-  }) {
-    return Expanded(
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: categoryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: categoryColor.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Icon(
-                icon,
-                size: 18,
-                color: categoryColor,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  void _handleQuickSave(EventClass.Event event) async {
+
+
+
+
+
+  void _handleQuickSave(event_class.Event event) async {
     if (widget.user == null) {
       _showToast('Please log in to save events');
       return;
@@ -3303,20 +2961,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     }
   }
 
-  void _handleQuickShare(EventClass.Event event) {
+  void _handleQuickShare(event_class.Event event) {
     // TODO: Implement quick share functionality
     _showToast('Sharing event...');
   }
 
-  void _handleAddToCalendar(EventClass.Event event) {
-    // TODO: Implement add to calendar functionality
-    _showToast('Added to calendar!');
-  }
 
-  void _handleDirections(EventClass.Event event) {
-    HapticFeedback.selectionClick();
-    MapsLauncher.launchQuery(event.address);
-  }
 
   void _showToast(String message) {
     // Use a more reliable toast method that works with CupertinoApp
@@ -3381,7 +3031,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
 
   
 
-  void _navigateToEventDetails(EventClass.Event event) {
+  void _navigateToEventDetails(event_class.Event event) {
     // Navigate to event details page
     Logger.d('Navigating to event details for: ${event.name}', tag: 'My_home_page');
     
@@ -3615,7 +3265,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
             // Fetch the event data
             final eventDoc = await _firestore.collection('events').doc(eventId).get();
             if (eventDoc.exists && mounted) {
-              final event = EventClass.Event.fromDocument(eventDoc);
+              final event = event_class.Event.fromDocument(eventDoc);
               
               // Navigate to event details page
               Navigator.of(context).push(
@@ -3687,22 +3337,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     );
   }
   
-  String _getCategoryEmoji(String category) {
-    switch (category) {
-      case 'COMEDY':
-        return '🤣';
-      case 'DJ':
-        return '🎧';
-      case 'POETRY':
-        return '✍️';
-      case 'MUSIC':
-        return '🎼';
-      default:
-        return '🎭';
-    }
-  }
+
   
-  List<EventClass.Event> _convertQuerySnapshotToEvents(QuerySnapshot snapshot) {
+  List<event_class.Event> _convertQuerySnapshotToEvents(QuerySnapshot snapshot) {
     Logger.d('Converting QuerySnapshot to Events', tag: 'My_home_page');
     Logger.d('Document count: ${snapshot.docs.length}', tag: 'My_home_page');
     
@@ -3715,12 +3352,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
         Logger.d('  Location: ${data['location']}', tag: 'My_home_page');
         Logger.d('  Address: ${data['address']}', tag: 'My_home_page');
         
-        final event = EventClass.Event.fromDocument(doc);
+        final event = event_class.Event.fromDocument(doc);
         Logger.d('Successfully converted to Event object', tag: 'My_home_page');
         return event;
       } catch (e) {
         Logger.d('Error converting document: $e', tag: 'My_home_page');
-        return EventClass.Event.empty();
+        return event_class.Event.empty();
       }
     })
     .where((event) => event.id.isNotEmpty)
@@ -3834,19 +3471,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
 
 
 
-  // Helper method to get test profile pictures for demonstration
-  String? _getTestProfilePicture(String username) {
-    // Add some test profile pictures for demonstration
-    final testProfiles = {
-      'senai': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-      'john': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
-      'sarah': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-      'mike': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-      'emma': 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-    };
-    
-    return testProfiles[username.toLowerCase()];
-  }
+
 }
 
 class ButtonConfig {

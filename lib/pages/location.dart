@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:location_picker_flutter_map/location_picker_flutter_map.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:async';
@@ -34,7 +35,7 @@ class LocationPage extends StatefulWidget {
   });
 
   final Function(Map<String, dynamic>) onPicked;
-  final LatLong? eventLocation;
+  final LatLng? eventLocation;
 
   @override
   LocationPageState createState() => LocationPageState();
@@ -524,7 +525,7 @@ class LocationPageState extends State<LocationPage> with SingleTickerProviderSta
   }
   
   // Track if map has an error
-  bool _hasMapError = false;
+  final bool _hasMapError = false;
   
   // Build fallback UI when map fails to load
   Widget buildMapErrorFallback(BuildContext context) {
@@ -598,75 +599,183 @@ class LocationPageState extends State<LocationPage> with SingleTickerProviderSta
     );
   }
   
-  // Add this method to use the JavaScript error handler on web
-  void _showCustomLocationError(String message) {
-    if (kIsWeb) {
-      try {
-        // Call the JavaScript function directly
-        js.context.callMethod('handleLocationError', [message]);
-      } catch (e) {
-        Logger.e('Error showing custom location error: $e', error: e);
-        // Fallback to standard setState if JS fails
-        setState(() {
-          _hasMapError = true;
-        });
-      }
-    } else {
-      // Set flag for non-web platforms
-      setState(() {
-        _hasMapError = true;
-      });
-    }
-  }
+
   
-  // Handle map/location errors
-  void _handleLocationError() {
-    _showCustomLocationError('Unable to select location');
-  }
+
   
   Widget buildLocationPicker() {
-    try {
-      if (kIsWeb) {
-        // On web, immediately show the fallback UI to avoid Maps issues
-        return Container(
-          color: Colors.grey[900],
-          child: Center(
-            child: buildMapErrorFallback(context),
-          ),
-        );
-      }
-      
-      return FlutterLocationPicker(
-        initPosition: widget.eventLocation != null
-            ? LatLong(widget.eventLocation!.latitude, widget.eventLocation!.longitude)
-            : const LatLong(37.7749, -122.4194), // Default to San Francisco
-        selectLocationButtonStyle: ButtonStyle(
-          backgroundColor: WidgetStateProperty.all(const Color(0xFF6C4AB0)),
+    return FastLocationPicker(
+      initialLocation: widget.eventLocation != null
+          ? LatLng(widget.eventLocation!.latitude, widget.eventLocation!.longitude)
+          : const LatLng(37.7749, -122.4194), // Default to San Francisco
+      onLocationSelected: (location) {
+        widget.onPicked({
+          'address': location['address'] ?? 'Selected Location',
+          'latlng': LatLng(location['latitude'], location['longitude']),
+        });
+        Navigator.of(context).pop(); // Pop the location picker
+      },
+    );
+  }
+}
+
+// Fast and reliable location picker
+class FastLocationPicker extends StatefulWidget {
+  final LatLng initialLocation;
+  final Function(Map<String, dynamic>) onLocationSelected;
+
+  const FastLocationPicker({
+    super.key,
+    required this.initialLocation,
+    required this.onLocationSelected,
+  });
+
+  @override
+  State<FastLocationPicker> createState() => _FastLocationPickerState();
+}
+
+class _FastLocationPickerState extends State<FastLocationPicker> {
+  final MapController _mapController = MapController();
+  LatLng _selectedLocation = const LatLng(37.7749, -122.4194);
+
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedLocation = widget.initialLocation;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // Remove the AppBar to avoid redundancy with the parent LocationPage
+      floatingActionButton: FloatingActionButton(
+        onPressed: _confirmLocation,
+        backgroundColor: const Color(0xFF6C4AB0),
+        child: const Icon(
+          Icons.check,
+          color: Colors.white,
         ),
-        mapLanguage: 'en',
-        onError: (error) {
-          _handleLocationError();
-        },
-        onPicked: (pickedData) {
-          widget.onPicked({
-            'address': pickedData.address,
-            'latlng': LatLong(
-              pickedData.latLong.latitude,
-              pickedData.latLong.longitude,
+      ),
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _selectedLocation,
+              initialZoom: 13.0,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _selectedLocation = point;
+                });
+              },
             ),
-          });
-          // Don't pop automatically - let the parent handle navigation
-        },
-      );
-    } catch (e) {
-      Logger.e('Error building location picker: $e', error: e);
-      _handleLocationError();
-      return Container(
-        color: Colors.grey[900],
-        child: Center(
-          child: buildMapErrorFallback(context),
-        ),
-      );
-    }
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.slotted.app',
+                retinaMode: false,
+                keepBuffer: 2,
+              ),
+              // Selected location marker
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    width: 40,
+                    height: 40,
+                    point: _selectedLocation,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6C4AB0),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                                                   BoxShadow(
+                           color: Colors.black.withValues(alpha: 0.3),
+                           blurRadius: 8,
+                           spreadRadius: 2,
+                         ),
+                        ],
+                      ),
+                      child: const Icon(
+                        CupertinoIcons.location_fill,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // Instructions overlay
+          Positioned(
+            top: 20,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Tap anywhere on the map to select a location',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          // Current coordinates display
+          Positioned(
+            bottom: 20,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Selected Location:',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Lat: ${_selectedLocation.latitude.toStringAsFixed(6)}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  Text(
+                    'Lng: ${_selectedLocation.longitude.toStringAsFixed(6)}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLocation() {
+    widget.onLocationSelected({
+      'address': 'Selected Location',
+      'latitude': _selectedLocation.latitude,
+      'longitude': _selectedLocation.longitude,
+    });
+    Navigator.of(context).pop();
   }
 }

@@ -18,6 +18,10 @@ import 'package:slotted/pages/login_page.dart';
 import 'package:slotted/pages/host_payout_page.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:slotted/common/design_system.dart';
+import 'package:slotted/pages/privacy_policy_page.dart';
+import 'package:slotted/api/block_user_service.dart';
+import 'package:slotted/pages/blocked_users_page.dart';
+import 'package:slotted/pages/admin_moderation_panel.dart';
 
 import 'package:slotted/widgets/ds_section_header.dart';
 
@@ -61,6 +65,31 @@ class _ProfilePageState extends State<ProfilePage> {
   // Check if user is authenticated
   bool get _isUserAuthenticated {
     return _authService.currentUser != null;
+  }
+
+  // Check if the current user is an admin
+  bool get _isAdmin {
+    // For testing purposes, you can temporarily enable admin access
+    // by changing this to true. For production, this should check Firestore.
+    
+    // TEMPORARY: Enable admin access for testing
+    // Change this to true to access admin features
+    return true; // TEMPORARY: Set to true for testing
+    
+    // PRODUCTION: This should check Firestore for admin status
+    // final currentUser = _authService.currentUser;
+    // if (currentUser == null) return false;
+    // 
+    // try {
+    //   final adminDoc = await FirebaseFirestore.instance
+    //     .collection('admins')
+    //     .doc(currentUser.uid)
+    //     .get();
+    //   return adminDoc.exists && adminDoc.data()?['isAdmin'] == true;
+    // } catch (e) {
+    //   Logger.e('Error checking admin status: $e', tag: 'Profile_page');
+    //   return false;
+    // }
   }
 
   @override
@@ -171,7 +200,21 @@ class _ProfilePageState extends State<ProfilePage> {
       ];
     } else {
       _userAwards = user.awards.map((awardMap) {
-        return AwardsHelper.getAwardById(awardMap['id']) ?? AwardsHelper.firstPerformance;
+        final baseAward = AwardsHelper.getAwardById(awardMap['id']) ?? AwardsHelper.firstPerformance;
+        
+        // Create a new award with the earned date from user data
+        return Award(
+          id: baseAward.id,
+          name: baseAward.name,
+          description: baseAward.description,
+          icon: baseAward.icon,
+          type: baseAward.type,
+          rarity: baseAward.rarity,
+          colors: baseAward.colors,
+          earnedDate: awardMap['earnedDate'] != null 
+              ? DateTime.parse(awardMap['earnedDate'] as String) 
+              : null,
+        );
       }).toList();
     }
   }
@@ -402,83 +445,91 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
 
-                            CupertinoActionSheetAction(
-                              onPressed: () {
-                                Navigator.pop(context);
-                HapticFeedback.lightImpact();
-                                Navigator.of(context).push(
-                                  CupertinoPageRoute(
-                                    builder: (context) => MyEventsPage(
-                                      user: FirebaseAuth.instance.currentUser,
-                                      debug: false,
-                      authAction: (context, isLoggedIn, completion) async {},
-                      reserveAction: (event, slottedUser) async {},
-                      deleteEvent: (eventId) async {},
-                                    ),
-                                  ),
-                                );
-                              },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(CupertinoIcons.calendar, color: AppColors.primary),
-                  SizedBox(width: 8),
-                  Text('My Events'),
-                ],
-              ),
-                            ),
-                            CupertinoActionSheetAction(
-                              onPressed: () {
-                                Navigator.pop(context);
-                HapticFeedback.lightImpact();
-                                Navigator.of(context).push(
-                                  CupertinoPageRoute(
-                                    builder: (context) => const SavedEventsPage(),
-                                  ),
-                                );
-                              },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(CupertinoIcons.bookmark, color: AppColors.primary),
-                  SizedBox(width: 8),
-                  Text('Saved Events'),
-                ],
-              ),
+                            // My Events (only for current user)
+                            if (_isCurrentUserProfile)
+                              CupertinoActionSheetAction(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                  HapticFeedback.lightImpact();
+                                  Navigator.of(context).push(
+                                    CupertinoPageRoute(
+                                      builder: (context) => MyEventsPage(
+                                        user: FirebaseAuth.instance.currentUser,
+                                        debug: false,
+                        authAction: (context, isLoggedIn, completion) async {},
+                        reserveAction: (event, slottedUser) async {},
+                        deleteEvent: (eventId) async {},
                                       ),
-                            CupertinoActionSheetAction(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                HapticFeedback.lightImpact();
-                                Navigator.of(context).push(
-                                  CupertinoPageRoute(
-                                    builder: (context) => NotificationsPage(
-                                      user: FirebaseAuth.instance.currentUser,
                                     ),
-                                  ),
-                                );
-                              },
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(CupertinoIcons.bell, color: AppColors.primary),
-                                  SizedBox(width: 8),
-                                  Text('Notifications'),
-                                ],
+                                  );
+                                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(CupertinoIcons.calendar, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Text('My Events'),
+                  ],
+                ),
                               ),
-                            ),
-                                      CupertinoActionSheetAction(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                HapticFeedback.lightImpact();
-                Navigator.of(context).push(
-                  CupertinoPageRoute(
-                    builder: (context) => HostPayoutPage(
-                      user: FirebaseAuth.instance.currentUser,
+                            // Saved Events (only for current user)
+                            if (_isCurrentUserProfile)
+                              CupertinoActionSheetAction(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                  HapticFeedback.lightImpact();
+                                  Navigator.of(context).push(
+                                    CupertinoPageRoute(
+                                      builder: (context) => const SavedEventsPage(),
+                                    ),
+                                  );
+                                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(CupertinoIcons.bookmark, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Text('Saved Events'),
+                  ],
+                ),
+                              ),
+                            // Notifications (only for current user)
+                            if (_isCurrentUserProfile)
+                              CupertinoActionSheetAction(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  HapticFeedback.lightImpact();
+                                  Navigator.of(context).push(
+                                    CupertinoPageRoute(
+                                      builder: (context) => NotificationsPage(
+                                        user: FirebaseAuth.instance.currentUser,
                                       ),
-                                  ),
-                                );
-                              },
+                                    ),
+                                  );
+                                },
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(CupertinoIcons.bell, color: AppColors.primary),
+                                    SizedBox(width: 8),
+                                    Text('Notifications'),
+                                  ],
+                                ),
+                              ),
+                                      // Payout Settings (only for current user)
+                                      if (_isCurrentUserProfile)
+                                        CupertinoActionSheetAction(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => HostPayoutPage(
+                        user: FirebaseAuth.instance.currentUser,
+                                        ),
+                                    ),
+                                  );
+                                },
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -487,7 +538,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Text('Payout Settings'),
                 ],
               ),
-            ),
+                                        ),
           ],
                                       CupertinoActionSheetAction(
                                         onPressed: () {
@@ -504,7 +555,28 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ],
                                   ),
           ),
-          // Delete Account button (only for current user)
+          // Privacy Policy (only for current user)
+          if (_isCurrentUserProfile)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                HapticFeedback.lightImpact();
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => const PrivacyPolicyPage(),
+                  ),
+                );
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.doc_text, color: AppColors.primary),
+                  SizedBox(width: 8),
+                  Text('Privacy Policy'),
+                ],
+              ),
+            ),
+          // Contact Support (only for current user)
           if (_isCurrentUserProfile)
             CupertinoActionSheetAction(
               onPressed: () {
@@ -521,22 +593,66 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
+          // Blocked Users (only for current user)
+          if (_isCurrentUserProfile)
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.pop(context);
                 HapticFeedback.lightImpact();
-                _showDeleteAccountConfirmation();
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => const BlockedUsersPage(),
+                  ),
+                );
               },
-              isDestructiveAction: true,
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(CupertinoIcons.delete, color: CupertinoColors.destructiveRed),
+                  Icon(CupertinoIcons.person_badge_minus, color: AppColors.primary),
                   SizedBox(width: 8),
-                  Text('Delete Account'),
+                  Text('Blocked Users'),
                 ],
               ),
             ),
+          // Admin Moderation Panel (only for admins)
+          if (_isCurrentUserProfile && _isAdmin)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                HapticFeedback.lightImpact();
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => const AdminModerationPanel(),
+                  ),
+                );
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.shield, color: AppColors.primary),
+                  SizedBox(width: 8),
+                  Text('Content Moderation'),
+                ],
+              ),
+            ),
+            // Delete Account (only for current user)
+            if (_isCurrentUserProfile)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                  HapticFeedback.lightImpact();
+                  _showDeleteAccountConfirmation();
+                },
+                isDestructiveAction: true,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(CupertinoIcons.delete, color: CupertinoColors.destructiveRed),
+                    SizedBox(width: 8),
+                    Text('Delete Account'),
+                  ],
+                ),
+              ),
           // Sign Out button (only for current user)
           if (_isCurrentUserProfile)
             CupertinoActionSheetAction(
@@ -574,6 +690,24 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
+          // Block user action (only for other users' profiles)
+          if (!_isCurrentUserProfile)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                HapticFeedback.lightImpact();
+                _showBlockUserDialog();
+              },
+              isDestructiveAction: true,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.person_badge_minus, color: CupertinoColors.destructiveRed),
+                  SizedBox(width: 8),
+                  Text('Block User'),
+                ],
+              ),
+            ),
         ],
         cancelButton: CupertinoActionSheetAction(
                                         onPressed: () => Navigator.pop(context),
@@ -589,28 +723,109 @@ class _ProfilePageState extends State<ProfilePage> {
         ? 'Check out my OpenSlot profile!'
         : 'Check out ${_user?.username}\'s OpenSlot profile!';
     
-    await Share.share('$shareText\n$profileUrl');
+    await SharePlus.instance.share(ShareParams(text: '$shareText\n$profileUrl'));
   }
 
   void _openSupportPage() async {
     // Use email support for immediate App Store approval
-    final emailUri = Uri.parse('mailto:support@openslot.me?subject=OpenSlot Support Request&body=Hello OpenSlot Support Team,%0D%0A%0D%0AI need help with my OpenSlot app.%0D%0A%0D%0AUser ID: ${_user?.id ?? 'Not logged in'}%0D%0A%0D%0APlease describe your issue below:%0D%0A%0D%0A');
+    const supportEmail = 'support@openslot.me';
+    const subject = 'OpenSlot Support Request';
+    const body = 'Hello OpenSlot Support,\n\nI need help with:\n\n';
+    
+    final uri = Uri.parse('mailto:$supportEmail?subject=$subject&body=$body');
     
     try {
-      if (await canLaunchUrl(emailUri)) {
-        await launchUrl(emailUri);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
       } else {
-        // Show error if email can't be launched
+        throw 'Could not launch email client';
+      }
+    } catch (e) {
+      Logger.d('Error launching email: $e', tag: 'Profile_page');
+      if (mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Error'),
+            content: const Text('Could not open email client. Please email us at support@openslot.me'),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBlockUserDialog() {
+    if (_user == null) return;
+    
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Block User'),
+        content: Text(
+          'Are you sure you want to block ${_user!.username}? '
+          'You will no longer see their content or receive messages from them.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Block'),
+            onPressed: () {
+              Navigator.pop(context);
+              _performBlockUser();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performBlockUser() async {
+    if (_user == null) return;
+    
+    try {
+      setState(() => _isLoading = true);
+      
+      final success = await BlockUserService.blockUser(_user!.id);
+      
+      if (success) {
         if (mounted) {
           showCupertinoDialog(
             context: context,
             builder: (context) => CupertinoAlertDialog(
-              title: const Text('Email Not Available'),
-              content: const Text('Please email us directly at support@openslot.me'),
+              title: const Text('User Blocked'),
+              content: Text('You have blocked ${_user!.username}. You will no longer see their content.'),
               actions: [
                 CupertinoDialogAction(
                   child: const Text('OK'),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        Logger.d('Successfully blocked user: ${_user!.id}', tag: 'Profile_page');
+      } else {
+        if (mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Error'),
+              content: const Text('Failed to block user. Please try again.'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
@@ -618,7 +833,27 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       }
     } catch (e) {
-      Logger.e('Error launching email: $e', tag: 'Profile_page');
+      Logger.e('Error blocking user: $e', tag: 'Profile_page');
+      
+      if (mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Error'),
+            content: Text('An error occurred: ${e.toString()}'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -1225,54 +1460,99 @@ class _ProfilePageState extends State<ProfilePage> {
       onTap: () => _showAwardPopup(award),
       child: Container(
         width: 100,
+        height: 116, // Fixed height to prevent overflow
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+          color: context.watch<ThemeProvider>().isDarkMode
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            width: 1,
+            color: award.earnedDate != null 
+                ? AppColors.primary.withValues(alpha: 0.6)
+                : AppColors.primary.withValues(alpha: 0.4),
+            width: 2,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              blurRadius: 8,
+              spreadRadius: 1,
+              offset: const Offset(0, 2),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+              spreadRadius: 0,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Rarity Badge
+            // Rarity Badge with enhanced styling
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: AwardsHelper.getRarityColor(award.rarity),
                 borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: AwardsHelper.getRarityColor(award.rarity).withValues(alpha: 0.4),
+                    blurRadius: 4,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
               child: Text(
                 AwardsHelper.getRarityText(award.rarity),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 8,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
             
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             
-            // Award Icon
+            // Award Icon with enhanced styling
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
+                color: award.earnedDate != null 
+                    ? AppColors.primary.withValues(alpha: 0.3)
+                    : AppColors.primary.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: award.earnedDate != null 
+                      ? AppColors.primary.withValues(alpha: 0.6)
+                      : AppColors.primary.withValues(alpha: 0.4),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Icon(
                 award.icon,
-                size: 24,
-                color: AppColors.primary,
+                size: 22,
+                color: award.earnedDate != null 
+                    ? AppColors.primary
+                    : AppColors.primary.withValues(alpha: 0.8),
               ),
             ),
             
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             
-            // Award Name
+            // Award Name with enhanced styling
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Text(
@@ -1280,14 +1560,38 @@ class _ProfilePageState extends State<ProfilePage> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: award.earnedDate != null ? FontWeight.w700 : FontWeight.w600,
                   color: context.watch<ThemeProvider>().textColor,
-                  height: 1.2,
+                  height: 1.1,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            
+            // Earned indicator for completed awards
+            if (award.earnedDate != null) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                    width: 1,
+                  ),
+                ),
+                child: const Text(
+                  'EARNED',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 7,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

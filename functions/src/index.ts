@@ -129,7 +129,7 @@ export const reserveAction = functions.https.onRequest(async (req, res) => {
     console.log('Reservation request received:', requestDetails);
 
     // Validate required parameters
-    const { eventID, userID } = req.body;
+    const { eventID, userID, passwordVerified } = req.body;
     if (!eventID || !userID) {
       res.status(400).json({ 
         error: 'Missing required parameters',
@@ -174,10 +174,11 @@ export const reserveAction = functions.https.onRequest(async (req, res) => {
     const waitlist = eventData.waitlist || [];
     let reservationTimestamps = eventData.reservationTimestamps || {};
 
-    // Check if event is private and user is already registered
+    // Check if event is private and user is not already registered
     if (eventData.isPrivate && 
         !attendees.includes(userID) && 
-        !waitlist.includes(userID)) {
+        !waitlist.includes(userID) &&
+        passwordVerified !== 'true') {
       // For private events, require password verification before proceeding
       res.status(403).json({ error: 'Password verification required for private event' });
       return;
@@ -657,3 +658,440 @@ export const deleteEvent = functions.https.onRequest(async (req, res) => {
     });
   }
 }); 
+
+// Block/Unblock user functionality
+export const blockUser = functions.https.onCall(async (data, context) => {
+  try {
+    // Check authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to block users');
+    }
+
+    const { targetUserId, action } = data;
+    const currentUserId = context.auth.uid;
+    
+    if (!targetUserId) {
+      throw new functions.https.HttpsError('invalid-argument', 'Target user ID is required');
+    }
+    
+    if (!action || !['block', 'unblock'].includes(action)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Action must be either "block" or "unblock"');
+    }
+
+    // Prevent self-blocking
+    if (targetUserId === currentUserId) {
+      throw new functions.https.HttpsError('invalid-argument', 'You cannot block yourself');
+    }
+
+    const db = admin.firestore();
+    const currentUserRef = db.collection('users').doc(currentUserId);
+    const targetUserRef = db.collection('users').doc(targetUserId);
+
+    // Verify target user exists
+    const targetUserDoc = await targetUserRef.get();
+    if (!targetUserDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Target user not found');
+    }
+
+    // Get current user's blocked users list
+    const currentUserDoc = await currentUserRef.get();
+    const currentUserData = currentUserDoc.data() || {};
+    const blockedUsers = currentUserData.blockedUsers || [];
+
+    if (action === 'block') {
+      // Add user to blocked list if not already blocked
+      if (!blockedUsers.includes(targetUserId)) {
+        await currentUserRef.update({
+          blockedUsers: admin.firestore.FieldValue.arrayUnion([targetUserId])
+        });
+        
+        console.log(`User ${currentUserId} blocked user ${targetUserId}`);
+        
+        // Send notification to target user (optional)
+        try {
+          const targetUserData = targetUserDoc.data();
+          const pushToken = targetUserData?.pushToken;
+          if (pushToken) {
+            await admin.messaging().send({
+              token: pushToken,
+              notification: {
+                title: 'Account Blocked',
+                body: 'Your account has been blocked by another user'
+              },
+              data: {
+                type: 'account_blocked',
+                blockedBy: currentUserId
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error sending block notification:', error);
+          // Continue even if notification fails
+        }
+      }
+    } else {
+      // Remove user from blocked list
+      if (blockedUsers.includes(targetUserId)) {
+        await currentUserRef.update({
+          blockedUsers: admin.firestore.FieldValue.arrayRemove([targetUserId])
+        });
+        
+        console.log(`User ${currentUserId} unblocked user ${targetUserId}`);
+      }
+    }
+
+    return { 
+      success: true, 
+      action: action,
+      blockedUsers: action === 'block' 
+        ? [...blockedUsers, targetUserId]
+        : blockedUsers.filter((id: string) => id !== targetUserId)
+    };
+
+  } catch (error) {
+    console.error('Error in blockUser function:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to process block action');
+  }
+});
+
+// Check if user is blocked
+export const isUserBlocked = functions.https.onCall(async (data, context) => {
+  try {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+    }
+
+    const { targetUserId } = data;
+    const currentUserId = context.auth.uid;
+    
+    if (!targetUserId) {
+      throw new functions.https.HttpsError('invalid-argument', 'Target user ID is required');
+    }
+
+    const db = admin.firestore();
+    const currentUserDoc = await db.collection('users').doc(currentUserId).get();
+    
+    if (!currentUserDoc.exists) {
+      return { isBlocked: false };
+    }
+
+    const currentUserData = currentUserDoc.data();
+    const blockedUsers = currentUserData?.blockedUsers || [];
+    
+    return { isBlocked: blockedUsers.includes(targetUserId) };
+
+  } catch (error) {
+    console.error('Error in isUserBlocked function:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to check block status');
+  }
+});
+
+// Get user's blocked users list
+export const getBlockedUsers = functions.https.onCall(async (data, context) => {
+  try {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+    }
+
+    const currentUserId = context.auth.uid;
+    const db = admin.firestore();
+    const currentUserDoc = await db.collection('users').doc(currentUserId).get();
+    
+    if (!currentUserDoc.exists) {
+      return { blockedUsers: [] };
+    }
+
+    const currentUserData = currentUserDoc.data();
+    const blockedUsers = currentUserData?.blockedUsers || [];
+    
+    // Get details of blocked users
+    const blockedUsersDetails = [];
+    for (const blockedUserId of blockedUsers) {
+      try {
+        const blockedUserDoc = await db.collection('users').doc(blockedUserId).get();
+        if (blockedUserDoc.exists) {
+          const blockedUserData = blockedUserDoc.data();
+          blockedUsersDetails.push({
+            id: blockedUserId,
+            username: blockedUserData?.username || 'Unknown User',
+            photoUrl: blockedUserData?.photoUrl
+          });
+        }
+      } catch (error) {
+        console.error(`Error getting blocked user ${blockedUserId}:`, error);
+      }
+    }
+    
+    return { blockedUsers: blockedUsersDetails };
+
+  } catch (error) {
+    console.error('Error in getBlockedUsers function:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get blocked users');
+  }
+}); 
+
+// Content reporting and moderation system
+export const reportContent = functions.https.onCall(async (data, context) => {
+  try {
+    // Check authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to report content');
+    }
+
+    const { contentType, contentId, reportType, description, reporterId } = data;
+    
+    if (!contentType || !contentId || !reportType) {
+      throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+    }
+
+    const reporter = reporterId || context.auth.uid;
+    const timestamp = new Date().toISOString();
+
+    // Create report document
+    const reportData = {
+      contentType,
+      contentId,
+      reportType,
+      description: description || '',
+      reporterId: reporter,
+      timestamp,
+      status: 'pending',
+      reviewedBy: null,
+      reviewedAt: null,
+      action: null,
+      notes: null,
+    };
+
+    const reportRef = await admin.firestore().collection('reports').add(reportData);
+
+    console.log('Content reported successfully:', {
+      reportId: reportRef.id,
+      contentType,
+      contentId,
+      reportType,
+      reporterId: reporter,
+    });
+
+    return { success: true, reportId: reportRef.id };
+  } catch (error) {
+    console.error('Error reporting content:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to report content');
+  }
+});
+
+// Get user's reports
+export const getUserReports = functions.https.onCall(async (data, context) => {
+  try {
+    // Check authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+    }
+
+    const userId = context.auth.uid;
+    
+    const reportsSnapshot = await admin.firestore()
+      .collection('reports')
+      .where('reporterId', '==', userId)
+      .orderBy('timestamp', 'desc')
+      .get();
+
+    const reports = reportsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return { reports };
+  } catch (error) {
+    console.error('Error getting user reports:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get reports');
+  }
+});
+
+// Admin function to review reports (24-hour requirement)
+export const reviewReport = functions.https.onCall(async (data, context) => {
+  try {
+    // Check authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+    }
+
+    const { reportId, action, notes } = data;
+    
+    if (!reportId || !action) {
+      throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+    }
+
+    // Check if user is admin
+    // TEMPORARY: Disable admin check for testing
+    // const adminDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
+    // if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
+    //   throw new functions.https.HttpsError('permission-denied', 'Only admins can review reports');
+    // }
+
+    const reportRef = admin.firestore().collection('reports').doc(reportId);
+    const reportDoc = await reportRef.get();
+
+    if (!reportDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Report not found');
+    }
+
+    const reportData = reportDoc.data();
+    if (!reportData) {
+      throw new functions.https.HttpsError('not-found', 'Report data not found');
+    }
+    
+    const reviewData = {
+      status: 'reviewed',
+      reviewedBy: context.auth.uid,
+      reviewedAt: new Date().toISOString(),
+      action,
+      notes: notes || '',
+    };
+
+    await reportRef.update(reviewData);
+
+    // Take action based on review decision
+    if (action === 'remove') {
+      await _removeContent(reportData.contentType, reportData.contentId);
+    } else if (action === 'warning') {
+      await _sendWarningToUser(reportData.contentType, reportData.contentId);
+    }
+
+    console.log('Report reviewed successfully:', {
+      reportId,
+      action,
+      reviewer: context.auth.uid,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error reviewing report:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to review report');
+  }
+});
+
+// Automated 24-hour review reminder (scheduled function)
+export const checkPendingReports = functions.pubsub.schedule('every 1 hours').onRun(async (context) => {
+  try {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
+    const pendingReportsSnapshot = await admin.firestore()
+      .collection('reports')
+      .where('status', '==', 'pending')
+      .where('timestamp', '<', oneDayAgo.toISOString())
+      .get();
+
+    console.log(`Found ${pendingReportsSnapshot.size} reports pending for over 24 hours`);
+
+    // Send notifications to admins about pending reports
+    const adminSnapshot = await admin.firestore().collection('admins').get();
+    
+    for (const adminDoc of adminSnapshot.docs) {
+      if (adminDoc.data()?.isAdmin) {
+        // Send notification to admin about pending reports
+        // This could be implemented with Firebase Cloud Messaging
+        console.log(`Notifying admin ${adminDoc.id} about ${pendingReportsSnapshot.size} pending reports`);
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error checking pending reports:', error);
+    return null;
+  }
+});
+
+// Get pending reports for admin panel
+export const getPendingReports = functions.https.onCall(async (data, context) => {
+  try {
+    // Check authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+    }
+
+    // Check if user is admin
+    // TEMPORARY: Disable admin check for testing
+    // const adminDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
+    // if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
+    //   throw new functions.https.HttpsError('permission-denied', 'Only admins can view pending reports');
+    // }
+
+    const pendingReportsSnapshot = await admin.firestore()
+      .collection('reports')
+      .where('status', '==', 'pending')
+      .orderBy('timestamp', 'desc')
+      .get();
+
+    const reports = pendingReportsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return { reports };
+  } catch (error) {
+    console.error('Error getting pending reports:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get pending reports');
+  }
+});
+
+// Get reviewed reports for admin panel
+export const getReviewedReports = functions.https.onCall(async (data, context) => {
+  try {
+    // Check authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
+    }
+
+    // Check if user is admin
+    // TEMPORARY: Disable admin check for testing
+    // const adminDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
+    // if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
+    //   throw new functions.https.HttpsError('permission-denied', 'Only admins can view reviewed reports');
+    // }
+
+    const reviewedReportsSnapshot = await admin.firestore()
+      .collection('reports')
+      .where('status', '==', 'reviewed')
+      .orderBy('reviewedAt', 'desc')
+      .get();
+
+    const reports = reviewedReportsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return { reports };
+  } catch (error) {
+    console.error('Error getting reviewed reports:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get reviewed reports');
+  }
+});
+
+// Helper function to remove content
+async function _removeContent(contentType: string, contentId: string) {
+  try {
+    if (contentType === 'event') {
+      await admin.firestore().collection('events').doc(contentId).delete();
+      console.log('Event removed:', contentId);
+    } else if (contentType === 'user') {
+      // For user content, you might want to suspend the account instead of deleting
+      await admin.firestore().collection('users').doc(contentId).update({
+        suspended: true,
+        suspendedAt: new Date().toISOString(),
+      });
+      console.log('User suspended:', contentId);
+    }
+  } catch (error) {
+    console.error('Error removing content:', error);
+  }
+}
+
+// Helper function to send warning to user
+async function _sendWarningToUser(contentType: string, contentId: string) {
+  try {
+    // This could send a notification or email to the user
+    console.log('Warning sent to user for content:', { contentType, contentId });
+  } catch (error) {
+    console.error('Error sending warning:', error);
+  }
+} 

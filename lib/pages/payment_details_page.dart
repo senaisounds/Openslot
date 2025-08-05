@@ -254,13 +254,13 @@ class PaymentDetailsPageState extends State<PaymentDetailsPage> {
                   color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: isDark ? Colors.orange.withOpacity(0.3) : Colors.orange.withOpacity(0.2),
+                                                color: isDark ? Colors.orange.withValues(alpha: 0.3) : Colors.orange.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       CupertinoIcons.info_circle,
                       color: Colors.orange,
                       size: 16,

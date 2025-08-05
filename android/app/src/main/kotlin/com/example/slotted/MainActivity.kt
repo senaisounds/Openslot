@@ -1,4 +1,4 @@
-package com.M3.Open-Mic
+package com.openslot.app
 
 import io.flutter.embedding.android.FlutterActivity
 

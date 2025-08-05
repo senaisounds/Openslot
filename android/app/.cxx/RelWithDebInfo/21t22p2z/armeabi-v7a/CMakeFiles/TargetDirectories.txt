@@ -1,0 +1,2 @@
+/Users/senaimotley/openslot/android/app/.cxx/RelWithDebInfo/21t22p2z/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/senaimotley/openslot/android/app/.cxx/RelWithDebInfo/21t22p2z/armeabi-v7a/CMakeFiles/rebuild_cache.dir

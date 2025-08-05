@@ -103,7 +103,10 @@ void main() {
     mockClient = MockClient();
     mockAuth = MockFirebaseAuth();
     mockUser = MockUser();
-    mockSlottedUser = MockSlottedUser();
+    mockSlottedUser = MockSlottedUser(
+      id: 'test-user-id',
+      username: 'testuser',
+    );
     
     // Setup Firebase mocks
     await setupTestMocks();

@@ -3,6 +3,7 @@
         android:label="Open Slot"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <!-- Google Maps API Key - Consider moving to environment variables for production -->
         <meta-data android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDoudXh0qMiSd_H9pXAv5YChAzu1_B0EP0"/>
         <activity

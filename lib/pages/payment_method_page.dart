@@ -27,8 +27,7 @@ class PaymentMethodPageState extends State<PaymentMethodPage> {
   List<PaymentMethod> _paymentMethods = [];
   bool _isLoading = true;
   
-  // Form controllers (no longer used in this page)
-  final PaymentMethodType _selectedType = PaymentMethodType.bankAccount;
+
   
   @override
   void initState() {
@@ -276,22 +275,7 @@ class PaymentMethodPageState extends State<PaymentMethodPage> {
     ).then((_) => _loadPaymentMethods());
   }
   
-  Widget _buildSegmentWidget(String text, {bool selected = false}) {
-    final isDark = context.watch<ThemeProvider>().isDarkMode;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-          color: selected
-              ? (isDark ? Colors.black : Colors.white)
-              : (isDark ? Colors.white70 : Colors.black87),
-        ),
-      ),
-    );
-  }
+
   
 
   

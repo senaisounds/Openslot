@@ -19,23 +19,7 @@ class SlottedStripeError implements Exception {
 class StripeApi {
   // Stripe secret keys must NOT be present in client code. All secret-key operations must be handled by a secure backend.
 
-  static bool _validateApiKey(String key, bool isLiveKey) {
-    if (key.isEmpty) {
-      throw SlottedStripeError('Stripe API key is required');
-    }
 
-    final prefix = isLiveKey ? 'sk_live_' : 'sk_test_';
-    if (!key.startsWith(prefix)) {
-      throw SlottedStripeError(
-          'Invalid Stripe API key format. Key must start with ${isLiveKey ? "sk_live_" : "sk_test_"}');
-    }
-
-    if (key.length < 30) {
-      throw SlottedStripeError('Invalid Stripe API key length');
-    }
-
-    return true;
-  }
 
   static String getApiKey(bool debug) {
     throw UnimplementedError('Stripe secret key usage is not allowed in client code. Use a backend endpoint.');

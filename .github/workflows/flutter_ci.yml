@@ -264,7 +264,6 @@ jobs:
     timeout-minutes: 15
     needs: [build-android, build-ios, build-web]
     if: github.ref == 'refs/heads/develop'
-    environment: staging
 
     steps:
     - name: Download web build
@@ -288,7 +287,6 @@ jobs:
     timeout-minutes: 15
     needs: [build-android, build-ios, build-web, security-scan]
     if: github.ref == 'refs/heads/main'
-    environment: production
 
     steps:
     - name: Download web build

@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +12,10 @@ void main() {
 
   setUp(() {
     setupTestMocks();
-    mockUser = MockSlottedUser();
+    mockUser = MockSlottedUser(
+      id: 'test-host-id',
+      username: 'Test Host',
+    );
     mockEvent = Event(id: 'test-event-id');
     
     // Initialize event properties
@@ -29,10 +31,6 @@ void main() {
     mockEvent.waitlist = [];
     mockEvent.live = false;
     mockEvent.ended = false;
-
-    // Mock user data
-    when(mockUser.id).thenReturn('test-host-id');
-    when(mockUser.username).thenReturn('Test Host');
   });
 
   testWidgets('EditEventPage shows event details when editing', (WidgetTester tester) async {

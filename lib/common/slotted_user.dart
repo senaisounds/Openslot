@@ -19,6 +19,7 @@ class SlottedUser {
   DateTime? lastLogin;
   List<Map<String, dynamic>> awards = [];
   List<String> savedEvents = [];
+  List<String> blockedUsers = [];
 
   // Check if the user has a complete profile
   bool get hasCompleteProfile {
@@ -88,6 +89,11 @@ class SlottedUser {
         slottedUser.savedEvents = List<String>.from(docData['savedEvents']);
       }
       
+      // Parse blocked users from document
+      if (docData['blockedUsers'] != null && docData['blockedUsers'] is List) {
+        slottedUser.blockedUsers = List<String>.from(docData['blockedUsers']);
+      }
+      
       if (docData['createdAt'] != null && docData['createdAt'] is Timestamp) {
         slottedUser.createdAt = (docData['createdAt'] as Timestamp).toDate();
       }
@@ -120,6 +126,7 @@ class SlottedUser {
       'pushToken': pushToken,
       'awards': awards,
       'savedEvents': savedEvents,
+      'blockedUsers': blockedUsers,
       'lastLogin': lastLogin != null ? Timestamp.fromDate(lastLogin!) : FieldValue.serverTimestamp(),
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
     };

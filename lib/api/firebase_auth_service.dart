@@ -4,6 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/utils/logger.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
+import 'dart:math';
 
 /// Custom authentication exception for better error handling
 class AuthException implements Exception {
@@ -458,92 +462,111 @@ class FirebaseAuthService {
     }
   }
 
-  // Instagram OAuth authentication
-  Future<UserCredential> signInWithInstagram() async {
+  // Sign in with Apple - Updated to meet Guideline 4.8 requirements
+  Future<UserCredential> signInWithApple() async {
     try {
-      // 1. Create a Custom OAuth provider for Instagram
-      final provider = OAuthProvider('instagram.com');
+      // Generate a random nonce for security
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      // Request Apple Sign In with minimal scopes to meet Guideline 4.8
+      // Only request email and name - no additional data collection
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+        // Ensure user can keep email private
+        webAuthenticationOptions: WebAuthenticationOptions(
+          clientId: 'com.openslot.app',
+          redirectUri: Uri.parse('https://open-mic-5cc8e.firebaseapp.com/__/auth/handler'),
+        ),
+      );
+
+      // Create OAuthProvider for Apple
+      final oauthProvider = OAuthProvider('apple.com');
+      final credential = oauthProvider.credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
+
+      // Sign in with Firebase
+      final userCredential = await firebaseAuth.signInWithCredential(credential);
       
-      // 2. Add scopes - these allow access to user's profile data
-      provider.addScope('user_profile');
-      provider.addScope('user_media');
-      
-      // 3. Set custom parameters to identify our app
-      provider.setCustomParameters({
-        'auth_type': 'rerequest',
-      });
-      
-      // 4. Sign in with pop-up (for mobile/web)
-      final result = await firebaseAuth.signInWithPopup(provider);
-      
-      Logger.d('Instagram login successful for user: ${result.user?.uid}', tag: 'Auth');
-      
-      // 5. If successful, get and save the Instagram profile picture
-      if (result.user != null) {
-        await _saveInstagramProfilePicture(result.user!.uid, result.additionalUserInfo?.profile);
+      // Handle user data creation/update with minimal data collection
+      if (userCredential.user != null) {
+        await _handleAppleSignInUserData(userCredential.user!, appleCredential);
       }
       
-      return result;
+      Logger.d('Apple Sign In successful for user: ${userCredential.user?.uid}', tag: 'Auth');
+      
+      return userCredential;
     } on FirebaseAuthException catch (e, stackTrace) {
       final message = _getAuthErrorMessage(e);
-      Logger.e('Error signing in with Instagram: $message', tag: 'Auth', error: e, stackTrace: stackTrace);
+      Logger.e('Error signing in with Apple: $message', tag: 'Auth', error: e, stackTrace: stackTrace);
       throw AuthException(e.code, message, originalError: e);
     } catch (e, stackTrace) {
-      Logger.e('Unexpected error signing in with Instagram: $e', tag: 'Auth', error: e, stackTrace: stackTrace);
-      throw AuthException('instagram-auth-error', 'An error occurred during Instagram login', originalError: e);
+      Logger.e('Unexpected error signing in with Apple: $e', tag: 'Auth', error: e, stackTrace: stackTrace);
+      throw AuthException('apple-auth-error', 'An error occurred during Apple Sign In', originalError: e);
     }
   }
-  
-  // Save the Instagram profile picture to the user's profile
-  Future<void> _saveInstagramProfilePicture(String uid, Map<String, dynamic>? profile) async {
-    if (profile == null) {
-      Logger.w('Instagram profile data not available', tag: 'Auth');
-      return;
-    }
-    
+
+  // Handle Apple Sign In user data with minimal collection
+  Future<void> _handleAppleSignInUserData(User user, AuthorizationCredentialAppleID appleCredential) async {
     try {
-      // Extract profile picture URL from Instagram data
-      final profilePicUrl = profile['profile_picture_url'] ?? profile['profile_pic_url'];
+      // Check if user exists in Firestore
+      SlottedUser? slottedUser = await getSlottedUser(user.uid);
       
-      if (profilePicUrl == null || profilePicUrl.toString().isEmpty) {
-        Logger.w('Instagram profile picture URL not found in profile data', tag: 'Auth');
-        return;
-      }
-      
-      // Get the current user data
-      final userDoc = await firestore.collection('users').doc(uid).get();
-      SlottedUser user;
-      
-      if (userDoc.exists && userDoc.data() != null) {
-        // Update existing user
-        user = SlottedUser.fromDocument(userDoc);
+      if (slottedUser == null) {
+        // Create new user with minimal data collection
+        slottedUser = SlottedUser()
+          ..id = user.uid
+          ..createdAt = DateTime.now()
+          ..lastLogin = DateTime.now()
+          ..isHost = false;
+        
+        // Only collect name and email as required by Guideline 4.8
+        if (appleCredential.givenName != null && appleCredential.familyName != null) {
+          slottedUser.username = '${appleCredential.givenName} ${appleCredential.familyName}'.trim();
+        }
+        
+        // Handle email - respect user's privacy choice
+        if (appleCredential.email != null && appleCredential.email!.isNotEmpty) {
+          slottedUser.email = appleCredential.email!;
+        }
+        
+        // No additional data collection for advertising purposes
+        // No tracking of user interactions without explicit consent
+        
+        await updateUserData(slottedUser);
+        Logger.d('Created new user from Apple Sign In: ${user.uid}', tag: 'Auth');
       } else {
-        // Create new user
-        user = SlottedUser()..id = uid;
-        
-        // Extract username from Instagram if available
-        if (profile['username'] != null && profile['username'].toString().isNotEmpty) {
-          user.username = profile['username'].toString();
-        }
-        
-        // Save Instagram handle if available
-        if (profile['username'] != null && profile['username'].toString().isNotEmpty) {
-          user.instagram = profile['username'].toString();
-        }
+        // Update existing user's last login time only
+        await updateLastLogin(user.uid);
+        Logger.d('Updated existing user login time: ${user.uid}', tag: 'Auth');
       }
-      
-      // Set profile picture URL from Instagram
-      user.photoUrl = profilePicUrl.toString();
-      
-      // Update user document
-      await updateUserData(user);
-      
-      Logger.d('Instagram profile picture saved for user $uid', tag: 'Auth');
     } catch (e, stackTrace) {
-      // Don't throw for this non-critical operation, just log it
-      Logger.e('Error saving Instagram profile picture: $e', tag: 'Auth', error: e, stackTrace: stackTrace);
+      // Don't fail the sign-in process for data handling errors
+      Logger.e('Error handling Apple Sign In user data: $e', tag: 'Auth', error: e, stackTrace: stackTrace);
     }
   }
+
+  // Generate a random nonce for Apple Sign In
+  String _generateNonce([int length = 32]) {
+    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
+  }
+
+  // SHA256 hash of the nonce
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+
   
   // Check if email exists in Firestore
   Future<bool> doesEmailExist(String email) async {

@@ -16,6 +16,104 @@ class ValidationService {
   static final RegExp _htmlTagsRegex = RegExp(r'<[^>]*>', multiLine: true);
   static final RegExp _urlRegex = RegExp(r'(https?:\/\/[^\s]+)', caseSensitive: false);
   
+  // Objectionable content patterns
+  static final List<RegExp> _profanityPatterns = [
+    RegExp(r'\b(fuck|shit|bitch|asshole|dick|pussy|cunt|whore|slut)\b', caseSensitive: false),
+    RegExp(r'\b(nigga|nigger|faggot|dyke|retard)\b', caseSensitive: false),
+    RegExp(r'\b(rape|kill|murder|suicide|bomb|terrorist)\b', caseSensitive: false),
+  ];
+  
+  static final List<RegExp> _hateSpeechPatterns = [
+    RegExp(r'\b(all\s+)?(white|black|asian|hispanic|jewish|muslim|gay|lesbian|trans)\s+(people|person|man|woman|boy|girl)\s+(should|must|need|deserve)\s+(to\s+)?(die|burn|suffer|leave)\b', caseSensitive: false),
+    RegExp(r'\b(hitler|nazi|kkk|supremacist|racist|sexist|homophobic)\b', caseSensitive: false),
+  ];
+  
+  static final List<RegExp> _inappropriatePatterns = [
+    RegExp(r'\b(sex|nude|naked|porn|pornography|adult|escort|prostitute)\b', caseSensitive: false),
+    RegExp(r'\b(drugs|cocaine|heroin|meth|weed|marijuana|alcohol|drunk)\b', caseSensitive: false),
+    RegExp(r'\b(violence|fight|attack|weapon|gun|knife|bomb)\b', caseSensitive: false),
+  ];
+  
+  static final List<String> _spamPatterns = [
+    'buy now', 'click here', 'free money', 'make money fast',
+    'work from home', 'earn cash', 'get rich quick', 'lottery winner',
+    'viagra', 'cialis', 'weight loss', 'diet pills',
+  ];
+  
+  /// Check if text contains objectionable content
+  bool containsObjectionableContent(String text) {
+    if (text.isEmpty) return false;
+    
+    final lowerText = text.toLowerCase();
+    
+    // Check for profanity
+    for (final pattern in _profanityPatterns) {
+      if (pattern.hasMatch(lowerText)) {
+        return true;
+      }
+    }
+    
+    // Check for hate speech
+    for (final pattern in _hateSpeechPatterns) {
+      if (pattern.hasMatch(lowerText)) {
+        return true;
+      }
+    }
+    
+    // Check for inappropriate content
+    for (final pattern in _inappropriatePatterns) {
+      if (pattern.hasMatch(lowerText)) {
+        return true;
+      }
+    }
+    
+    // Check for spam patterns
+    for (final spam in _spamPatterns) {
+      if (lowerText.contains(spam)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  /// Get the specific reason for objectionable content
+  String? getObjectionableContentReason(String text) {
+    if (text.isEmpty) return null;
+    
+    final lowerText = text.toLowerCase();
+    
+    // Check for profanity
+    for (final pattern in _profanityPatterns) {
+      if (pattern.hasMatch(lowerText)) {
+        return 'Content contains inappropriate language';
+      }
+    }
+    
+    // Check for hate speech
+    for (final pattern in _hateSpeechPatterns) {
+      if (pattern.hasMatch(lowerText)) {
+        return 'Content contains hate speech or discriminatory language';
+      }
+    }
+    
+    // Check for inappropriate content
+    for (final pattern in _inappropriatePatterns) {
+      if (pattern.hasMatch(lowerText)) {
+        return 'Content contains inappropriate or adult content';
+      }
+    }
+    
+    // Check for spam patterns
+    for (final spam in _spamPatterns) {
+      if (lowerText.contains(spam)) {
+        return 'Content appears to be spam or promotional';
+      }
+    }
+    
+    return null;
+  }
+  
   /// Validates an email address
   bool validateEmail(String email) {
     return _emailRegex.hasMatch(email);
@@ -39,11 +137,13 @@ class ValidationService {
       errors['email'] = 'Please enter a valid email address';
     }
     
-    // Bio validation - length check and script detection
+    // Bio validation - length check, script detection, and objectionable content
     if (user.bio.length > 500) {
       errors['bio'] = 'Bio must not exceed 500 characters';
     } else if (_scriptTagRegex.hasMatch(user.bio)) {
       errors['bio'] = 'Bio contains disallowed content';
+    } else if (containsObjectionableContent(user.bio)) {
+      errors['bio'] = getObjectionableContentReason(user.bio) ?? 'Bio contains inappropriate content';
     }
     
     // Social media validation
@@ -80,6 +180,8 @@ class ValidationService {
       errors['description'] = 'Description must not exceed 2000 characters';
     } else if (_scriptTagRegex.hasMatch(event.description)) {
       errors['description'] = 'Description contains disallowed content';
+    } else if (containsObjectionableContent(event.description)) {
+      errors['description'] = getObjectionableContentReason(event.description) ?? 'Description contains inappropriate content';
     }
     
     // Address validation
@@ -109,6 +211,8 @@ class ValidationService {
       errors['rules'] = 'Rules must not exceed 1000 characters';
     } else if (_scriptTagRegex.hasMatch(event.rules)) {
       errors['rules'] = 'Rules contain disallowed content';
+    } else if (containsObjectionableContent(event.rules)) {
+      errors['rules'] = getObjectionableContentReason(event.rules) ?? 'Rules contain inappropriate content';
     }
     
     // Capacity validation

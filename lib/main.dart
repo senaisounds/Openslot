@@ -34,7 +34,9 @@ import 'package:slotted/utils/web_utils.dart' if (dart.library.html) 'package:sl
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:slotted/utils/performance_optimizer.dart';
 import 'package:slotted/utils/performance_monitor.dart';
-import 'package:slotted/widgets/simple_splash_screen.dart';
+import 'package:slotted/pages/onboarding_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 import 'package:slotted/common/colors.dart';
 
@@ -358,7 +360,8 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late AnimationController _bounceController;
 
-  bool _showSplash = true;
+  bool _showSplash = false;
+  bool _showOnboarding = false;
   int idCount = 0;
 
   Future<void> showNotification(int id, String? title, String? body) async {
@@ -517,6 +520,9 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
       
       // Set up Firebase message handlers
       _setupFirebaseMessaging();
+      
+      // Check if user needs onboarding
+      _checkOnboardingStatus();
     } catch (e, stackTrace) {
       Logger.e('Error during initialization: $e', 
               tag: 'AppInit', 
@@ -528,6 +534,21 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
           _showSplash = false;
         });
       }
+    }
+  }
+  
+  Future<void> _checkOnboardingStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasCompletedOnboarding = prefs.getBool('has_completed_onboarding') ?? false;
+      
+      if (!hasCompletedOnboarding) {
+        setState(() {
+          _showOnboarding = true;
+        });
+      }
+    } catch (e) {
+      Logger.e('Error checking onboarding status: $e', tag: 'AppInit');
     }
   }
   
@@ -549,13 +570,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
       vsync: this,
     )..repeat(reverse: true);
 
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        setState(() {
-          _showSplash = false;
-        });
-      }
-    });
+
 
     _controller.forward();
     _bounceController.forward();
@@ -739,28 +754,30 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
         supportedLocales: const [
           Locale('en', ''),
         ],
-        home: _showSplash
-            ? SimpleSplashScreen(
-                onFinished: () {
-                  setState(() {
-                    _showSplash = false;
-                  });
-                },
-              )
-            : ErrorBoundary(
+        home: ErrorBoundary(
                 onRetry: () {
                   Logger.i('Retrying main navigation after error', tag: 'ErrorBoundary');
                 },
-                child: MainNav(
-                  debug: widget.debug,
-                ),
+                child: _showOnboarding 
+                    ? OnboardingPage(
+                        onComplete: () {
+                          setState(() {
+                            _showOnboarding = false;
+                          });
+                        },
+                      )
+                    : MainNav(
+                        debug: widget.debug,
+                      ),
               ),
+        debugShowCheckedModeBanner: false,
       ),
     );
   }
 
   // Add a new method for web-specific wrapper
   Widget _buildWebSpecificWrapper(BuildContext context, Widget child) {
+    
     // Get screen size
     final screenSize = MediaQuery.of(context).size;
     final isLargeScreen = screenSize.width > 1200;
@@ -786,30 +803,34 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
           ? math.min(screenSize.width * 0.7, 1200.0)
           : math.min(screenSize.width * 0.9, 900.0);
           
-      return Center(
-        child: Container(
-          width: containerWidth,
-          decoration: BoxDecoration(
-            color: backgroundDarkColor,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: child,
+      return Container(
+        color: const Color(0xFF1A1A2E), // Dark background for web
+        child: Center(
+          child: Container(
+            width: containerWidth,
+            decoration: BoxDecoration(
+              color: backgroundDarkColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: child,
+            ),
           ),
         ),
       );
     }
     
-    // For smaller screens, just adjust padding
+    // For smaller screens, use dark background
     return Container(
+      color: const Color(0xFF1A1A2E), // Dark background for web
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: child,
     );

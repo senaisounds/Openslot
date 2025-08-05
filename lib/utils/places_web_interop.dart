@@ -379,7 +379,6 @@ Future<Map<String, dynamic>?> getCoordinatesFromAddress(String address) async {
   
   try {
     // Try to use the Geolocation API as a fallback
-    final success = Completer<Map<String, dynamic>?>();
     
     final script = html.ScriptElement()
       ..text = '''

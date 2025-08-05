@@ -33,6 +33,16 @@
 				<string>maps</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>signinwithapple</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>signinwithapple</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
@@ -40,19 +50,34 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>openslot.app</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+			</dict>
+		</dict>
 	</dict>
 	<key>NSCalendarsUsageDescription</key>
-	<string>Calendar is used to add events</string>
+	<string>Calendar access is used to add events to your calendar</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Camera is used to add a profile picture</string>
+	<string>Camera access is used to take profile pictures</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Location is used to find nearby events</string>
+	<string>Location access is used to find events near you and provide directions</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Location is used to find nearby events</string>
+	<string>Location access is used to find events near you and provide directions</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Photos are used to add a profile picture</string>
+	<string>Photo library access is used to select profile pictures</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is used for voice recordings in events</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID is used for secure authentication</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This app uses tracking to provide personalized event recommendations and improve your experience</string>
+
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

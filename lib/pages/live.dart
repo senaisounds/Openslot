@@ -1203,7 +1203,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
                                                   style: TextStyle(
                                                     color: AppColors.slottedOrange,
                                                     fontWeight: FontWeight.w600,
-                                                    fontSize: 16,
+                                                    fontSize: 14,
                                                   ),
                                                 ),
                                                 SizedBox(height: 2),
@@ -2012,6 +2012,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
     final bool isUserAttending = widget.user != null && event.attendees.contains(widget.user?.uid);
     final bool isUserWaitlisted = event.waitlist.contains(widget.user?.uid);
     final bool hasExistingReservation = isUserAttending || isUserWaitlisted;
+    final bool isHost = event.host == widget.user?.uid;
     
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -2085,7 +2086,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-              if (widget.user != null && !event.ended)
+              if (widget.user != null && !event.ended && !isHost)
                 CupertinoButton(
                   padding: const EdgeInsets.all(8),
                   onPressed: () => _handleReserveButtonPress(event),

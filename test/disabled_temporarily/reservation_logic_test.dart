@@ -90,16 +90,20 @@ class TestUser extends MockUser {
   String get uid => 'test-user-id';
 }
 
-// Extended MockSlottedUser with additional implementations
-class TestSlottedUser extends MockSlottedUser {
-  @override
-  String get id => 'test-user-id';
-  
-  @override
-  String get customerID => 'test-customer-id';
-  
-  @override
-  String get testCustomerID => 'test-test-customer-id';
+// Test SlottedUser implementation
+class TestSlottedUser extends SlottedUser {
+  TestSlottedUser() {
+    id = 'test-user-id';
+    customerID = 'test-customer-id';
+    testCustomerID = 'test-test-customer-id';
+    username = 'testuser';
+    email = 'test@example.com';
+    phoneNumber = '+1234567890';
+    isHost = false;
+    isFirstTimer = false;
+    createdAt = DateTime.now();
+    lastLogin = DateTime.now();
+  }
 }
 
 // Create a test event

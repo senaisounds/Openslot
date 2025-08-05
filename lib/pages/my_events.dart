@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:slotted/common/event_class.dart' as EventClass;
+import 'package:slotted/common/event_class.dart' as event_class;
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/edit_event.dart';
 import 'package:slotted/pages/live.dart';
@@ -25,7 +25,7 @@ class MyEventsPage extends StatefulWidget {
   final bool debug;
 
   final Future<void> Function(BuildContext, bool, Function()) authAction;
-  final Future<void> Function(EventClass.Event event, SlottedUser slottedUser)
+  final Future<void> Function(event_class.Event event, SlottedUser slottedUser)
       reserveAction;
   final Future<void> Function(String eventId) deleteEvent;
 
@@ -437,7 +437,7 @@ class MyEventsPageState extends State<MyEventsPage> {
   }
 
   Widget _buildListItem(
-      BuildContext context, EventClass.Event event, SlottedUser? slottedUser) {
+      BuildContext context, event_class.Event event, SlottedUser? slottedUser) {
     // Create the enhanced event card that matches the home page design
     final eventCard = EnhancedEventCard(
       event: event,
@@ -453,7 +453,7 @@ class MyEventsPageState extends State<MyEventsPage> {
           ),
         ),
       ),
-      onReserve: (EventClass.Event eventToReserve) async {
+      onReserve: (event_class.Event eventToReserve) async {
         if (slottedUser != null) {
           await widget.reserveAction(eventToReserve, slottedUser);
         }
@@ -504,13 +504,13 @@ class MyEventsPageState extends State<MyEventsPage> {
 
 
 
-  List<EventClass.Event> _convertQuerySnapshotToEvents(QuerySnapshot snapshot) {
+  List<event_class.Event> _convertQuerySnapshotToEvents(QuerySnapshot snapshot) {
     // Convert to a list of Event objects
     final snapshotDocuments =
         snapshot.docs.map((document) => document).toList();
 
     final events = snapshotDocuments.map((document) {
-      return EventClass.Event.fromDocument(document);
+      return event_class.Event.fromDocument(document);
     }).toList()
       ..removeWhere((event) => event.id == '');
 

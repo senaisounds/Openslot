@@ -76,7 +76,7 @@ class EventsMapPageState extends State<EventsMapPage> with SingleTickerProviderS
   final EventCoordinateCache _coordinateCache = EventCoordinateCache();
   
   // Add map of pre-rendered markers to avoid rebuilding them constantly
-  final Map<String, Widget> _markerCache = {};
+  final Map<String, Marker> _markerCache = {};
   
   // Search and filter state
   final TextEditingController _searchController = TextEditingController();
@@ -266,7 +266,7 @@ final double _maxDistance = 50.0; // in miles
     });
     
     // Add timeout to prevent stuck loading state
-    final timeout = Timer(const Duration(seconds: 10), () {
+    final timeout = Timer(const Duration(seconds: 15), () {
       if (mounted && _isLoading) {
         Logger.d('Event fetch timeout - resetting loading state', tag: 'Events_map_page');
         setState(() {
@@ -276,9 +276,12 @@ final double _maxDistance = 50.0; // in miles
     });
     
     try {
+      // Use a more efficient query with limit and order
       final eventsSnapshot = await FirebaseFirestore.instance
           .collection('events')
           .where('ended', isEqualTo: false)
+          .orderBy('startTime', descending: false) // Order by start time for better performance
+          .limit(100) // Limit to prevent loading too many events
           .get();
       
       final events = eventsSnapshot.docs
@@ -466,7 +469,16 @@ final double _maxDistance = 50.0; // in miles
     return _filteredEvents.map((event) {
       final coordinates = _getEventCoordinates(event);
       final isSelected = _selectedEvent?.id == event.id;
-      return _buildSingleEventMarker(event, coordinates, isSelected);
+      
+      // Use cached marker if available
+      final cacheKey = '$event.id-$isSelected';
+      if (_markerCache.containsKey(cacheKey)) {
+        return _markerCache[cacheKey] as Marker;
+      }
+      
+      final marker = _buildSingleEventMarker(event, coordinates, isSelected);
+      _markerCache[cacheKey] = marker;
+      return marker;
     }).toList();
   }
   
@@ -1396,77 +1408,74 @@ final double _maxDistance = 50.0; // in miles
             color: kHighlightColor,
             backgroundColor: kBackgroundDark,
             child: FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentPosition,
-              initialZoom: 11.0,
-              minZoom: 3,
-              maxZoom: 18,
-              onMapEvent: (MapEvent event) {
-                if (event is MapEventMove) {
-                  _handleMapMove(event);
-                }
-              },
-              // Fix interactionOptions
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'http://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.slotted.app',
-                retinaMode: true,
-                keepBuffer: 5, // Keep more tiles in memory for smooth scrolling
-                tileProvider: NetworkTileProvider(),
-                additionalOptions: const {
-                  'attribution': '© OpenStreetMap contributors',
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _currentPosition,
+                initialZoom: 11.0,
+                minZoom: 3,
+                maxZoom: 18,
+                onMapEvent: (MapEvent event) {
+                  if (event is MapEventMove) {
+                    _handleMapMove(event);
+                  }
                 },
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                ),
               ),
-              // Enhanced event markers with clustering
-              MarkerLayer(
-                markers: _enableClustering ? _buildClusteredMarkers() : _buildIndividualMarkers(),
-              ),
-              // Current Location Marker
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 24,
-                    height: 24,
-                    point: _currentPosition,
-                    alignment: Alignment.center,
-                    child: WidgetStructureHelper.safeRepaintBoundary(
-                      Container(
-                        decoration: BoxDecoration(
-                          color: kAccentColor.withValues(alpha: 0.8),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: kBackgroundLight,
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: kPrimaryColor.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              spreadRadius: 2,
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.slotted.app',
+                  retinaMode: false,
+                  keepBuffer: 3,
+                  tileProvider: NetworkTileProvider(),
+                  additionalOptions: const {
+                    'attribution': '© OpenStreetMap contributors',
+                  },
+                ),
+                MarkerLayer(
+                  markers: _enableClustering ? _buildClusteredMarkers() : _buildIndividualMarkers(),
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      width: 24,
+                      height: 24,
+                      point: _currentPosition,
+                      alignment: Alignment.center,
+                      child: WidgetStructureHelper.safeRepaintBoundary(
+                        Container(
+                          decoration: BoxDecoration(
+                            color: kAccentColor.withValues(alpha: 0.8),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: kBackgroundLight,
+                              width: 2,
                             ),
-                          ],
-                        ),
-                        child: const Icon(
-                          CupertinoIcons.location_fill,
-                          color: kBackgroundDark,
-                          size: 12,
+                            boxShadow: [
+                              BoxShadow(
+                                color: kPrimaryColor.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.location_fill,
+                            color: kBackgroundDark,
+                            size: 12,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  ],
+                ),
+              ],
+            ),
           ),
           
-          // Fix: Positioned must be a direct child of Stack, not inside RepaintBoundary
+          // Location selector
           Positioned(
             top: 12, // Adjusted position to account for the navigation bar
             left: 0,
@@ -2190,11 +2199,12 @@ final double _maxDistance = 50.0; // in miles
                   return CupertinoButton(
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     onPressed: () async {
+                      final navigatorContext = context;
                       await LocationService.setSimulatedLocation(location);
-                      if (mounted) {
-                        Navigator.pop(context);
+                      if (mounted && navigatorContext.mounted) {
+                        Navigator.pop(navigatorContext);
+                        await _getCurrentLocation();
                       }
-                      await _getCurrentLocation();
                     },
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

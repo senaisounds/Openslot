@@ -131,6 +131,12 @@ class CalendarService {
       
       // If we should ask before adding and context is provided
       if (_askBeforeAdding && currentContext != null) {
+        // Check if context is still mounted before proceeding
+        if (!currentContext.mounted) {
+          Logger.d('Context no longer mounted, skipping calendar confirmation', tag: 'CalendarService');
+          return false;
+        }
+        
         final confirmed = await _showAddToCalendarConfirmation(currentContext, event);
         if (!confirmed) {
           return false;

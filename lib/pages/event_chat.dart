@@ -216,19 +216,17 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
       String? senderId = widget.user?.uid;
 
       // Try to get the latest photoUrl and username from Firestore
-      if (senderId != null) {
-        final userDoc = await FirebaseFirestore.instance.collection('users').doc(senderId).get();
-        if (userDoc.exists) {
-          final data = userDoc.data() ?? {};
-          if (data['photoUrl'] != null && (data['photoUrl'] as String).isNotEmpty) {
-            senderPhotoUrl = data['photoUrl'];
-          }
-          if (data['username'] != null && (data['username'] as String).isNotEmpty) {
-            senderName = data['username'];
-          }
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(senderId).get();
+      if (userDoc.exists) {
+        final data = userDoc.data() ?? {};
+        if (data['photoUrl'] != null && (data['photoUrl'] as String).isNotEmpty) {
+          senderPhotoUrl = data['photoUrl'];
+        }
+        if (data['username'] != null && (data['username'] as String).isNotEmpty) {
+          senderName = data['username'];
         }
       }
-
+    
       final messageRef = FirebaseFirestore.instance
           .collection('events')
           .doc(widget.event.id)

@@ -4,8 +4,7 @@ import 'dart:io';
 void main() async {
   print('Scanning for BuildContext across async gaps issues...');
   
-  // Define the directory to scan
-  final rootDir = Directory('lib');
+
   
   // Define patterns to search for
   final asyncBuildContextPattern = RegExp(r"info • Don't use 'BuildContext's across async gaps • ([^\•]+)");

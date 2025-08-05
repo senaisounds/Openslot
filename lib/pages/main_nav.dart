@@ -54,8 +54,10 @@ final FocusNode authFocusNode = FocusNode();
   final TextEditingController phoneController = TextEditingController();
 
   Future<String> reserveAction(
-      dynamic paymentIntent, Event event, SlottedUser slottedUser) async {
+      dynamic paymentIntent, Event event, SlottedUser slottedUser, {bool passwordVerified = false}) async {
     try {
+      Logger.d('Starting reserveAction for event: ${event.id}, user: ${slottedUser.id}', tag: 'Main_nav');
+      
       // Check network connectivity before making request
       try {
         final connectivityCheck = await http.get(Uri.parse('https://google.com'))
@@ -70,32 +72,54 @@ final FocusNode authFocusNode = FocusNode();
       }
 
       Logger.d('Making reservation request for event: ${event.id}, user: ${slottedUser.id}', tag: 'Main_nav');
+      
+      final requestBody = {
+        'eventID': event.id,
+        'userID': slottedUser.id,
+        'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
+        'debug': widget.debug ? 'true' : 'false',
+        'passwordVerified': passwordVerified ? 'true' : 'false',
+      };
+      
+      Logger.d('Request body: $requestBody', tag: 'Main_nav');
+      
       var response = await http.post(
         Uri.parse(
             'https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: {
-          'eventID': event.id,
-          'userID': slottedUser.id,
-          'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
-          'debug': widget.debug ? 'true' : 'false',
-        },
+        body: requestBody,
       ).timeout(const Duration(seconds: 30));
       
       Logger.d('Reservation response status: ${response.statusCode}', tag: 'Main_nav');
       Logger.d('Reservation response body: ${response.body}', tag: 'Main_nav');
       
-      if (response.statusCode != 200) {
+      if (response.statusCode == 403) {
         try {
           final errorData = json.decode(response.body);
-          throw Exception(errorData['error'] ?? 'Failed to reserve: ${response.body}');
+          if (errorData['error'] == 'Password verification required for private event') {
+            throw Exception('Password verification required for private event');
+          }
         } catch (jsonError) {
-          throw Exception('Failed to reserve: ${response.body}');
+          throw Exception('Password verification required for private event');
         }
       }
       
+      if (response.statusCode != 200) {
+        try {
+          final errorData = json.decode(response.body);
+          final errorMessage = errorData['error'] ?? 'Failed to reserve: ${response.body}';
+          Logger.d('Reservation failed with error: $errorMessage', tag: 'Main_nav');
+          throw Exception(errorMessage);
+        } catch (jsonError) {
+          final errorMessage = 'Failed to reserve: ${response.body}';
+          Logger.d('Reservation failed with error: $errorMessage', tag: 'Main_nav');
+          throw Exception(errorMessage);
+        }
+      }
+      
+      Logger.d('Reservation successful', tag: 'Main_nav');
       return response.body;
     } catch (e) {
       Logger.d('Error in reserveAction: $e', tag: 'Main_nav');
@@ -194,8 +218,6 @@ final FocusNode authFocusNode = FocusNode();
       isLoading = true;
     });
 
-    dynamic paymentIntent = '';
-
     final isReserved = event.attendees.contains(slottedUser.id);
     final isWaitlisted = event.waitlist.contains(slottedUser.id);
 
@@ -254,6 +276,9 @@ final FocusNode authFocusNode = FocusNode();
           }
           
           Logger.d('Password verification successful', tag: 'Main_nav');
+          
+          // After successful password verification, proceed with reservation
+          // The backend should now allow the reservation to proceed
         } catch (e) {
           Logger.d('Error verifying password: $e', tag: 'Main_nav');
           if (!mounted) return;
@@ -283,23 +308,51 @@ final FocusNode authFocusNode = FocusNode();
 
       // Continue with payment and reservation if password verification passed
       if (event.price > 0 && !(isReserved || isWaitlisted)) {
-        final clientSecret = await createPaymentIntentOnBackend(
-          amount: (event.price * 100).toInt(),
-          currency: 'usd',
-          customerId: widget.debug ? slottedUser.testCustomerID : slottedUser.customerID,
-          debug: widget.debug,
-        );
-        if (clientSecret == null) throw Exception('No client secret returned');
-        await Stripe.instance.initPaymentSheet(
-          paymentSheetParameters: SetupPaymentSheetParameters(
-            paymentIntentClientSecret: clientSecret,
-            merchantDisplayName: 'OpenSlot',
-          ),
-        );
-        await Stripe.instance.presentPaymentSheet();
+        try {
+          final clientSecret = await createPaymentIntentOnBackend(
+            amount: (event.price * 100).toInt(),
+            currency: 'usd',
+            customerId: widget.debug ? slottedUser.testCustomerID : slottedUser.customerID,
+            debug: widget.debug,
+          );
+          if (clientSecret == null) throw Exception('No client secret returned');
+          
+          await Stripe.instance.initPaymentSheet(
+            paymentSheetParameters: SetupPaymentSheetParameters(
+              paymentIntentClientSecret: clientSecret,
+              merchantDisplayName: 'OpenSlot',
+            ),
+          );
+          await Stripe.instance.presentPaymentSheet();
+        } catch (e) {
+          Logger.d('Payment error: $e', tag: 'Main_nav');
+          if (!mounted) return;
+          
+          setState(() {
+            isLoading = false;
+          });
+          
+          // Show payment error dialog
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Payment Failed'),
+              content: Text('Could not process payment: ${e.toString()}'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
       }
 
-      await reserveAction('', event, slottedUser);
+      // Make the reservation request
+      final result = await reserveAction('', event, slottedUser, passwordVerified: true);
+      Logger.d('Reservation result: $result', tag: 'Main_nav');
       
       // Show success message
       if (!mounted) return;
@@ -349,9 +402,9 @@ final FocusNode authFocusNode = FocusNode();
     } catch (e) {
       if (!mounted) return;
       
-      String errorMessage =
-          'There was an error processing your payment. Please try again.\n$e';
+      String errorMessage = 'There was an error processing your reservation. Please try again.\n$e';
       bool cancelled = false;
+      
       if (e is PlatformException) {
         errorMessage = e.message ?? errorMessage;
       } else if (e is StripeException) {
@@ -361,7 +414,7 @@ final FocusNode authFocusNode = FocusNode();
         errorMessage = e.message;
       }
 
-      Logger.d(e.toString(), tag: 'Main_nav');
+      Logger.d('Reservation error: $e', tag: 'Main_nav');
 
       setState(() {
         isLoading = false;
@@ -372,12 +425,19 @@ final FocusNode authFocusNode = FocusNode();
           context: context,
           builder: (context) {
             return CupertinoAlertDialog(
-              title: const Text('Error'),
+              title: const Text('Reservation Failed'),
               content: Text(errorMessage),
               actions: [
                 CupertinoDialogAction(
                   child: const Text('OK'),
                   onPressed: () => Navigator.of(context).pop(),
+                ),
+                CupertinoDialogAction(
+                  child: const Text('Retry'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    resAuth(event, slottedUser); // Retry the reservation
+                  },
                 ),
               ],
             );

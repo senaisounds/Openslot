@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:slotted/widgets/code_verification_page.dart';
+import 'package:slotted/widgets/terms_of_service_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
@@ -14,6 +15,68 @@ import 'package:slotted/pages/home_page.dart';
 import 'package:slotted/utils/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:slotted/providers/theme_provider.dart';
+
+class AppleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = CupertinoColors.white
+      ..style = PaintingStyle.fill;
+    
+    // Draw the official Apple logo with the characteristic bite
+    final path = Path();
+    
+    // Apple body - starting from the top
+    path.moveTo(size.width * 0.5, size.height * 0.05);
+    
+    // Top curve
+    path.quadraticBezierTo(size.width * 0.7, size.height * 0.05, size.width * 0.8, size.height * 0.15);
+    path.quadraticBezierTo(size.width * 0.85, size.height * 0.25, size.width * 0.85, size.height * 0.4);
+    
+    // Right side curve (before the bite)
+    path.quadraticBezierTo(size.width * 0.85, size.height * 0.55, size.width * 0.8, size.height * 0.65);
+    
+    // The bite - curve inward on the right side
+    path.quadraticBezierTo(size.width * 0.75, size.height * 0.6, size.width * 0.7, size.height * 0.65);
+    path.quadraticBezierTo(size.width * 0.65, size.height * 0.7, size.width * 0.6, size.height * 0.65);
+    
+    // Continue the right side after the bite
+    path.quadraticBezierTo(size.width * 0.55, size.height * 0.6, size.width * 0.5, size.height * 0.65);
+    
+    // Bottom curve
+    path.quadraticBezierTo(size.width * 0.45, size.height * 0.6, size.width * 0.4, size.height * 0.65);
+    path.quadraticBezierTo(size.width * 0.35, size.height * 0.7, size.width * 0.3, size.height * 0.65);
+    path.quadraticBezierTo(size.width * 0.25, size.height * 0.6, size.width * 0.2, size.height * 0.65);
+    
+    // Left side curve
+    path.quadraticBezierTo(size.width * 0.15, size.height * 0.55, size.width * 0.15, size.height * 0.4);
+    path.quadraticBezierTo(size.width * 0.15, size.height * 0.25, size.width * 0.2, size.height * 0.15);
+    path.quadraticBezierTo(size.width * 0.3, size.height * 0.05, size.width * 0.5, size.height * 0.05);
+    path.close();
+    
+    // Apple stem
+    final stemPath = Path();
+    stemPath.moveTo(size.width * 0.45, size.height * 0.05);
+    stemPath.lineTo(size.width * 0.55, size.height * 0.05);
+    stemPath.lineTo(size.width * 0.52, size.height * 0.15);
+    stemPath.lineTo(size.width * 0.48, size.height * 0.15);
+    stemPath.close();
+    
+    // Apple leaf
+    final leafPath = Path();
+    leafPath.moveTo(size.width * 0.52, size.height * 0.15);
+    leafPath.quadraticBezierTo(size.width * 0.6, size.height * 0.1, size.width * 0.65, size.height * 0.2);
+    leafPath.quadraticBezierTo(size.width * 0.6, size.height * 0.25, size.width * 0.52, size.height * 0.15);
+    leafPath.close();
+    
+    canvas.drawPath(path, paint);
+    canvas.drawPath(stemPath, paint);
+    canvas.drawPath(leafPath, paint);
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -247,30 +310,58 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         slottedUser.lastLogin = DateTime.now();
         
         await _authService.updateUserData(slottedUser);
+        
+        // Show Terms of Service for new users
+        if (mounted) {
+          _showTermsOfServiceDialog();
+        }
       } else {
         // Update last login time
         await _authService.updateLastLogin(user.uid);
-      }
-      
-             // Success haptic feedback
-       HapticFeedback.mediumImpact();
-      
-      // Navigate to home page
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          CupertinoPageRoute(
-            builder: (context) => ChangeNotifierProvider(
-              create: (_) => ThemeProvider(),
-              child: const HomePage(),
-            ),
-          ),
-          (route) => false,
-        );
+        
+        // Success haptic feedback
+        HapticFeedback.mediumImpact();
+        
+        // Navigate to home page for existing users
+        if (mounted) {
+          _navigateToHomePage();
+        }
       }
     } catch (e) {
       Logger.e('Error setting up user profile: $e', tag: 'Login_page');
       _showError('Error setting up user profile. Please try again.');
     }
+  }
+
+  void _showTermsOfServiceDialog() {
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => TermsOfServiceDialog(
+        onAccept: () {
+          // Success haptic feedback
+          HapticFeedback.mediumImpact();
+          _navigateToHomePage();
+        },
+        onDecline: () {
+          // Sign out the user if they decline terms
+          _authService.signOut();
+          _showError('You must accept the Terms of Service to use the app.');
+        },
+      ),
+    );
+  }
+
+  void _navigateToHomePage() {
+    Navigator.of(context).pushAndRemoveUntil(
+      CupertinoPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+          child: const HomePage(),
+        ),
+      ),
+      (route) => false,
+    );
   }
   
   Future<void> _debugSkipLogin() async {
@@ -292,7 +383,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     }
   }
   
-  Future<void> _signInWithInstagram() async {
+  Future<void> _signInWithApple() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -301,14 +392,28 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     HapticFeedback.lightImpact();
 
     try {
-      final userCredential = await _authService.signInWithInstagram();
+      final userCredential = await _authService.signInWithApple();
       
       if (userCredential.user != null) {
         await _handleSuccessfulLogin(userCredential.user!);
       }
     } catch (e) {
-      Logger.d('Instagram login error: $e', tag: 'Login_page');
-      _showError('Instagram sign-in is currently unavailable. Please use phone number instead.');
+      Logger.e('Apple Sign In error: $e', tag: 'Login_page');
+      
+      // Provide more specific error messages
+      String errorMessage = 'Apple Sign In failed. Please try again or use phone number.';
+      
+      if (e.toString().contains('network') || e.toString().contains('connection')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (e.toString().contains('cancelled')) {
+        errorMessage = 'Apple Sign In was cancelled.';
+      } else if (e.toString().contains('not supported')) {
+        errorMessage = 'Apple Sign In is not supported on this device.';
+      } else if (e.toString().contains('invalid')) {
+        errorMessage = 'Invalid Apple Sign In configuration. Please contact support.';
+      }
+      
+      _showError(errorMessage);
     } finally {
       if (mounted) {
         setState(() {
@@ -352,35 +457,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   children: [
                     const Spacer(),
                     
-                    // Logo section with animation
-                    Center(
-                      child: Hero(
-                        tag: 'logo',
-                        child: Container(
-                          padding: const EdgeInsets.all(DesignSystem.spacingL),
-                          decoration: BoxDecoration(
-                            color: DesignSystem.primaryOrange.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: DesignSystem.primaryOrange.withValues(alpha: 0.2),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'lib/assets/images/new_logo/openslot_logo.png',
-                            height: 100,
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: DesignSystem.spacingXL),
-                    
-                                         // Welcome text
+                    // Welcome text
                      Text(
                        'Welcome to openslot',
                        textAlign: TextAlign.center,
@@ -607,30 +684,52 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     
                     const SizedBox(height: DesignSystem.spacingXL),
                     
-                    // Instagram button
-                    CupertinoButton(
-                      padding: const EdgeInsets.symmetric(vertical: DesignSystem.spacingM - 2),
-                      color: CupertinoColors.white,
-                      borderRadius: BorderRadius.circular(DesignSystem.radiusM),
-                      onPressed: _isLoading ? null : _signInWithInstagram,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'lib/assets/images/instagram-black.png',
-                            height: 24,
-                          ),
-                          const SizedBox(width: DesignSystem.spacingS),
-                                                     Text(
-                             'Continue with Instagram',
-                             style: DesignSystem.body1.copyWith(
-                               color: CupertinoColors.black,
-                               fontWeight: FontWeight.w600,
-                             ),
-                           ),
-                        ],
+                    // Apple Sign In button - Updated to match Apple's official design
+                    Container(
+                      width: double.infinity,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.black,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: CupertinoColors.black,
+                          width: 1,
+                        ),
+                      ),
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        onPressed: _isLoading ? null : _signInWithApple,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Apple logo
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CustomPaint(
+                                size: const Size(20, 20),
+                                painter: AppleLogoPainter(),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Text
+                            const Text(
+                              'Sign in with Apple',
+                              style: TextStyle(
+                                color: CupertinoColors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                    
+
                     
                     const Spacer(),
                     

@@ -17,6 +17,18 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.isAdmin == true;
     }
     
+    // Check if user is blocked by another user
+    function isBlocked(blockerId, blockedId) {
+      let blockerDoc = get(/databases/$(database)/documents/users/$(blockerId));
+      return blockerDoc.data.blockedUsers != null && 
+             blockerDoc.data.blockedUsers.hasAny([blockedId]);
+    }
+    
+    // Check if users can interact (not blocked)
+    function canInteract(user1Id, user2Id) {
+      return !isBlocked(user1Id, user2Id) && !isBlocked(user2Id, user1Id);
+    }
+    
     // Validate event data for creation/updates
     function isValidEvent() {
       let incomingData = request.resource.data;
@@ -56,7 +68,10 @@ service cloud.firestore {
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees', 'waitlist']) &&
                       (request.resource.data.attendees.hasAll(resource.data.attendees) || 
                        request.resource.data.attendees.hasAll(resource.data.attendees.concat([request.auth.uid])) ||
-                       resource.data.attendees.hasAll(request.resource.data.attendees.concat([request.auth.uid])));
+                       resource.data.attendees.hasAll(request.resource.data.attendees.concat([request.auth.uid]))) &&
+                      // Prevent blocked users from joining events
+                      (resource.data.host == request.auth.uid || 
+                       canInteract(resource.data.host, request.auth.uid));
     }
     
     // Public event images

@@ -27,7 +27,20 @@ class TestSetup {
     // Set up SharedPreferences for testing first
     SharedPreferences.setMockInitialValues({});
     
-    // Initialize Firebase for testing with proper options
+    // Set up fake Firestore first (this doesn't require Firebase initialization)
+    fakeFirestore = FakeFirebaseFirestore();
+    
+    // Set up mock Firebase Auth
+    mockAuth = MockFirebaseAuth();
+    mockUser = MockUser();
+    
+    // Set up initial auth state (signed in by default)
+    mockAuth.signIn(mockUser);
+    
+    // Enable test network service
+    TestNetworkService.enableTestMode();
+    
+    // Initialize Firebase for testing with proper options (optional)
     try {
       // Check if Firebase is already initialized
       if (Firebase.apps.isNotEmpty) {
@@ -47,21 +60,8 @@ class TestSetup {
       }
     } catch (e) {
       debugPrint('Firebase initialization error (safe to ignore in tests): $e');
-      // Continue despite Firebase initialization errors
+      // Continue despite Firebase initialization errors - tests can still work with mocks
     }
-
-    // Set up fake Firestore
-    fakeFirestore = FakeFirebaseFirestore();
-    
-    // Set up mock Firebase Auth
-    mockAuth = MockFirebaseAuth();
-    mockUser = MockUser();
-    
-    // Set up initial auth state (signed in by default)
-    mockAuth.signIn(mockUser);
-    
-    // Enable test network service
-    TestNetworkService.enableTestMode();
     
     _initialized = true;
     debugPrint('TestSetup initialized successfully');
@@ -71,9 +71,18 @@ class TestSetup {
   static Future<void> cleanup() async {
     TestNetworkService.disableTestMode();
     try {
-      await fakeFirestore.terminate();
-      await fakeFirestore.clearPersistence();
-    } catch (e) {
+      // Only call terminate if the method exists
+      try {
+        await fakeFirestore.terminate();
+      } catch (e) {
+        // Ignore terminate errors - it's not critical for tests
+      }
+      try {
+        await fakeFirestore.clearPersistence();
+      } catch (e) {
+        // Ignore clearPersistence errors
+      }
+        } catch (e) {
       debugPrint('Cleanup error (safe to ignore): $e');
     }
     _initialized = false;
@@ -126,6 +135,8 @@ class TestSetup {
       ),
     );
   }
+
+
 
   /// Create Cupertino test app for iOS-style widgets
   static Widget createCupertinoTestApp({
@@ -226,6 +237,8 @@ class TestSetup {
       debugPrint('SafeTap timeout: $e');
     }
   }
+
+
 
   /// Safe text entry with timeout protection
   static Future<void> safeEnterText(

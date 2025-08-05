@@ -12,7 +12,6 @@ void main() async {
     }
     
     String content = await file.readAsString();
-    int fixedErrors = 0;
     
     // Fix pattern matching errors
     final patternMatchRegex = RegExp(r"case '([^']+)':");
@@ -58,7 +57,6 @@ enum StripeErrorCode {
       content = content.replaceAllMapped(
         RegExp(r"case '([^']+)':"), 
         (match) {
-          fixedErrors++;
           return "case StripeErrorCode.${match.group(1)}:";
         }
       );
@@ -67,7 +65,6 @@ enum StripeErrorCode {
       content = content.replaceAllMapped(
         RegExp(r"e\.error\.code == '([^']+)'"), 
         (match) {
-          fixedErrors++;
           return "e.error.code == StripeErrorCode.${match.group(1)}.toString()";
         }
       );

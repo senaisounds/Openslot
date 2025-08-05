@@ -5,6 +5,7 @@ import 'package:mockito/mockito.dart';
 import 'package:http/http.dart' as http;
 // import 'package:firebase_auth/firebase_auth.dart';  // Removing unused import
 import 'package:slotted/common/event_class.dart';
+import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/pages/event_details.dart';
 import '../test_helpers.dart';
 import 'package:latlong2/latlong.dart';  // Added LatLng import
@@ -79,20 +80,20 @@ class TestUser extends MockUser {
   String get uid => _uid;
 }
 
-// Extended MockSlottedUser implementation for testing
-class TestSlottedUser extends MockSlottedUser {
-  final String _id;
-  
-  TestSlottedUser({String id = 'test-user-id'}) : _id = id;
-
-  @override
-  String get id => _id;
-  
-  @override
-  String get customerID => '${_id}_customer';
-  
-  @override
-  String get testCustomerID => '${_id}_test_customer';
+// Test SlottedUser implementation for performance testing
+class TestSlottedUser extends SlottedUser {
+  TestSlottedUser({String id = 'test-user-id'}) {
+    this.id = id;
+    customerID = '${id}_customer';
+    testCustomerID = '${id}_test_customer';
+    username = 'testuser';
+    email = 'test@example.com';
+    phoneNumber = '+1234567890';
+    isHost = false;
+    isFirstTimer = false;
+    createdAt = DateTime.now();
+    lastLogin = DateTime.now();
+  }
 }
 
 // Measure the reservation function performance

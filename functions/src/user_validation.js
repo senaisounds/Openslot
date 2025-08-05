@@ -8,6 +8,112 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 
+// Objectionable content patterns
+const profanityPatterns = [
+  /\b(fuck|shit|bitch|asshole|dick|pussy|cunt|whore|slut)\b/i,
+  /\b(nigga|nigger|faggot|dyke|retard)\b/i,
+  /\b(rape|kill|murder|suicide|bomb|terrorist)\b/i,
+];
+
+const hateSpeechPatterns = [
+  /\b(all\s+)?(white|black|asian|hispanic|jewish|muslim|gay|lesbian|trans)\s+(people|person|man|woman|boy|girl)\s+(should|must|need|deserve)\s+(to\s+)?(die|burn|suffer|leave)\b/i,
+  /\b(hitler|nazi|kkk|supremacist|racist|sexist|homophobic)\b/i,
+];
+
+const inappropriatePatterns = [
+  /\b(sex|nude|naked|porn|pornography|adult|escort|prostitute)\b/i,
+  /\b(drugs|cocaine|heroin|meth|weed|marijuana|alcohol|drunk)\b/i,
+  /\b(violence|fight|attack|weapon|gun|knife|bomb)\b/i,
+];
+
+const spamPatterns = [
+  'buy now', 'click here', 'free money', 'make money fast',
+  'work from home', 'earn cash', 'get rich quick', 'lottery winner',
+  'viagra', 'cialis', 'weight loss', 'diet pills',
+];
+
+/**
+ * Check if text contains objectionable content
+ * @param {string} text - Text to check
+ * @returns {boolean} True if objectionable content is found
+ */
+function containsObjectionableContent(text) {
+  if (!text || text.length === 0) return false;
+  
+  const lowerText = text.toLowerCase();
+  
+  // Check for profanity
+  for (const pattern of profanityPatterns) {
+    if (pattern.test(lowerText)) {
+      return true;
+    }
+  }
+  
+  // Check for hate speech
+  for (const pattern of hateSpeechPatterns) {
+    if (pattern.test(lowerText)) {
+      return true;
+    }
+  }
+  
+  // Check for inappropriate content
+  for (const pattern of inappropriatePatterns) {
+    if (pattern.test(lowerText)) {
+      return true;
+    }
+  }
+  
+  // Check for spam patterns
+  for (const spam of spamPatterns) {
+    if (lowerText.includes(spam)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Get the specific reason for objectionable content
+ * @param {string} text - Text to check
+ * @returns {string|null} Reason for objectionable content or null
+ */
+function getObjectionableContentReason(text) {
+  if (!text || text.length === 0) return null;
+  
+  const lowerText = text.toLowerCase();
+  
+  // Check for profanity
+  for (const pattern of profanityPatterns) {
+    if (pattern.test(lowerText)) {
+      return 'Content contains inappropriate language';
+    }
+  }
+  
+  // Check for hate speech
+  for (const pattern of hateSpeechPatterns) {
+    if (pattern.test(lowerText)) {
+      return 'Content contains hate speech or discriminatory language';
+    }
+  }
+  
+  // Check for inappropriate content
+  for (const pattern of inappropriatePatterns) {
+    if (pattern.test(lowerText)) {
+      return 'Content contains inappropriate or adult content';
+    }
+  }
+  
+  // Check for spam patterns
+  for (const spam of spamPatterns) {
+    if (lowerText.includes(spam)) {
+      return 'Content appears to be spam or promotional';
+    }
+  }
+  
+  return null;
+}
+
 /**
  * Validates if a username is already taken
  * @param {string} username - The username to check
@@ -60,6 +166,11 @@ function validateUserData(userData) {
   // Check for potential XSS in bio
   if (userData.bio && /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i.test(userData.bio)) {
     errors.bio = 'Bio contains disallowed content';
+  }
+  
+  // Check for objectionable content in bio
+  if (userData.bio && containsObjectionableContent(userData.bio)) {
+    errors.bio = getObjectionableContentReason(userData.bio) || 'Bio contains inappropriate content';
   }
   
   // Social media validation

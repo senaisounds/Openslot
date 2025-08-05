@@ -8,6 +8,112 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 
+// Objectionable content patterns
+const profanityPatterns = [
+  /\b(fuck|shit|bitch|asshole|dick|pussy|cunt|whore|slut)\b/i,
+  /\b(nigga|nigger|faggot|dyke|retard)\b/i,
+  /\b(rape|kill|murder|suicide|bomb|terrorist)\b/i,
+];
+
+const hateSpeechPatterns = [
+  /\b(all\s+)?(white|black|asian|hispanic|jewish|muslim|gay|lesbian|trans)\s+(people|person|man|woman|boy|girl)\s+(should|must|need|deserve)\s+(to\s+)?(die|burn|suffer|leave)\b/i,
+  /\b(hitler|nazi|kkk|supremacist|racist|sexist|homophobic)\b/i,
+];
+
+const inappropriatePatterns = [
+  /\b(sex|nude|naked|porn|pornography|adult|escort|prostitute)\b/i,
+  /\b(drugs|cocaine|heroin|meth|weed|marijuana|alcohol|drunk)\b/i,
+  /\b(violence|fight|attack|weapon|gun|knife|bomb)\b/i,
+];
+
+const spamPatterns = [
+  'buy now', 'click here', 'free money', 'make money fast',
+  'work from home', 'earn cash', 'get rich quick', 'lottery winner',
+  'viagra', 'cialis', 'weight loss', 'diet pills',
+];
+
+/**
+ * Check if text contains objectionable content
+ * @param {string} text - Text to check
+ * @returns {boolean} True if objectionable content is found
+ */
+function containsObjectionableContent(text) {
+  if (!text || text.length === 0) return false;
+  
+  const lowerText = text.toLowerCase();
+  
+  // Check for profanity
+  for (const pattern of profanityPatterns) {
+    if (pattern.test(lowerText)) {
+      return true;
+    }
+  }
+  
+  // Check for hate speech
+  for (const pattern of hateSpeechPatterns) {
+    if (pattern.test(lowerText)) {
+      return true;
+    }
+  }
+  
+  // Check for inappropriate content
+  for (const pattern of inappropriatePatterns) {
+    if (pattern.test(lowerText)) {
+      return true;
+    }
+  }
+  
+  // Check for spam patterns
+  for (const spam of spamPatterns) {
+    if (lowerText.includes(spam)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Get the specific reason for objectionable content
+ * @param {string} text - Text to check
+ * @returns {string|null} Reason for objectionable content or null
+ */
+function getObjectionableContentReason(text) {
+  if (!text || text.length === 0) return null;
+  
+  const lowerText = text.toLowerCase();
+  
+  // Check for profanity
+  for (const pattern of profanityPatterns) {
+    if (pattern.test(lowerText)) {
+      return 'Content contains inappropriate language';
+    }
+  }
+  
+  // Check for hate speech
+  for (const pattern of hateSpeechPatterns) {
+    if (pattern.test(lowerText)) {
+      return 'Content contains hate speech or discriminatory language';
+    }
+  }
+  
+  // Check for inappropriate content
+  for (const pattern of inappropriatePatterns) {
+    if (pattern.test(lowerText)) {
+      return 'Content contains inappropriate or adult content';
+    }
+  }
+  
+  // Check for spam patterns
+  for (const spam of spamPatterns) {
+    if (lowerText.includes(spam)) {
+      return 'Content appears to be spam or promotional';
+    }
+  }
+  
+  return null;
+}
+
 /**
  * Validates event data for security issues
  * @param {Object} eventData - The event data to validate
@@ -37,6 +143,11 @@ function validateEventData(eventData) {
   // Check for potential XSS in description
   if (eventData.description && /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i.test(eventData.description)) {
     errors.description = 'Description contains disallowed content';
+  }
+  
+  // Check for objectionable content in description
+  if (eventData.description && containsObjectionableContent(eventData.description)) {
+    errors.description = getObjectionableContentReason(eventData.description) || 'Description contains inappropriate content';
   }
   
   // Address validation
@@ -75,6 +186,11 @@ function validateEventData(eventData) {
   // Check for XSS in rules
   if (eventData.rules && /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i.test(eventData.rules)) {
     errors.rules = 'Rules contain disallowed content';
+  }
+  
+  // Check for objectionable content in rules
+  if (eventData.rules && containsObjectionableContent(eventData.rules)) {
+    errors.rules = getObjectionableContentReason(eventData.rules) || 'Rules contain inappropriate content';
   }
   
   // Capacity validation

@@ -229,16 +229,21 @@ class _AttendeesPageState extends State<AttendeesPage> {
                                   .get()
                                   .then((doc) => doc.exists)) {
                                 if (!mounted) return;
-                                Navigator.of(context).push(
+                                // Store context reference to avoid async gap issues
+                                final currentContext = context;
+                                if (!currentContext.mounted) return;
+                                Navigator.of(currentContext).push(
                                   CupertinoPageRoute(
                                     builder: (context) => ProfilePage(userId: performerId),
                                   ),
                                 );
                               } else {
                                 if (!mounted) return;
-                                if (!context.mounted) return;
+                                // Store context reference to avoid async gap issues
+                                final currentContext = context;
+                                if (!currentContext.mounted) return;
                                 showCupertinoDialog(
-                                  context: context,
+                                  context: currentContext,
                                   builder: (context) => CupertinoAlertDialog(
                                     title: const Text('🧍'),
                                     content: Text(

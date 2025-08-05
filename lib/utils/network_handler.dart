@@ -152,22 +152,20 @@ class NetworkHandler {
         break;
         
       case DioExceptionType.badResponse:
-        if (statusCode != null) {
-          if (statusCode >= 500) {
-            message = 'Server error. Please try again later.';
-            errorType = NetworkErrorType.serverError;
-          } else if (statusCode == 404) {
-            message = 'Resource not found.';
-            errorType = NetworkErrorType.notFound;
-          } else if (statusCode == 401) {
-            message = 'Unauthorized. Please log in again.';
-            errorType = NetworkErrorType.unauthorized;
-          } else if (statusCode >= 400 && statusCode < 500) {
-            message = 'Invalid request.';
-            errorType = NetworkErrorType.badRequest;
-          }
+        if (statusCode != null && statusCode >= 500) {
+          message = 'Server error. Please try again later.';
+          errorType = NetworkErrorType.serverError;
+        } else if (statusCode == 404) {
+          message = 'Resource not found.';
+          errorType = NetworkErrorType.notFound;
+        } else if (statusCode == 401) {
+          message = 'Unauthorized. Please log in again.';
+          errorType = NetworkErrorType.unauthorized;
+        } else if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+          message = 'Invalid request.';
+          errorType = NetworkErrorType.badRequest;
         }
-        break;
+              break;
         
       case DioExceptionType.cancel:
         message = 'Request was cancelled';

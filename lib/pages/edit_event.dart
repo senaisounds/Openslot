@@ -11,8 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
-import 'package:latlong2/latlong.dart' as latlong2;
-import 'package:location_picker_flutter_map/location_picker_flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
 import 'package:slotted/common/colors.dart';
 import 'package:slotted/common/constants.dart';
 import 'package:slotted/common/event_class.dart';
@@ -61,7 +61,7 @@ class EditEventPageState extends State<EditEventPage> {
   bool isPrivate = false;
   bool showPassword = false;
   bool isLoading = false;
-  LatLong? eventLocationData;
+  LatLng? eventLocationData;
   final textController = BoardDateTimeTextController();
   final dateFormatter = DateFormat('EEE, MMM d • h:mm a');
   String _selectedQuickFilter = '';
@@ -2087,8 +2087,8 @@ class EditEventPageState extends State<EditEventPage> {
       event.host = widget.user!.id;
       event.hostName = widget.user!.username;
 
-      final finalLatData = eventLocationData ?? const LatLong(0, 0);
-      event.location = latlong2.LatLng(finalLatData.latitude, finalLatData.longitude);
+      final finalLatData = eventLocationData ?? const LatLng(0, 0);
+      event.location = LatLng(finalLatData.latitude, finalLatData.longitude);
       event.address = eventLocation.text;
 
       Logger.d('DEBUG: Final event date before saving: ${event.date}', tag: 'Edit_event');
@@ -2568,59 +2568,52 @@ class EditEventPageState extends State<EditEventPage> {
   }
 
   Future<void> _selectLocation(BuildContext context,
-      TextEditingController controller, LatLong? eventLocation) async {
+      TextEditingController controller, LatLng? eventLocation) async {
     if (!mounted) return;
     
     try {
       // Instead of awaiting the result and expecting a return value,
       // navigate to the location page and let it call our callback
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => Theme(
-            data: ThemeData.from(
-              colorScheme: ColorScheme.dark(
-                  primary: AppColors.slottedOrange,
-                  surface: CupertinoColors.label.withValues(alpha: 1.0)),
-            ),
-            child: LocationPage(
-                onPicked: (Map<String, dynamic> picked) {
-                  // Process the picked location
-                  if (picked.containsKey('address') && picked.containsKey('latlng')) {
-                    final address = picked['address'] as String?;
-                    final latlng = picked['latlng'];
-                    
-                    if (address != null && address.isNotEmpty) {
-                      if (latlng != null) {
-                        try {
-                          final latitude = latlng.latitude as double;
-                          final longitude = latlng.longitude as double;
-                          
-                          setState(() {
-                            controller.text = address;
-                            eventLocationData = LatLong(latitude, longitude);
-                          });
-                        } catch (e) {
-                          _showLocationError('Invalid coordinates format: latitude and longitude must be numbers', controller: controller);
-                        }
-                      } else {
-                        // Web mode - no coordinates
-                        setState(() {
-                          controller.text = address;
-                          eventLocationData = null;
-                        });
-                      }
-                    } else {
-                      _showLocationError('No address found for selected location', controller: controller);
+        CupertinoPageRoute(
+          builder: (context) => LocationPage(
+            onPicked: (Map<String, dynamic> picked) {
+              // Process the picked location
+              if (picked.containsKey('address') && picked.containsKey('latlng')) {
+                final address = picked['address'] as String?;
+                final latlng = picked['latlng'];
+                
+                if (address != null && address.isNotEmpty) {
+                  if (latlng != null) {
+                    try {
+                      final latitude = latlng.latitude as double;
+                      final longitude = latlng.longitude as double;
+                      
+                      setState(() {
+                        controller.text = address;
+                        eventLocationData = LatLng(latitude, longitude);
+                      });
+                    } catch (e) {
+                      _showLocationError('Invalid coordinates format: latitude and longitude must be numbers', controller: controller);
                     }
                   } else {
-                    _showLocationError('Invalid location data received', controller: controller);
+                    // Web mode - no coordinates
+                    setState(() {
+                      controller.text = address;
+                      eventLocationData = null;
+                    });
                   }
-                  
-                  // Pop the location page after handling the selection
-                  Navigator.of(context).pop();
-                },
-                eventLocation: eventLocation,
-            ),
+                } else {
+                  _showLocationError('No address found for selected location', controller: controller);
+                }
+              } else {
+                _showLocationError('Invalid location data received', controller: controller);
+              }
+              
+              // Don't pop here - let the location page handle its own navigation
+              // The location page will pop itself when the user confirms selection
+            },
+            eventLocation: eventLocation,
           ),
         ),
       );
