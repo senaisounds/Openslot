@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:math';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:crypto/crypto.dart';
@@ -31,13 +31,7 @@ class SecureStorage {
   Future<String> _getEncryptionKey() async {
     String? encryptionKey = await _secureStorage.read(key: _encryptionKeyKey);
     
-    if (encryptionKey == null) {
-      // Generate a new encryption key if none exists
-      encryptionKey = base64Url.encode(List<int>.generate(32, (i) => Random.secure().nextInt(256)));
-      await _secureStorage.write(key: _encryptionKeyKey, value: encryptionKey);
-    }
-    
-    return encryptionKey;
+    return encryptionKey ?? '';
   }
   
   /// Encrypt data before storing

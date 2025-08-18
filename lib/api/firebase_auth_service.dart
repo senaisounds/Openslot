@@ -469,15 +469,14 @@ class FirebaseAuthService {
       final rawNonce = _generateNonce();
       final nonce = _sha256ofString(rawNonce);
 
-      // Request Apple Sign In with minimal scopes to meet Guideline 4.8
-      // Only request email and name - no additional data collection
+      // Request Apple Sign In with proper configuration for privacy options
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
         nonce: nonce,
-        // Ensure user can keep email private
+        // Web authentication options for proper Apple Sign In flow
         webAuthenticationOptions: WebAuthenticationOptions(
           clientId: 'com.openslot.app',
           redirectUri: Uri.parse('https://open-mic-5cc8e.firebaseapp.com/__/auth/handler'),
@@ -488,6 +487,8 @@ class FirebaseAuthService {
       final oauthProvider = OAuthProvider('apple.com');
       final credential = oauthProvider.credential(
         idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+
         rawNonce: rawNonce,
       );
 

@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'dart:async';
-import 'package:slotted/api/firebase_auth_service.dart';
 
 /// Mock Firebase Auth for testing
 class MockFirebaseAuth implements FirebaseAuth {

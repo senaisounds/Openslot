@@ -75,8 +75,6 @@
 	<string>Microphone access is used for voice recordings in events</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID is used for secure authentication</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>This app uses tracking to provide personalized event recommendations and improve your experience</string>
 
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>

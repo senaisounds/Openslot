@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:slotted/providers/theme_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math' as math;
 import 'package:slotted/api/firebase_auth_service.dart';
 import 'package:slotted/pages/login_page.dart';
+import 'package:slotted/pages/apple_signin_test_page.dart';
 import 'package:slotted/common/colors.dart' as app_colors;
 
 class SettingsPage extends StatefulWidget {
@@ -295,6 +297,20 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                           title: 'Change Password',
                           onTap: () {
                             // Handle password change
+                          },
+                          isDarkMode: isDarkMode,
+                        ),
+                        if (kDebugMode) _buildSettingItem(
+                          context,
+                          icon: CupertinoIcons.device_phone_portrait,
+                          title: 'Test Apple Sign In',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => const AppleSignInTestPage(),
+                              ),
+                            );
                           },
                           isDarkMode: isDarkMode,
                         ),
