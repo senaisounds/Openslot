@@ -24,12 +24,16 @@ class _AdminModerationPanelState extends State<AdminModerationPanel> {
   }
 
   Future<void> _checkAuthAndLoadReports() async {
+    if (!mounted) return;
+    
     final auth = FirebaseAuth.instance;
     if (auth.currentUser == null) {
-      setState(() {
-        _error = 'Authentication required. Please sign in to access admin panel.';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Authentication required. Please sign in to access admin panel.';
+          _isLoading = false;
+        });
+      }
       return;
     }
     
@@ -38,6 +42,8 @@ class _AdminModerationPanelState extends State<AdminModerationPanel> {
   }
 
   Future<void> _loadReports() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
       _error = null;
@@ -49,28 +55,44 @@ class _AdminModerationPanelState extends State<AdminModerationPanel> {
       // Check if user is authenticated
       final auth = FirebaseAuth.instance;
       if (auth.currentUser == null) {
-        setState(() {
-          _error = 'Authentication required. Please sign in to access admin panel.';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _error = 'Authentication required. Please sign in to access admin panel.';
+            _isLoading = false;
+          });
+        }
         return;
       }
       
-      // Get pending reports
-      final pendingResult = await functions.httpsCallable('getPendingReports').call({});
-      final pendingData = pendingResult.data as Map<String, dynamic>;
-      final pendingReports = pendingData['reports'] as List<dynamic>? ?? [];
+      // Get pending reports with error handling
+      List<dynamic> pendingReports = [];
+      try {
+        final pendingResult = await functions.httpsCallable('getPendingReports').call({});
+        final pendingData = pendingResult.data as Map<String, dynamic>;
+        pendingReports = pendingData['reports'] as List<dynamic>? ?? [];
+      } catch (e) {
+        Logger.w('Failed to load pending reports: $e', tag: 'AdminModeration');
+        // Continue with empty list instead of crashing
+      }
       
-      // Get reviewed reports
-      final reviewedResult = await functions.httpsCallable('getReviewedReports').call({});
-      final reviewedData = reviewedResult.data as Map<String, dynamic>;
-      final reviewedReports = reviewedData['reports'] as List<dynamic>? ?? [];
+      // Get reviewed reports with error handling
+      List<dynamic> reviewedReports = [];
+      try {
+        final reviewedResult = await functions.httpsCallable('getReviewedReports').call({});
+        final reviewedData = reviewedResult.data as Map<String, dynamic>;
+        reviewedReports = reviewedData['reports'] as List<dynamic>? ?? [];
+      } catch (e) {
+        Logger.w('Failed to load reviewed reports: $e', tag: 'AdminModeration');
+        // Continue with empty list instead of crashing
+      }
       
-      setState(() {
-        _pendingReports = pendingReports.map((r) => r as Map<String, dynamic>).toList();
-        _reviewedReports = reviewedReports.map((r) => r as Map<String, dynamic>).toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _pendingReports = pendingReports.map((r) => r as Map<String, dynamic>).toList();
+          _reviewedReports = reviewedReports.map((r) => r as Map<String, dynamic>).toList();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       Logger.e('Error loading reports: $e', tag: 'AdminModeration');
       
@@ -81,12 +103,16 @@ class _AdminModerationPanelState extends State<AdminModerationPanel> {
         errorMessage = 'Access denied. Admin privileges required.';
       } else if (e.toString().contains('internal')) {
         errorMessage = 'Server error. Please try again later.';
+      } else if (e.toString().contains('not-found')) {
+        errorMessage = 'Admin functions not configured. Contact system administrator.';
       }
       
-      setState(() {
-        _error = errorMessage;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = errorMessage;
+          _isLoading = false;
+        });
+      }
     }
   }
 

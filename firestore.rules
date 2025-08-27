@@ -49,6 +49,11 @@ service cloud.firestore {
       match /{allChildren=**} {
         allow read: if isAuthenticated();
       }
+      
+      // Chat last opened tracking - users can update their own chat timestamps
+      match /chatLastOpened/{eventId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
     // Events - users can read all events but only edit their own
@@ -56,22 +61,55 @@ service cloud.firestore {
       // Anyone can read events
       allow read: if true;
       
-      // Only event owner or admin can modify
+      // Only event owner can create/delete events
       allow create: if isAuthenticated() && isValidEvent() && request.resource.data.host == request.auth.uid;
-      allow update: if isAuthenticated() && 
-                      (request.resource.data.host == request.auth.uid || isAdmin());
       allow delete: if isAuthenticated() && 
                       (resource.data.host == request.auth.uid || isAdmin());
+      
+      // Host-only operations: performer management, event settings
+      allow update: if isAuthenticated() && 
+                      resource.data.host == request.auth.uid &&
+                      // Host can update any field
+                      true;
+      
+      // Admin override for any operation                
+      allow update: if isAuthenticated() && isAdmin();
                       
-      // Special rules for attendees field to allow users to join events
+      // Special rules for attendees/waitlist - allow users to join/leave events
       allow update: if isAuthenticated() && 
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees', 'waitlist']) &&
-                      (request.resource.data.attendees.hasAll(resource.data.attendees) || 
-                       request.resource.data.attendees.hasAll(resource.data.attendees.concat([request.auth.uid])) ||
-                       resource.data.attendees.hasAll(request.resource.data.attendees.concat([request.auth.uid]))) &&
-                      // Prevent blocked users from joining events
-                      (resource.data.host == request.auth.uid || 
-                       canInteract(resource.data.host, request.auth.uid));
+                      (
+                        // User joining event (adding themselves to attendees)
+                        (request.resource.data.attendees.hasAll(resource.data.attendees.concat([request.auth.uid])) &&
+                         request.resource.data.attendees.size() == resource.data.attendees.size() + 1) ||
+                        // User leaving event (removing themselves from attendees)
+                        (resource.data.attendees.hasAll(request.resource.data.attendees.concat([request.auth.uid])) &&
+                         resource.data.attendees.size() == request.resource.data.attendees.size() + 1) ||
+                        // Waitlist operations for current user only
+                        (request.resource.data.waitlist.hasAll(resource.data.waitlist.concat([request.auth.uid])) &&
+                         request.resource.data.waitlist.size() == resource.data.waitlist.size() + 1) ||
+                        (resource.data.waitlist.hasAll(request.resource.data.waitlist.concat([request.auth.uid])) &&
+                         resource.data.waitlist.size() == request.resource.data.waitlist.size() + 1)
+                      ) &&
+                            // Prevent blocked users from joining events
+      canInteract(resource.data.host, request.auth.uid);
+      
+      // Event chat messages - subcollection of events
+      match /messages/{messageId} {
+        // Anyone can read messages for events they can access
+        allow read: if isAuthenticated();
+        
+        // Only authenticated users can create messages
+        allow create: if isAuthenticated() && 
+                        request.resource.data.senderId == request.auth.uid &&
+                        request.resource.data.text is string &&
+                        request.resource.data.text.size() > 0 &&
+                        request.resource.data.text.size() <= 500;
+        
+        // Only message sender can update/delete their own messages
+        allow update, delete: if isAuthenticated() && 
+                                resource.data.senderId == request.auth.uid;
+      }
     }
     
     // Public event images

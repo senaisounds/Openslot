@@ -110,6 +110,8 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
   // Add a boolean to track the expanded state of the waitlist section
   bool _isWaitlistExpanded = false;
 
+
+
   @override
   void initState() {
     super.initState();
@@ -120,6 +122,8 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
+    
+
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(
         parent: _pulseController,
@@ -217,6 +221,8 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
     _dragAnimationController.dispose();
     _dropZoneAnimationController.dispose();
     
+
+    
     // Cancel all subscriptions
     _scrollController.removeListener(_handleScroll);
     _scrollController.dispose();
@@ -289,6 +295,15 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
   }
   
   Future<void> _setPerformer(String performerId) async {
+    // SECURITY: Verify user is host before allowing performer changes
+    final bool isHost = widget.event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to set performer: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can manage performers.');
+      return;
+    }
+    
     try {
       await _retryOperation(
         operation: () => FirebaseFirestore.instance
@@ -310,6 +325,15 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
   }
   
   Future<void> _setNextUp(String performerId) async {
+    // SECURITY: Verify user is host before allowing performer changes
+    final bool isHost = widget.event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to set next performer: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can manage performers.');
+      return;
+    }
+    
     try {
       await _retryOperation(
         operation: () => FirebaseFirestore.instance
@@ -327,6 +351,15 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
   }
   
   Future<void> _moveToWaitlist(String performerId) async {
+    // SECURITY: Verify user is host before allowing performer changes
+    final bool isHost = widget.event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to move performer to waitlist: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can manage performers.');
+      return;
+    }
+    
     try {
       // Remove from attendees and add to waitlist
       List<String> updatedAttendees = List<String>.from(widget.event.attendees);
@@ -358,6 +391,15 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
   }
   
   Future<void> _removePerformer(String performerId) async {
+    // SECURITY: Verify user is host before allowing performer removal
+    final bool isHost = widget.event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to remove performer: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can remove performers.');
+      return;
+    }
+    
     try {
       // Remove from both attendees and waitlist
       List<String> updatedAttendees = List<String>.from(widget.event.attendees);
@@ -715,6 +757,15 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
 
   Future<void> _lineupPerformer(Event event, String? currentPerformer,
       String performer, String username) async {
+    // SECURITY: Verify user is host before allowing performer lineup changes
+    final bool isHost = event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to lineup performer: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can manage performer lineup.');
+      return;
+    }
+    
     bool isCurrentPerformer =
         currentPerformer == performer || currentPerformer == username;
 
@@ -897,6 +948,15 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
   }
 
   Future<void> _clearUpNext() async {
+    // SECURITY: Verify user is host before allowing upNext changes
+    final bool isHost = widget.event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to clear upNext: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can manage performer lineup.');
+      return;
+    }
+    
     try {
       await _retryOperation(
         operation: () => FirebaseFirestore.instance.doc('events/${widget.event.id}').update({
@@ -1166,91 +1226,67 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
                               Expanded(
                                 child: GestureDetector(
                                   onTap: () => _adjustTimeLimit(event, context, event.timeLimit.toString()),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                  child:                                   Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
                                       color: AppColors.slottedOrange.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: AppColors.slottedOrange.withValues(alpha: 0.3),
-                                        width: 1.5,
+                                        width: 1,
                                       ),
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.slottedOrange.withValues(alpha: 0.2),
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                              child: const Icon(
-                                                CupertinoIcons.timer,
-                                                color: AppColors.slottedOrange,
-                                                size: 22,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  "Performance Time",
-                                                  style: TextStyle(
-                                                    color: AppColors.slottedOrange,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 2),
-                                                Text(
-                                                  "Tap to adjust",
-                                                  style: TextStyle(
-                                                    color: CupertinoColors.systemGrey,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
+                                        const Icon(
+                                          CupertinoIcons.timer,
+                                          color: AppColors.slottedOrange,
+                                          size: 18,
                                         ),
+                                        const SizedBox(width: 6),
+                                        const Text(
+                                          "Performance Time",
+                                          style: TextStyle(
+                                            color: AppColors.slottedOrange,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
                                             color: AppColors.slottedOrange.withValues(alpha: 0.2),
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-              child: Text(
+                                          child: Text(
                                             event.timeLimit == 0 ? "∞" : "${event.timeLimit}m",
                                             style: const TextStyle(
                                               color: AppColors.slottedOrange,
                                               fontWeight: FontWeight.w700,
-                                              fontSize: 18,
-              ),
-            ),
-          ),
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              GestureDetector(
+                                                            GestureDetector(
                                 onTap: _toggleFlashlight,
-          child: Container(
-                                  padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
                                     color: _isFlashlightOn 
                                       ? AppColors.slottedOrange 
                                       : AppColors.slottedOrange.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: AppColors.slottedOrange.withValues(alpha: 0.3),
-                                      width: 1.5,
+                                      width: 1,
                                     ),
                                   ),
                                   child: Icon(
@@ -1260,7 +1296,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
                                     color: _isFlashlightOn 
                                       ? CupertinoColors.white
                                       : AppColors.slottedOrange,
-                                    size: 22,
+                                    size: 20,
                                   ),
                                 ),
                               ),
@@ -1742,6 +1778,45 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Shuffle Button (show when event is live and has performers)
+          if (event.live && event.attendees.isNotEmpty) ...[
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => _showShuffleDialog(event),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.slottedOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.slottedOrange.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.shuffle,
+                      color: AppColors.slottedOrange,
+                      size: 18,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Shuffle',
+                      style: TextStyle(
+                        color: AppColors.slottedOrange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
+          
+          // Start/End Event Button
                           CupertinoButton(
                             padding: EdgeInsets.zero,
             onPressed: event.live ? _endEvent : _startEvent,
@@ -2392,6 +2467,15 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: allPerformers.length,
                                             onReorder: (oldIndex, newIndex) {
+        // SECURITY: Verify user is host before allowing reorder
+        final bool isHost = event.host == widget.user?.uid;
+        if (!isHost) {
+          Logger.w('Non-host user attempted to reorder performers: ${widget.user?.uid}', tag: 'Security');
+          HapticFeedback.heavyImpact();
+          _showErrorDialog('Only the event host can reorder performers.');
+          return;
+        }
+        
         if (oldIndex < newIndex) {
                                                 newIndex -= 1;
                                               }
@@ -3505,8 +3589,339 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
     return widget.user?.uid == event.host;
   }
 
+  // Shuffle functionality for randomly selecting performers
+  void _showShuffleDialog(Event event) {
+    // SECURITY: Verify user is host before allowing shuffle
+    final bool isHost = event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to shuffle performers: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can shuffle performers.');
+      return;
+    }
+
+    showCupertinoDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                CupertinoIcons.shuffle,
+                color: AppColors.slottedOrange,
+                size: 24,
+              ),
+              SizedBox(width: 8),
+              Text('Shuffle Performers'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Text(
+                event.performer != null 
+                  ? 'Ready to randomly select the next performer?'
+                  : 'Ready to randomly select a performer?',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              if (event.performer != null) ...[
+                const Text(
+                  'This will replace the current performer',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: CupertinoColors.destructiveRed,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ],
+              Text(
+                '${event.attendees.where((id) => id != event.host && id != event.performer).length} performers available',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: CupertinoColors.secondaryLabel,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.shuffle_medium,
+                    size: 18,
+                    color: AppColors.slottedOrange,
+                  ),
+                  SizedBox(width: 4),
+                  Text('Shuffle!'),
+                ],
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _performShuffle(event);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _performShuffle(Event event) async {
+    // SECURITY: Double-check host status
+    final bool isHost = event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to perform shuffle: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can shuffle performers.');
+      return;
+    }
+
+    try {
+      // Create list of available performers (exclude host and current performer if any)
+      List<String> availablePerformers = event.attendees
+          .where((id) => id != event.host && id != event.performer)
+          .toList();
+      
+      if (availablePerformers.isEmpty) {
+        if (event.performer != null) {
+          _showErrorDialog('No other performers available to shuffle. Only the current performer remains.');
+        } else {
+          _showErrorDialog('No performers available to shuffle.');
+        }
+        return;
+      }
+
+      // Add some suspense with a shuffle animation
+      await _showShuffleAnimation(event, availablePerformers);
+      
+    } catch (e) {
+      Logger.e('Failed to shuffle performers: $e', tag: 'Live');
+      _showErrorDialog('Failed to shuffle performers. Please try again.');
+    }
+  }
+
+  Future<void> _showShuffleAnimation(Event event, List<String> performers) async {
+    // Pre-select the winner
+    final random = math.Random();
+    final selectedPerformerIndex = random.nextInt(performers.length);
+    final selectedPerformer = performers[selectedPerformerIndex];
+
+    // Show spinning wheel dialog that will land on the selected performer
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _SpinningWheelDialog(
+        performers: performers,
+        targetIndex: selectedPerformerIndex,
+      ),
+    );
+
+    // Wait for spinning animation to complete
+    await Future.delayed(const Duration(milliseconds: 3000));
+
+    // Close spinning dialog
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+
+    // Show the selected performer result
+    await _showShuffleResult(event, selectedPerformer);
+  }
+
+  Future<void> _showShuffleResult(Event event, String selectedPerformerId) async {
+    // Get performer info
+    String performerName = 'Unknown Performer';
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .doc('users/$selectedPerformerId')
+          .get();
+      if (userDoc.exists) {
+        performerName = userDoc.get('username') as String? ?? selectedPerformerId;
+      } else {
+        Logger.w('User document does not exist for performer: $selectedPerformerId', tag: 'Live');
+        performerName = selectedPerformerId; // Fallback to user ID
+      }
+    } catch (e) {
+      Logger.e('Failed to get performer name: $e', tag: 'Live');
+      performerName = selectedPerformerId; // Fallback to user ID
+    }
+
+    // Show result dialog
+    if (mounted) {
+      final result = await showCupertinoDialog<bool>(
+        context: context,
+        barrierDismissible: false, // Prevent dismissing by tapping outside
+        builder: (context) => CupertinoAlertDialog(
+          title: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('🎲'),
+              SizedBox(width: 8),
+              Text('Shuffle Result!'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.slottedOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.slottedOrange.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      CupertinoIcons.person_circle_fill,
+                      color: AppColors.slottedOrange,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      performerName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.slottedOrange,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'has been selected!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: CupertinoColors.secondaryLabel,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                event.performer != null 
+                  ? 'Replace current performer with $performerName?'
+                  : 'Set $performerName as the current performer?',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(null),
+            ),
+            CupertinoDialogAction(
+              child: const Text('Shuffle Again'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.play_circle,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 4),
+                  Text('Set as Performer'),
+                ],
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        ),
+      );
+
+      if (result == true) {
+        // Set the selected performer as current
+        await _setShuffledPerformer(selectedPerformerId);
+        HapticFeedback.mediumImpact();
+      } else if (result == false) {
+        // Shuffle again
+        List<String> availablePerformers = event.attendees
+            .where((id) => id != event.host && id != event.performer)
+            .toList();
+        if (availablePerformers.isNotEmpty) {
+          await _showShuffleAnimation(event, availablePerformers);
+        }
+      }
+      // If result is null (dialog dismissed), do nothing - user can shuffle again using the button
+    }
+  }
+
+  Future<void> _setShuffledPerformer(String performerId) async {
+    // SECURITY: Final host check before setting performer
+    final bool isHost = widget.event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to set shuffled performer: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can set performers.');
+      return;
+    }
+
+    try {
+      await _retryOperation(
+        operation: () => FirebaseFirestore.instance
+            .doc('events/${widget.event.id}')
+            .update({
+          'performer': performerId,
+          'performerStart': Timestamp.now(),
+          // Clear upNext if this person was up next
+          if (widget.event.upNext == performerId) 'upNext': null,
+        }),
+        operationName: 'setShuffledPerformer',
+      );
+
+      if (!mounted) return;
+      
+      setState(() {
+        widget.event.performer = performerId;
+        widget.event.performerStart = DateTime.now();
+        if (widget.event.upNext == performerId) {
+          widget.event.upNext = null;
+        }
+      });
+
+      // Celebrate the selection
+      _confettiController?.play();
+      
+    } catch (e) {
+      Logger.e('Failed to set shuffled performer: $e', tag: 'Live');
+      _showErrorDialog('Failed to set performer. Please try again.');
+    }
+  }
+
+
+
   // Add this method to handle force adding a user
   Future<void> _forceAddUserToEvent(String userId, Event event) async {
+    // SECURITY: Verify user is host before allowing force add
+    final bool isHost = event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to force add user to event: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can add users to events.');
+      return;
+    }
+    
     try {
       // Show loading dialog
       showCupertinoDialog(
@@ -3696,6 +4111,246 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
             }).toList(),
           ),
       ],
+    );
+  }
+}
+
+// Separate spinning wheel dialog widget to avoid animation lifecycle issues
+class _SpinningWheelDialog extends StatefulWidget {
+  final List<String> performers;
+  final int targetIndex;
+  
+  const _SpinningWheelDialog({
+    required this.performers,
+    required this.targetIndex,
+  });
+  
+  @override
+  State<_SpinningWheelDialog> createState() => _SpinningWheelDialogState();
+}
+
+class _SpinningWheelDialogState extends State<_SpinningWheelDialog> 
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _rotationAnimation;
+  
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
+    
+    // Calculate how many rotations to land on target
+    // Each performer represents a slice of the circle
+    final double sliceAngle = 1.0 / widget.performers.length; // Fraction of full rotation per performer
+    final double targetAngle = widget.targetIndex * sliceAngle; // Where target performer is
+    
+    // Add some randomness to number of spins (3-7 full rotations)
+    final random = math.Random();
+    final baseRotations = 3 + random.nextDouble() * 4; // Random between 3-7 rotations
+    
+    // Add multiple full rotations plus the target angle
+    // The pointer is at top (0°), so we need to adjust for that
+    final double totalRotations = baseRotations + (1.0 - targetAngle); // Random spins + position to land on target
+    
+    _rotationAnimation = Tween<double>(
+      begin: 0,
+      end: totalRotations,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+    
+    // Start animation immediately
+    _controller.forward();
+  }
+  
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      title: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            CupertinoIcons.shuffle,
+            color: AppColors.slottedOrange,
+            size: 24,
+          ),
+          SizedBox(width: 8),
+          Text('Spinning the Wheel...'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 20),
+          SizedBox(
+            width: 200,
+            height: 200,
+            child: AnimatedBuilder(
+              animation: _rotationAnimation,
+              builder: (context, child) {
+                return Transform.rotate(
+                  angle: _rotationAnimation.value * 2 * math.pi,
+                  child: _buildPerformerWheel(widget.performers),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Finding the perfect performer...',
+            style: TextStyle(
+              fontSize: 14,
+              color: CupertinoColors.secondaryLabel,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildPerformerWheel(List<String> performers) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Background circle
+        Container(
+          width: 200,
+          height: 200,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.slottedOrange.withValues(alpha: 0.3),
+              width: 2,
+            ),
+            color: AppColors.backgroundDark.withValues(alpha: 0.8),
+          ),
+        ),
+        // Performer images arranged in a circle
+        ...List.generate(performers.length, (index) {
+          final angle = (index / performers.length) * 2 * math.pi;
+          const radius = 70.0;
+          final x = radius * math.cos(angle);
+          final y = radius * math.sin(angle);
+          
+          // Check if this is the target performer and animation is near complete
+          final bool isTarget = index == widget.targetIndex;
+          final bool isNearComplete = _controller.value > 0.8; // Animation is 80%+ complete
+          final bool shouldHighlight = isTarget && isNearComplete;
+          
+          return Positioned(
+            left: 100 + x - 20,
+            top: 100 + y - 20,
+            child: _buildWheelPerformerImage(performers[index], shouldHighlight),
+          );
+        }),
+        // Center pointer
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.slottedOrange,
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.slottedOrange.withValues(alpha: 0.5),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        ),
+        // Top pointer
+        Positioned(
+          top: 10,
+          child: Container(
+            width: 0,
+            height: 0,
+            decoration: const BoxDecoration(
+              border: Border(
+                left: BorderSide(width: 10, color: Colors.transparent),
+                right: BorderSide(width: 10, color: Colors.transparent),
+                bottom: BorderSide(width: 15, color: AppColors.slottedOrange),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildWheelPerformerImage(String performerId, [bool highlight = false]) {
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.doc('users/$performerId').get(),
+      builder: (context, snapshot) {
+        String imageUrl = '';
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final userData = snapshot.data!.data() as Map<String, dynamic>?;
+          imageUrl = userData?['photoUrl'] ?? '';
+        }
+        
+        return Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: highlight ? AppColors.slottedOrange : Colors.white, 
+              width: highlight ? 3 : 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: highlight 
+                    ? AppColors.slottedOrange.withValues(alpha: 0.6)
+                    : Colors.black.withValues(alpha: 0.3),
+                blurRadius: highlight ? 8 : 4,
+                spreadRadius: highlight ? 3 : 1,
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: imageUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: AppColors.slottedOrange.withValues(alpha: 0.2),
+                      child: const Icon(
+                        CupertinoIcons.person_fill,
+                        color: AppColors.slottedOrange,
+                        size: 20,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: AppColors.slottedOrange.withValues(alpha: 0.2),
+                      child: const Icon(
+                        CupertinoIcons.person_fill,
+                        color: AppColors.slottedOrange,
+                        size: 20,
+                      ),
+                    ),
+                  )
+                : Container(
+                    color: AppColors.slottedOrange.withValues(alpha: 0.2),
+                    child: const Icon(
+                      CupertinoIcons.person_fill,
+                      color: AppColors.slottedOrange,
+                      size: 20,
+                    ),
+                  ),
+          ),
+        );
+      },
     );
   }
 }

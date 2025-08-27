@@ -17,6 +17,18 @@
       ],
       "rewrites": [
         {
+          "source": "/support",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/privacy",
+          "destination": "/privacy.html"
+        },
+        {
+          "source": "/terms",
+          "destination": "/terms.html"
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -31,6 +43,18 @@
         "**/node_modules/**"
       ],
       "rewrites": [
+        {
+          "source": "/support",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/privacy",
+          "destination": "/privacy.html"
+        },
+        {
+          "source": "/terms",
+          "destination": "/terms.html"
+        },
         {
           "source": "**",
           "destination": "/index.html"
@@ -47,6 +71,18 @@
       ],
       "rewrites": [
         {
+          "source": "/support",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/privacy",
+          "destination": "/privacy.html"
+        },
+        {
+          "source": "/terms",
+          "destination": "/terms.html"
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -61,6 +97,18 @@
         "**/node_modules/**"
       ],
       "rewrites": [
+        {
+          "source": "/support",
+          "destination": "/index.html"
+        },
+        {
+          "source": "/privacy",
+          "destination": "/privacy.html"
+        },
+        {
+          "source": "/terms",
+          "destination": "/terms.html"
+        },
         {
           "source": "**",
           "destination": "/index.html"

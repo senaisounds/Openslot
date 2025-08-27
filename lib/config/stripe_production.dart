@@ -1,7 +1,9 @@
 // Stripe production configuration
 class StripeProductionConfig {
-  static const String publishableKey = 'pk_live_...'; // Replace with your live key
-  static const String secretKey = 'sk_live_...'; // Replace with your live key
+  // SECURITY: Keys moved to environment variables
+  static const String publishableKey = String.fromEnvironment('STRIPE_LIVE_PUBLISHABLE_KEY', 
+    defaultValue: 'STRIPE_KEY_NOT_CONFIGURED');
+  // Note: Secret keys should NEVER be in client code - keep in Cloud Functions only
   static const String merchantIdentifier = 'merchant.com.openslot.app';
   static const String currency = 'USD';
   static const String country = 'US';

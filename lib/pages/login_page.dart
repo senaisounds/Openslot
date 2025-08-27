@@ -129,8 +129,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     
     // Pre-fill with test credentials for development
     if (kDebugMode) {
-      _phoneController.text = "9146891145";
-      _passwordController.text = "123456";
+      // Debug credentials removed for security
+      // Use test accounts through proper channels instead
     }
   }
 

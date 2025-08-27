@@ -12,6 +12,20 @@
 .swiftpm/
 migrate_working_dir/
 
+# Security - Never commit secrets
+*.key
+*.pem
+config/secrets/
+.env
+.env.local
+.env.*.local
+**/secrets.json
+**/service-account-key.json
+
+# Sensitive user data
+users.json
+user_data/
+
 # IntelliJ related
 *.iml
 *.ipr

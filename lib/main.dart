@@ -35,6 +35,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:slotted/utils/performance_optimizer.dart';
 import 'package:slotted/utils/performance_monitor.dart';
 import 'package:slotted/pages/onboarding_page.dart';
+import 'package:slotted/pages/support_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -363,6 +364,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   bool _showSplash = false;
   bool _showOnboarding = false;
   int idCount = 0;
+  String _initialRoute = '/';
 
   Future<void> showNotification(int id, String? title, String? body) async {
     try {
@@ -507,11 +509,38 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
     // Continue with the rest of the sign-in logic
   }
 
+  /// Detect initial route from URL on web
+  void _detectInitialRoute() {
+    if (kIsWeb) {
+      try {
+        // Get current URL path
+        final uri = Uri.base;
+        final path = uri.path;
+        
+        Logger.d('Detected web URL path: $path', tag: 'Routing');
+        
+        if (path == '/support') {
+          _initialRoute = '/support';
+        } else {
+          _initialRoute = '/';
+        }
+      } catch (e) {
+        Logger.e('Error detecting initial route: $e', tag: 'Routing');
+        _initialRoute = '/';
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
 
     try {
+      // Detect initial route for web
+      if (kIsWeb) {
+        _detectInitialRoute();
+      }
+      
       // Initialize animation controllers and setup animations
       _setupAnimations();
       
@@ -674,6 +703,38 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
             stackTrace: stackTrace);
   }
 
+  /// Generate routes for URL navigation
+  Route<dynamic>? _generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case '/support':
+        return CupertinoPageRoute(
+          builder: (context) => const SupportPage(),
+          settings: settings,
+        );
+      case '/':
+      default:
+        return CupertinoPageRoute(
+          builder: (context) => ErrorBoundary(
+            onRetry: () {
+              Logger.i('Retrying main navigation after error', tag: 'ErrorBoundary');
+            },
+            child: _showOnboarding 
+                ? OnboardingPage(
+                    onComplete: () {
+                      setState(() {
+                        _showOnboarding = false;
+                      });
+                    },
+                  )
+                : MainNav(
+                    debug: widget.debug,
+                  ),
+          ),
+          settings: settings,
+        );
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -724,6 +785,8 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
           scaffoldBackgroundColor: AppColors.backgroundDark, // Always use dark background
           barBackgroundColor: AppColors.backgroundDark, // Always use dark background
         ),
+        initialRoute: _initialRoute,
+        onGenerateRoute: _generateRoute,
         builder: (context, child) {
           // Apply web-specific styling adjustments
           return MediaQuery(
@@ -754,22 +817,6 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
         supportedLocales: const [
           Locale('en', ''),
         ],
-        home: ErrorBoundary(
-                onRetry: () {
-                  Logger.i('Retrying main navigation after error', tag: 'ErrorBoundary');
-                },
-                child: _showOnboarding 
-                    ? OnboardingPage(
-                        onComplete: () {
-                          setState(() {
-                            _showOnboarding = false;
-                          });
-                        },
-                      )
-                    : MainNav(
-                        debug: widget.debug,
-                      ),
-              ),
         debugShowCheckedModeBanner: false,
       ),
     );

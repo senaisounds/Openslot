@@ -7,9 +7,16 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-// Stripe keys - replace with your actual keys
-const stripeTest = new Stripe('sk_test_51RMvr1Q0wBFV119bcCWvuYTtuA28bN7iS2xWZTs02TJdiv1psjISAR75RCsWJtGrlYGw8VCEzNJazTehBETO8WJf00Yyvmjcky');
-const stripeLive = new Stripe('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'); // Updated live key
+// Stripe keys from environment variables
+const stripeTestKey = functions.config().stripe?.test_key || process.env.STRIPE_TEST_KEY;
+const stripeLiveKey = functions.config().stripe?.live_key || process.env.STRIPE_LIVE_KEY;
+
+if (!stripeTestKey || !stripeLiveKey) {
+  throw new Error('Stripe keys not configured. Please set stripe.test_key and stripe.live_key in Firebase config.');
+}
+
+const stripeTest = new Stripe(stripeTestKey);
+const stripeLive = new Stripe(stripeLiveKey);
 
 export const verifyEventPassword = functions.https.onRequest(async (req, res) => {
   try {
@@ -48,9 +55,8 @@ export const verifyEventPassword = functions.https.onRequest(async (req, res) =>
     console.log('Event data retrieved:', { 
       eventID, 
       isPrivate: eventData.isPrivate,
-      hasPassword: !!eventData.password,
-      storedPassword: eventData.password,
-      receivedPassword: password
+      hasPassword: !!eventData.password
+      // Passwords intentionally not logged for security
     });
 
     // Check if event is private

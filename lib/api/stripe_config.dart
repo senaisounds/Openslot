@@ -8,12 +8,16 @@ class StripeConfig {
   static const String merchantIdentifier = 'merchant.your.identifier';
   
   /// The publishable key for Stripe in test mode
+  /// TODO: Move to environment variables or Firebase Remote Config
   static const String testPublishableKey = 
-    'pk_test_51RMvr1Q0wBFV119bSMA6fLWwYtL6XpYUlMAqDH3BThLhFqfyhgJfed7RE3TqrWVrZB9D0LNVecYb89AlNNnzDd9D00fxkX1DX0';
+    String.fromEnvironment('STRIPE_TEST_PUBLISHABLE_KEY', 
+      defaultValue: 'pk_test_REPLACE_WITH_YOUR_TEST_KEY');
   
   /// The publishable key for Stripe in production mode
+  /// TODO: Move to environment variables or Firebase Remote Config
   static const String livePublishableKey = 
-    'pk_live_51RMvqtLG1bcPbzSkidplOFw9WRtacYKtwu4JCHQ0ELEO3whKHrKgGQ1GnYyEVNVdue3vlK7fMz386PJsg8uzyLPn00oybarvuz';
+    String.fromEnvironment('STRIPE_LIVE_PUBLISHABLE_KEY',
+      defaultValue: 'pk_live_REPLACE_WITH_YOUR_LIVE_KEY');
   
   /// Get the appropriate publishable key based on debug mode
   static String getPublishableKey(bool isDebug) {

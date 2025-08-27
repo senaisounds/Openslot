@@ -97,6 +97,7 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
   }
 
   Future<void> _loadCurrentUser() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -108,26 +109,32 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
             .doc(widget.user!.uid)
             .get();
         
-        if (userDoc.exists) {
-          setState(() {
-            _currentUser = SlottedUser.fromDocument(userDoc);
-            _isLoading = false;
-          });
-        } else {
+        if (mounted) {
+          if (userDoc.exists) {
+            setState(() {
+              _currentUser = SlottedUser.fromDocument(userDoc);
+              _isLoading = false;
+            });
+          } else {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        }
+      } catch (e) {
+        Logger.d('Error loading current user: $e', tag: 'Event_chat');
+        if (mounted) {
           setState(() {
             _isLoading = false;
           });
         }
-      } catch (e) {
-        Logger.d('Error loading current user: $e', tag: 'Event_chat');
+      }
+    } else {
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
-    } else {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
   
@@ -172,7 +179,7 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
   }
   
   void _updateTypingStatus(bool isTyping) {
-    if (widget.user == null) return;
+    if (widget.user == null || !mounted) return;
     
     _typingTimer?.cancel();
     
@@ -187,9 +194,11 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
       'username': _currentUser?.username ?? 'Unknown',
     });
     
-    if (isTyping) {
+    if (isTyping && mounted) {
       _typingTimer = Timer(const Duration(seconds: 3), () {
-        _updateTypingStatus(false);
+        if (mounted) {
+          _updateTypingStatus(false);
+        }
       });
     }
   }
@@ -246,7 +255,7 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
 
       // Scroll to bottom after sending
       Future.delayed(const Duration(milliseconds: 100), () {
-        if (_scrollController.hasClients) {
+        if (mounted && _scrollController.hasClients) {
           _scrollController.animateTo(
             _scrollController.position.maxScrollExtent,
             duration: const Duration(milliseconds: 300),
@@ -279,6 +288,25 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
         });
       }
     }
+  }
+
+  @override
+  void dispose() {
+    // Cancel the typing timer
+    _typingTimer?.cancel();
+    
+    // Dispose animation controllers
+    _sendButtonController?.dispose();
+    _typingIndicatorController?.dispose();
+    
+    // Dispose text editing controller and focus node
+    _messageController.dispose();
+    _messageFocusNode.dispose();
+    
+    // Dispose scroll controller
+    _scrollController.dispose();
+    
+    super.dispose();
   }
 
   @override
@@ -338,10 +366,80 @@ class _EventChatPageState extends State<EventChatPage> with TickerProviderStateM
           .orderBy('timestamp')
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          Logger.e('Error loading chat messages: ${snapshot.error}', tag: 'Event_chat');
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.exclamationmark_triangle,
+                  size: 48,
+                  color: CupertinoColors.systemRed,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Failed to load messages',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoColors.systemRed,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Please check your connection and try again',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+        
         if (!snapshot.hasData) {
           return const Center(child: CupertinoActivityIndicator());
         }
+        
         final messages = snapshot.data!.docs;
+        
+        // Show empty state if no messages
+        if (messages.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.chat_bubble_2,
+                  size: 48,
+                  color: CupertinoColors.systemGrey,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'No messages yet',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Be the first to start the conversation!',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: CupertinoColors.systemGrey2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+        
         final currentUserId = widget.user?.uid;
         return ListView.builder(
           controller: _scrollController,
