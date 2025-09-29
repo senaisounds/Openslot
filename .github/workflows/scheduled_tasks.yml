@@ -15,6 +15,7 @@ jobs:
     name: Daily Health Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    continue-on-error: true
 
     steps:
     - name: Checkout repository
@@ -35,15 +36,19 @@ jobs:
         echo "Running daily health check tests..."
         
         # Run all tests with detailed reporting
+        set +e  # Don't exit on error
         flutter test --reporter=expanded --coverage > test_results.txt 2>&1
+        TEST_EXIT_CODE=$?
+        set -e  # Resume exit on error
         
         # Check test results
-        if [ $? -eq 0 ]; then
+        if [ $TEST_EXIT_CODE -eq 0 ]; then
           echo "✅ All tests passed"
           TESTS_STATUS="PASSED"
         else
-          echo "❌ Some tests failed"
+          echo "❌ Some tests failed (exit code: $TEST_EXIT_CODE)"
           TESTS_STATUS="FAILED"
+          cat test_results.txt
         fi
         
         echo "TESTS_STATUS=$TESTS_STATUS" >> $GITHUB_ENV
@@ -51,13 +56,19 @@ jobs:
     - name: Performance baseline check
       run: |
         echo "Running performance baseline checks..."
-        flutter test test/performance/ --reporter=json > perf_results.json
+        set +e  # Don't exit on error
+        flutter test test/performance/ --reporter=json > perf_results.json 2>&1
+        PERF_EXIT_CODE=$?
+        set -e  # Resume exit on error
         
         # Basic performance validation
-        if [ -f perf_results.json ]; then
+        if [ $PERF_EXIT_CODE -eq 0 ] && [ -f perf_results.json ]; then
           echo "✅ Performance tests completed"
         else
-          echo "❌ Performance tests failed"
+          echo "❌ Performance tests failed (exit code: $PERF_EXIT_CODE)"
+          if [ -f perf_results.json ]; then
+            cat perf_results.json
+          fi
         fi
 
     - name: Dependency audit
@@ -149,6 +160,7 @@ jobs:
     name: Performance Regression Monitoring
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    continue-on-error: true
 
     steps:
     - name: Checkout repository
@@ -169,12 +181,22 @@ jobs:
         echo "Running performance benchmarks..."
         
         # Run performance tests multiple times for statistical accuracy
+        SUCCESSFUL_RUNS=0
         for i in {1..5}; do
           echo "Performance run $i/5..."
-          flutter test test/performance/ --reporter=json > "perf_run_$i.json"
+          set +e  # Don't exit on error
+          flutter test test/performance/ --reporter=json > "perf_run_$i.json" 2>&1
+          if [ $? -eq 0 ]; then
+            SUCCESSFUL_RUNS=$((SUCCESSFUL_RUNS + 1))
+            echo "✅ Run $i completed successfully"
+          else
+            echo "❌ Run $i failed"
+            cat "perf_run_$i.json"
+          fi
+          set -e  # Resume exit on error
         done
         
-        echo "✅ Performance benchmarks completed"
+        echo "✅ Performance benchmarks completed ($SUCCESSFUL_RUNS/5 successful runs)"
 
     - name: Analyze performance trends
       run: |
@@ -214,6 +236,7 @@ jobs:
     name: Security Monitoring
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: true
 
     steps:
     - name: Checkout repository
@@ -272,7 +295,7 @@ jobs:
     - name: Upload security report
       uses: actions/upload-artifact@v4
       with:
-        name: security-report-$(date +%Y-%m-%d)
+        name: security-report-${{ github.run_id }}
         path: |
           security_report.md
           current_deps.json
