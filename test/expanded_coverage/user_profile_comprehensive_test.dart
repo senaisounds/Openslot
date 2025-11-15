@@ -220,8 +220,6 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 10)));
 
     testWidgets('Profile edit functionality works', (WidgetTester tester) async {
-      bool isEditing = false;
-      
       await TestSetup.safePumpWidget(
         tester,
         TestSetup.createSimpleTestWidget(
@@ -230,7 +228,7 @@ void main() {
               title: const Text('Profile'),
               actions: [
                 IconButton(
-                  icon: Icon(isEditing ? Icons.save : Icons.edit),
+                  icon: const Icon(Icons.edit),
                   onPressed: () {
                     // Toggle editing state
                   },
@@ -239,29 +237,12 @@ void main() {
             ),
             body: Column(
               children: [
-                if (isEditing)
-                  const TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Username',
-                      border: OutlineInputBorder(),
-                    ),
-                  )
-                else
-                  Text(
-                    testUser.username,
-                    style: const TextStyle(fontSize: 24),
-                  ),
+                Text(
+                  testUser.username,
+                  style: const TextStyle(fontSize: 24),
+                ),
                 const SizedBox(height: 16),
-                if (isEditing)
-                  const TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Bio',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  )
-                else
-                  Text(testUser.bio),
+                Text(testUser.bio),
               ],
             ),
           ),
@@ -275,24 +256,12 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 10)));
 
     testWidgets('Profile loading states work correctly', (WidgetTester tester) async {
-      bool isLoading = true;
-      SlottedUser? user = isLoading ? null : testUser;
-      
       await TestSetup.safePumpWidget(
         tester,
         TestSetup.createSimpleTestWidget(
-          child: Scaffold(
+          child: const Scaffold(
             body: Center(
-              child: isLoading
-                  ? const CupertinoActivityIndicator(radius: 20)
-                  : user == null
-                      ? const Text('User not found')
-                      : Column(
-                          children: [
-                            Text(user.username),
-                            Text(user.bio),
-                          ],
-                        ),
+              child: CupertinoActivityIndicator(radius: 20),
             ),
           ),
         ),
@@ -377,37 +346,24 @@ void main() {
 
   group('Profile Actions Tests', () {
     testWidgets('Profile action buttons work correctly', (WidgetTester tester) async {
-      bool isOwnProfile = true;
-      
       await TestSetup.safePumpWidget(
         tester,
         TestSetup.createSimpleTestWidget(
           child: Scaffold(
             body: Column(
               children: [
-                if (isOwnProfile) ...[
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Edit Profile'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Settings'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Sign Out'),
-                  ),
-                ] else ...[
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Follow'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Message'),
-                  ),
-                ],
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text('Edit Profile'),
+                ),
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text('Settings'),
+                ),
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text('Sign Out'),
+                ),
               ],
             ),
           ),

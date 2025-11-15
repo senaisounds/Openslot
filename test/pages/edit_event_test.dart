@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart'; // Unused - commented out
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
@@ -61,27 +61,28 @@ void main() {
     );
   }
 
-  Future<void> scrollTo(WidgetTester tester, Finder finder) async {
-    try {
-      // Find the specific scrollable widget to avoid ambiguity
-      final scrollable = find.descendant(
-        of: find.byType(EditEventPage),
-        matching: find.byType(SingleChildScrollView),
-      );
-      
-      if (tester.any(scrollable)) {
-        await tester.dragUntilVisible(
-          finder,
-          scrollable.first,
-          const Offset(0, -50),
-        );
-        await tester.pumpAndSettle(const Duration(seconds: 2));
-      }
-    } catch (e) {
-      debugPrint('ScrollTo error: $e');
-      // Continue test even if scroll fails
-    }
-  }
+  // Unused method - commented out
+  // Future<void> scrollTo(WidgetTester tester, Finder finder) async {
+  //   try {
+  //     // Find the specific scrollable widget to avoid ambiguity
+  //     final scrollable = find.descendant(
+  //       of: find.byType(EditEventPage),
+  //       matching: find.byType(SingleChildScrollView),
+  //     );
+  //     
+  //     if (tester.any(scrollable)) {
+  //       await tester.dragUntilVisible(
+  //         finder,
+  //         scrollable.first,
+  //         const Offset(0, -50),
+  //       );
+  //       await tester.pumpAndSettle(const Duration(seconds: 2));
+  //     }
+  //   } catch (e) {
+  //     debugPrint('ScrollTo error: $e');
+  //     // Continue test even if scroll fails
+  //   }
+  // }
 
   group('EditEventPage Widget Tests', () {
     testWidgets('EditEventPage loads without crashing', (WidgetTester tester) async {
@@ -164,7 +165,7 @@ void main() {
       await pumpEditEventPage(tester);
 
       // Look for save-related buttons or text
-      final saveButtons = find.byType(ElevatedButton);
+      // final saveButtons = find.byType(ElevatedButton); // Unused - commented out
       expect(find.byType(EditEventPage), findsOneWidget); // Just verify page loaded
     }, timeout: const Timeout(Duration(seconds: 10)));
   });

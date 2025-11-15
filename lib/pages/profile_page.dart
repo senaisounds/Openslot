@@ -22,7 +22,8 @@ import 'package:slotted/pages/privacy_policy_page.dart';
 import 'package:slotted/api/block_user_service.dart';
 import 'package:slotted/pages/blocked_users_page.dart';
 import 'package:slotted/pages/admin_moderation_panel.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:slotted/pages/stripe_settings_page.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 import 'package:slotted/widgets/ds_section_header.dart';
 
@@ -46,7 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   SlottedUser? _user;
   bool _isLoading = true;
-  bool _isFirestoreAdmin = false;
+
   
   // Sample awards for demo purposes
   List<Award> _userAwards = [];
@@ -90,10 +91,10 @@ class _ProfilePageState extends State<ProfilePage> {
     Logger.d('Admin check - Is current user profile: $_isCurrentUserProfile', tag: 'Profile_page');
     Logger.d('Admin check - Admin emails: $adminEmails', tag: 'Profile_page');
     Logger.d('Admin check - Email match: ${adminEmails.contains(currentUser.email?.toLowerCase())}', tag: 'Profile_page');
-    Logger.d('Admin check - Firestore admin: $_isFirestoreAdmin', tag: 'Profile_page');
+
     
-    // Check both email-based and Firestore-based admin status
-    final isAdmin = adminEmails.contains(currentUser.email?.toLowerCase()) || _isFirestoreAdmin;
+    // Check email-based admin status
+    final isAdmin = adminEmails.contains(currentUser.email?.toLowerCase());
     Logger.d('Admin check - Final result: $isAdmin', tag: 'Profile_page');
     
     return isAdmin;
@@ -138,28 +139,7 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-  // Check if the current user is an admin in Firestore
-  Future<void> _checkFirestoreAdminStatus() async {
-    final currentUser = _authService.currentUser;
-    if (currentUser == null) return;
-    
-    try {
-      final adminDoc = await FirebaseFirestore.instance
-          .collection('admins')
-          .doc(currentUser.uid)
-          .get();
-      
-      if (mounted) {
-        setState(() {
-          _isFirestoreAdmin = adminDoc.exists && adminDoc.data()?['isAdmin'] == true;
-        });
-      }
-      
-      Logger.d('Firestore admin check: $_isFirestoreAdmin for user ${currentUser.uid}', tag: 'Profile_page');
-    } catch (e) {
-      Logger.e('Error checking Firestore admin status: $e', tag: 'Profile_page');
-    }
-  }
+
 
   Future<void> _loadUserData() async {
     if (!mounted) return;
@@ -576,6 +556,27 @@ class _ProfilePageState extends State<ProfilePage> {
                   Icon(CupertinoIcons.money_dollar_circle, color: AppColors.primary),
                   SizedBox(width: 8),
                   Text('Payout Settings'),
+                ],
+              ),
+                                        ),
+                                      // Stripe Settings (only in debug mode for current user)
+                                      if (_isCurrentUserProfile && kDebugMode)
+                                        CupertinoActionSheetAction(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => const StripeSettingsPage(),
+                                        ),
+                                    );
+                                },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.creditcard_fill, color: AppColors.primary),
+                  SizedBox(width: 8),
+                  Text('Stripe Settings'),
                 ],
               ),
                                         ),

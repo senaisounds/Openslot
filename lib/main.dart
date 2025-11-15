@@ -26,6 +26,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:async';
 import 'package:slotted/api/notification_service.dart';
+import 'package:slotted/api/smart_notification_service.dart';
 import 'package:slotted/utils/connectivity_service.dart';
 import 'package:slotted/utils/event_cache_service.dart';
 import 'package:slotted/providers/platform_provider.dart';
@@ -42,7 +43,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slotted/common/colors.dart';
 
 // We can't directly override print, but we can use Logger consistently
-const bool _debug = false;
+const bool _debug = true; // Set to true for testing with test Stripe key
 
 // Main Theme Colors
 const Color primaryColor = AppColors.primary; // Vibrant Orange - Stage Lights
@@ -318,13 +319,20 @@ Future<void> _initializeApp() async {
       }
     }
 
-    // Initialize Stripe with merchant identifier and publishable key
+    // Initialize Stripe with enhanced security
     try {
+      print('🔑 Attempting to load Stripe key (debug mode: $kDebugMode)...');
       Stripe.merchantIdentifier = StripeConfig.merchantIdentifier;
-      Stripe.publishableKey = StripeConfig.getPublishableKey(_debug);
+      final publishableKey = await StripeConfig.getPublishableKey(kDebugMode);
+      Stripe.publishableKey = publishableKey;
+      print('✅ Stripe initialized successfully with ${kDebugMode ? 'test' : 'live'} key');
+      print('   Key starts with: ${publishableKey.substring(0, 20)}...');
+      Logger.i('Stripe initialized successfully with ${kDebugMode ? 'test' : 'live'} key', tag: 'Initialization');
     } catch (e) {
+      print('❌ Failed to initialize Stripe: $e');
       Logger.e('Failed to initialize Stripe: $e', tag: 'Initialization', error: e);
-      // Continue despite Stripe initialization errors
+      // Continue despite Stripe initialization errors, but log the issue
+      Logger.w('App will continue without Stripe payment processing', tag: 'Initialization');
     }
     
     // Initialize connectivity service
@@ -614,6 +622,16 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
                 error: error, 
                 stackTrace: stackTrace);
       });
+      
+      // Initialize enhanced notification features
+      await SmartNotificationService.instance.initialize().catchError((error, stackTrace) {
+        Logger.e('Failed to initialize smart notification service: $error', 
+                tag: 'Notifications', 
+                error: error, 
+                stackTrace: stackTrace);
+      });
+      
+      Logger.i('All notification services initialized successfully', tag: 'Notifications');
     } catch (e) {
       // Silently handle initialization errors in simulator
       Logger.d('Notification service initialization skipped: $e', tag: 'Notifications');
@@ -621,14 +639,13 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
     
     try {
       // Legacy initialization for backward compatibility
-      final DarwinInitializationSettings initializationSettingsIOS =
+      const DarwinInitializationSettings initializationSettingsIOS =
           DarwinInitializationSettings(
         requestAlertPermission: false,
         defaultPresentAlert: false,
-        onDidReceiveLocalNotification: _onDidReceiveLocalNotification,
       );
       
-      final InitializationSettings initializationSettings =
+      const InitializationSettings initializationSettings =
           InitializationSettings(
         iOS: initializationSettingsIOS,
       );
@@ -639,16 +656,6 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
     }
   }
   
-  Future<void> _onDidReceiveLocalNotification(
-      int id, String? title, String? body, String? payload) async {
-    try {
-      showNotification(id, title, body);
-    } catch (e) {
-      Logger.e('Error in onDidReceiveLocalNotification: $e', 
-              tag: 'Notifications', 
-              error: e);
-    }
-  }
   
   void _setupFirebaseMessaging() {
     // Set up Firebase message handler for foreground messages

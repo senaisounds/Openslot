@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:slotted/common/design_system.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TermsOfServiceDialog extends StatefulWidget {
   final VoidCallback onAccept;
@@ -16,20 +18,24 @@ class TermsOfServiceDialog extends StatefulWidget {
 }
 
 class _TermsOfServiceDialogState extends State<TermsOfServiceDialog> {
-  bool _hasAcceptedTerms = false;
-  bool _hasAcceptedPrivacyPolicy = false;
-  bool _hasAcceptedContentPolicy = false;
+  bool _hasAgreed = false;
+  bool _showDetails = false;
 
-  bool get _canProceed => _hasAcceptedTerms && _hasAcceptedPrivacyPolicy && _hasAcceptedContentPolicy;
+  Future<void> _launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoAlertDialog(
       title: const Text(
-        'Terms of Service & Privacy Policy',
+        'Welcome to OpenSlot! 🎤',
         style: TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: 18,
+          fontSize: 20,
         ),
       ),
       content: SingleChildScrollView(
@@ -37,89 +43,154 @@ class _TermsOfServiceDialogState extends State<TermsOfServiceDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             const Text(
-              'Welcome to OpenSlot! Please review and accept our terms before using the app.',
-              style: TextStyle(fontSize: 14),
+              'To get started, please agree to our terms.',
+              style: TextStyle(fontSize: 15),
             ),
             const SizedBox(height: 16),
             
-            // Terms of Service
-            _buildCheckboxTile(
-              'I accept the Terms of Service',
-              _hasAcceptedTerms,
-              (value) => setState(() => _hasAcceptedTerms = value ?? false),
+            // Simple single checkbox
+            GestureDetector(
+              onTap: () => setState(() => _hasAgreed = !_hasAgreed),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CupertinoCheckbox(
+                    value: _hasAgreed,
+                    onChanged: (value) => setState(() => _hasAgreed = value ?? false),
+                    activeColor: DesignSystem.primaryOrange,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: CupertinoColors.label,
+                          ),
+                          children: [
+                            const TextSpan(text: 'I agree to the '),
+                            TextSpan(
+                              text: 'Terms of Service',
+                              style: const TextStyle(
+                                color: DesignSystem.primaryOrange,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () => _launchURL('https://openslot.me/terms'),
+                            ),
+                            const TextSpan(text: ' and '),
+                            TextSpan(
+                              text: 'Privacy Policy',
+                              style: const TextStyle(
+                                color: DesignSystem.primaryOrange,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () => _launchURL('https://openslot.me/privacy'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             
-            // Privacy Policy
-            _buildCheckboxTile(
-              'I accept the Privacy Policy',
-              _hasAcceptedPrivacyPolicy,
-              (value) => setState(() => _hasAcceptedPrivacyPolicy = value ?? false),
+            const SizedBox(height: 12),
+            
+            // Show more/less button
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minSize: 0,
+              onPressed: () => setState(() => _showDetails = !_showDetails),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _showDetails ? 'Show less' : 'What am I agreeing to?',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: CupertinoColors.systemGrey,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    _showDetails ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
+                    size: 14,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                ],
+              ),
             ),
             
-            // Content Policy
-            _buildCheckboxTile(
-              'I agree to follow community guidelines and not post inappropriate content',
-              _hasAcceptedContentPolicy,
-              (value) => setState(() => _hasAcceptedContentPolicy = value ?? false),
-            ),
-            
-            const SizedBox(height: 16),
-            const Text(
-              'By accepting, you agree to:\n'
-              '• Follow community guidelines\n'
-              '• Not post inappropriate content\n'
-              '• Report violations when you see them\n'
-              '• Accept our privacy practices',
-              style: TextStyle(fontSize: 12, color: CupertinoColors.systemGrey),
-            ),
+            // Expandable details
+            if (_showDetails) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'By using OpenSlot, you agree to:',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: CupertinoColors.label,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '✓ Follow community guidelines\n'
+                      '✓ Be respectful to performers and hosts\n'
+                      '✓ Not post inappropriate content\n'
+                      '✓ Report violations when you see them\n'
+                      '✓ Our data and privacy practices',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CupertinoColors.secondaryLabel,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
       actions: [
         CupertinoDialogAction(
           onPressed: widget.onDecline ?? () => Navigator.of(context).pop(),
-          child: const Text('Decline'),
+          child: const Text(
+            'Not Now',
+            style: TextStyle(color: CupertinoColors.systemGrey),
+          ),
         ),
         CupertinoDialogAction(
           isDefaultAction: true,
-          isDestructiveAction: false,
-          onPressed: _canProceed ? () {
+          onPressed: _hasAgreed ? () {
             Navigator.of(context).pop();
             widget.onAccept();
           } : null,
           child: Text(
-            'Accept',
+            'Continue',
             style: TextStyle(
-              color: _canProceed ? DesignSystem.primaryOrange : CupertinoColors.systemGrey,
+              color: _hasAgreed ? DesignSystem.primaryOrange : CupertinoColors.systemGrey,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildCheckboxTile(String title, bool value, ValueChanged<bool?> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          CupertinoCheckbox(
-            value: value,
-            onChanged: onChanged,
-            activeColor: DesignSystem.primaryOrange,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-        ],
-      ),
     );
   }
 } 

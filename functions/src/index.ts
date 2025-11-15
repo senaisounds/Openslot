@@ -545,11 +545,20 @@ export const createPaymentIntent = functions.https.onRequest(async (req, res) =>
     // Use test or live Stripe key
     const stripe = debug ? stripeTest : stripeLive;
 
-    // Only include customer if valid
+    // Enhanced payment method support
     let paymentIntentParams: any = {
       amount: parseInt(amount, 10), // amount in cents
       currency,
       payment_method_types: ['card'],
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'never', // Keep flow within app
+      },
+      metadata: {
+        app_name: 'OpenSlot',
+        version: '1.0',
+        platform: 'mobile',
+      },
     };
     if (
       typeof customerId === 'string' &&
@@ -1100,4 +1109,205 @@ async function _sendWarningToUser(contentType: string, contentId: string) {
   } catch (error) {
     console.error('Error sending warning:', error);
   }
-} 
+}
+
+// Report usage to Stripe Billing Meter
+// This is CRITICAL for usage-based billing ($0.99 per booking)
+export const reportStripeUsage = functions.https.onRequest(async (req, res) => {
+  // CORS headers
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  
+  try {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    
+    const { customerId, eventName, quantity, timestamp, metadata, debug } = req.body;
+    
+    // Validate required parameters
+    if (!customerId || !eventName) {
+      res.status(400).json({ error: 'Missing required parameters: customerId, eventName' });
+      return;
+    }
+    
+    // Validate customer ID format
+    if (!customerId.startsWith('cus_')) {
+      res.status(400).json({ error: 'Invalid customer ID format' });
+      return;
+    }
+    
+    // Use test or live Stripe key
+    const stripe = debug ? stripeTest : stripeLive;
+    
+    console.log('Reporting usage to Stripe:', {
+      customerId,
+      eventName,
+      quantity: quantity || 1,
+      debug: debug || false,
+    });
+    
+    // Report usage to Stripe Billing
+    // This sends the event to your "Event Bookings" meter
+    const usageRecord = await stripe.billing.meterEvents.create({
+      event_name: eventName, // Should be 'booking_completed'
+      payload: {
+        stripe_customer_id: customerId,
+        value: String(quantity || 1), // Number of bookings (usually 1)
+      },
+      timestamp: timestamp ? Math.floor(new Date(timestamp).getTime() / 1000) : Math.floor(Date.now() / 1000),
+    });
+    
+    // Store usage record in Firestore for tracking
+    try {
+      await admin.firestore().collection('stripe_usage').add({
+        customerId,
+        eventName,
+        quantity: quantity || 1,
+        timestamp: timestamp || new Date().toISOString(),
+        metadata: metadata || {},
+        stripeEventId: usageRecord.identifier,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        debug: debug || false,
+      });
+    } catch (firestoreError) {
+      console.error('Warning: Failed to store usage in Firestore:', firestoreError);
+      // Don't fail the request if Firestore fails
+    }
+    
+    console.log('Usage reported successfully:', usageRecord.identifier);
+    
+    res.status(200).json({
+      success: true,
+      id: usageRecord.identifier,
+      message: 'Usage reported successfully',
+    });
+    
+  } catch (error: any) {
+    console.error('Error reporting usage to Stripe:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to report usage',
+      details: error.raw?.message || error.toString(),
+    });
+  }
+});
+
+// Create Stripe Customer
+export const createStripeCustomer = functions.https.onRequest(async (req, res) => {
+  // CORS headers
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set('Access-Control-Max-Age', '3600');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    const { email, userId, name, debug } = req.body;
+
+    // Validate required parameters
+    if (!userId) {
+      res.status(400).json({ error: 'Missing required parameter: userId' });
+      return;
+    }
+
+    // Use test or live Stripe key
+    const stripe = debug ? stripeTest : stripeLive;
+
+    console.log(`Creating Stripe customer for user ${userId} (debug: ${debug})`);
+
+    // Check if customer already exists in Firestore
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+    const userData = userDoc.data();
+    
+    const customerIdField = debug ? 'test-customerID' : 'customerID';
+    const existingCustomerId = userData?.[customerIdField];
+
+    // If customer ID exists, verify it's valid in Stripe
+    if (existingCustomerId && typeof existingCustomerId === 'string' && existingCustomerId.startsWith('cus_')) {
+      try {
+        const existingCustomer = await stripe.customers.retrieve(existingCustomerId);
+        if (!existingCustomer.deleted) {
+          console.log(`Customer already exists: ${existingCustomerId}`);
+          res.status(200).json({ 
+            customerId: existingCustomerId,
+            message: 'Customer already exists',
+            isNew: false
+          });
+          return;
+        }
+      } catch (error) {
+        console.log(`Existing customer ID ${existingCustomerId} is invalid, creating new one`);
+      }
+    }
+
+    // Create new customer
+    const customerParams: Stripe.CustomerCreateParams = {
+      metadata: {
+        firebaseUID: userId,
+        app: 'OpenSlot',
+        environment: debug ? 'test' : 'live',
+      },
+    };
+
+    // Add optional fields if provided
+    if (email && email.trim() !== '') {
+      customerParams.email = email;
+    }
+    if (name && name.trim() !== '') {
+      customerParams.name = name;
+    }
+
+    let customer;
+    try {
+      customer = await stripe.customers.create(customerParams);
+      console.log(`Created new Stripe customer: ${customer.id}`);
+    } catch (createError: any) {
+      // If email validation fails, try without email
+      if (createError.type === 'StripeInvalidRequestError' && createError.message?.includes('email')) {
+        console.log('Email validation failed, creating customer without email');
+        delete customerParams.email;
+        customer = await stripe.customers.create(customerParams);
+        console.log(`Created new Stripe customer without email: ${customer.id}`);
+      } else {
+        throw createError;
+      }
+    }
+
+    // Update Firestore with new customer ID
+    await admin.firestore().collection('users').doc(userId).update({
+      [customerIdField]: customer.id,
+      [`${customerIdField}_created`]: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`Updated Firestore user ${userId} with customer ID: ${customer.id}`);
+
+    res.status(200).json({ 
+      customerId: customer.id,
+      message: 'Customer created successfully',
+      isNew: true
+    });
+
+  } catch (error: any) {
+    console.error('Error creating Stripe customer:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to create customer',
+      details: error.raw?.message || error.toString(),
+    });
+  }
+}); 

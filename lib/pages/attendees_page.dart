@@ -150,8 +150,8 @@ class _AttendeesPageState extends State<AttendeesPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              CupertinoColors.systemBlue.withAlpha(25),
-              CupertinoColors.systemPurple.withAlpha(25),
+              CupertinoColors.systemBlue.withValues(alpha: 0.1),
+              CupertinoColors.systemPurple.withValues(alpha: 0.1),
             ],
           ),
         ),
@@ -162,10 +162,10 @@ class _AttendeesPageState extends State<AttendeesPage> {
                 padding: const EdgeInsets.all(8),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: CupertinoColors.systemGrey6.withAlpha(204),
+                    color: CupertinoColors.systemGrey6.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: CupertinoColors.activeBlue.withAlpha(51),
+                      color: CupertinoColors.activeBlue.withValues(alpha: 0.2),
                       width: 1.5,
                     ),
                   ),
@@ -176,20 +176,20 @@ class _AttendeesPageState extends State<AttendeesPage> {
                         searchQuery = value;
                       });
                     },
-                    backgroundColor: CupertinoColors.systemGrey6.withAlpha(25),
+                    backgroundColor: CupertinoColors.systemGrey6.withValues(alpha: 0.1),
                     placeholder: 'Search attendees',
                     placeholderStyle: TextStyle(
-                      color: CupertinoColors.systemGrey.withAlpha(204),
+                      color: CupertinoColors.systemGrey.withValues(alpha: 0.8),
                       fontSize: 16,
                     ),
                     prefixIcon: Icon(
                       CupertinoIcons.search,
-                      color: CupertinoColors.systemGrey.withAlpha(204),
+                      color: CupertinoColors.systemGrey.withValues(alpha: 0.8),
                       size: 20,
                     ),
                     suffixIcon: Icon(
                       CupertinoIcons.xmark_circle_fill,
-                      color: CupertinoColors.systemGrey.withAlpha(204),
+                      color: CupertinoColors.systemGrey.withValues(alpha: 0.8),
                       size: 20,
                     ),
                     style: const TextStyle(
@@ -218,7 +218,7 @@ class _AttendeesPageState extends State<AttendeesPage> {
                               vertical: 4.0, horizontal: 8.0),
                           decoration: BoxDecoration(
                             color: highlighted == performerId
-                                ? CupertinoColors.activeOrange.withAlpha(38)
+                                ? CupertinoColors.activeOrange.withValues(alpha: 0.15)
                                 : CupertinoColors.darkBackgroundGray,
                             borderRadius: BorderRadius.circular(8.0),
                           ),

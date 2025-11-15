@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '15.0'
+platform :ios, '16.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -42,6 +42,12 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     # Start of the permission_handler configuration
     target.build_configurations.each do |config|
+      # Set minimum deployment target to match platform requirement
+      # Ensure it's at least 13.0 for Stripe compatibility
+      deployment_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+      if deployment_target.nil? || deployment_target.to_f < 13.0
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      end
 
       # You can enable the permissions needed here. For example to enable camera
       # permission, just remove the `#` character in front so it looks like this:

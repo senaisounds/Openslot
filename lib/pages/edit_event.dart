@@ -2578,6 +2578,9 @@ class EditEventPageState extends State<EditEventPage> {
         CupertinoPageRoute(
           builder: (context) => LocationPage(
             onPicked: (Map<String, dynamic> picked) {
+              // Check if widget is still mounted before processing
+              if (!mounted) return;
+              
               // Process the picked location
               if (picked.containsKey('address') && picked.containsKey('latlng')) {
                 final address = picked['address'] as String?;
@@ -2589,25 +2592,35 @@ class EditEventPageState extends State<EditEventPage> {
                       final latitude = latlng.latitude as double;
                       final longitude = latlng.longitude as double;
                       
-                      setState(() {
-                        controller.text = address;
-                        eventLocationData = LatLng(latitude, longitude);
-                      });
+                      if (mounted) {
+                        setState(() {
+                          controller.text = address;
+                          eventLocationData = LatLng(latitude, longitude);
+                        });
+                      }
                     } catch (e) {
-                      _showLocationError('Invalid coordinates format: latitude and longitude must be numbers', controller: controller);
+                      if (mounted) {
+                        _showLocationError('Invalid coordinates format: latitude and longitude must be numbers', controller: controller);
+                      }
                     }
                   } else {
                     // Web mode - no coordinates
-                    setState(() {
-                      controller.text = address;
-                      eventLocationData = null;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        controller.text = address;
+                        eventLocationData = null;
+                      });
+                    }
                   }
                 } else {
-                  _showLocationError('No address found for selected location', controller: controller);
+                  if (mounted) {
+                    _showLocationError('No address found for selected location', controller: controller);
+                  }
                 }
               } else {
-                _showLocationError('Invalid location data received', controller: controller);
+                if (mounted) {
+                  _showLocationError('Invalid location data received', controller: controller);
+                }
               }
               
               // Don't pop here - let the location page handle its own navigation

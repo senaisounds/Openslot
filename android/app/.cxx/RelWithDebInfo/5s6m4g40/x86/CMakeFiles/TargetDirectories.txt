@@ -1,0 +1,2 @@
+/Users/senaimotley/openslot/android/app/.cxx/RelWithDebInfo/5s6m4g40/x86/CMakeFiles/edit_cache.dir
+/Users/senaimotley/openslot/android/app/.cxx/RelWithDebInfo/5s6m4g40/x86/CMakeFiles/rebuild_cache.dir

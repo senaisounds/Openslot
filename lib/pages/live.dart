@@ -81,6 +81,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
 
   // Removed: final int _currentPage = 0;
   // Removed: final bool _isLoadingMore = false;
+  DateTime? _lastDialogActionTime;
   // Removed: final bool _hasMorePerformers = true;
   final ScrollController _scrollController = ScrollController();
 
@@ -280,7 +281,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
     
     switch (dropZone) {
       case DropZoneType.performer:
-        _setPerformer(_draggingPerformerId!);
+        _lineupPerformer(widget.event, widget.event.performer, _draggingPerformerId!, _draggingPerformerId!);
         break;
       case DropZoneType.nextUp:
         _setNextUp(_draggingPerformerId!);
@@ -291,36 +292,6 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
       case DropZoneType.remove:
         _removePerformer(_draggingPerformerId!);
         break;
-    }
-  }
-  
-  Future<void> _setPerformer(String performerId) async {
-    // SECURITY: Verify user is host before allowing performer changes
-    final bool isHost = widget.event.host == widget.user?.uid;
-    if (!isHost) {
-      Logger.w('Non-host user attempted to set performer: ${widget.user?.uid}', tag: 'Security');
-      HapticFeedback.heavyImpact();
-      _showErrorDialog('Only the event host can manage performers.');
-      return;
-    }
-    
-    try {
-      await _retryOperation(
-        operation: () => FirebaseFirestore.instance
-            .doc('events/${widget.event.id}')
-            .update({
-          'performer': performerId,
-          'performerStart': Timestamp.now(),
-        }),
-        operationName: 'setPerformer',
-      );
-      
-      HapticFeedback.mediumImpact();
-      _confettiController?.play();
-      
-    } catch (e) {
-      Logger.e('Failed to set performer: $e', tag: 'Live');
-      _showErrorDialog('Failed to set performer. Please try again.');
     }
   }
   
@@ -757,6 +728,8 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
 
   Future<void> _lineupPerformer(Event event, String? currentPerformer,
       String performer, String username) async {
+    Logger.d('_lineupPerformer called for: $performer', tag: 'Live');
+    
     // SECURITY: Verify user is host before allowing performer lineup changes
     final bool isHost = event.host == widget.user?.uid;
     if (!isHost) {
@@ -768,12 +741,16 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
     
     bool isCurrentPerformer =
         currentPerformer == performer || currentPerformer == username;
+    
+    Logger.d('isCurrentPerformer: $isCurrentPerformer', tag: 'Live');
 
     // First fetch the user's profile to get their username
     try {
       final userDoc = await FirebaseFirestore.instance.doc('users/$performer').get();
       final displayName = userDoc.exists ? userDoc.get('username') as String? ?? username : username;
 
+    Logger.d('Showing lineup dialog for: $displayName', tag: 'Live');
+    
     final confirmation = await showCupertinoDialog(
         context: context,
         builder: (context) {
@@ -789,42 +766,74 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
               ],
             ),
             actions: [
-                if (isCurrentPerformer && widget.event.performerStart == null) ...[
-                CupertinoDialogAction(
-                  child: const Text("Remove"),
-                  onPressed: () => Navigator.of(context).pop(false),
-                ),
-                CupertinoDialogAction(
-                  child: Text(isCurrentPerformer ? "Cancel" : "Yes"),
-                  onPressed: () => Navigator.of(context).pop(true),
-                ),
-              ],
-                if (isCurrentPerformer && widget.event.performerStart != null) ...[
-                CupertinoDialogAction(
-                  child: const Text("Remove"),
-                  onPressed: () => Navigator.of(context).pop(false),
-                ),
-                CupertinoDialogAction(
-                  child: Text(isCurrentPerformer ? "Cancel" : "Yes"),
-                  onPressed: () => Navigator.of(context).pop(true),
-                )
-              ],
               if (!isCurrentPerformer) ...[
                 CupertinoDialogAction(
-                    child: const Text("Set as Current"),
-                  onPressed: () => Navigator.of(context).pop(true),
-                  ),
-                  CupertinoDialogAction(
-                    child: const Text("Mark as Up Next"),
-                    onPressed: () => Navigator.of(context).pop("up_next"),
-                  ),
-                ],
-                if ((widget.event.performerStart != null && widget.event.timeLimit != 0) ||
-                  !isCurrentPerformer)
-                CupertinoDialogAction(
-                    child: const Text("Cancel"),
-                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Set as Current"),
+                  onPressed: () {
+                    final now = DateTime.now();
+                    if (_lastDialogActionTime != null && 
+                        now.difference(_lastDialogActionTime!).inMilliseconds < 500) {
+                      return; // Ignore rapid clicks
+                    }
+                    _lastDialogActionTime = now;
+                    Navigator.of(context).pop(true);
+                    HapticFeedback.lightImpact();
+                  },
                 ),
+                CupertinoDialogAction(
+                  child: const Text("Mark as Up Next"),
+                  onPressed: () {
+                    final now = DateTime.now();
+                    if (_lastDialogActionTime != null && 
+                        now.difference(_lastDialogActionTime!).inMilliseconds < 500) {
+                      return; // Ignore rapid clicks
+                    }
+                    _lastDialogActionTime = now;
+                    Navigator.of(context).pop("up_next");
+                    HapticFeedback.lightImpact();
+                  },
+                ),
+                CupertinoDialogAction(
+                  child: const Text("Cancel"),
+                  onPressed: () {
+                    final now = DateTime.now();
+                    if (_lastDialogActionTime != null && 
+                        now.difference(_lastDialogActionTime!).inMilliseconds < 500) {
+                      return; // Ignore rapid clicks
+                    }
+                    _lastDialogActionTime = now;
+                    Navigator.of(context).pop(null);
+                    HapticFeedback.selectionClick();
+                  },
+                ),
+              ] else ...[
+                CupertinoDialogAction(
+                  child: const Text("Remove"),
+                  onPressed: () {
+                    final now = DateTime.now();
+                    if (_lastDialogActionTime != null && 
+                        now.difference(_lastDialogActionTime!).inMilliseconds < 500) {
+                      return; // Ignore rapid clicks
+                    }
+                    _lastDialogActionTime = now;
+                    Navigator.of(context).pop(false);
+                    HapticFeedback.lightImpact();
+                  },
+                ),
+                CupertinoDialogAction(
+                  child: const Text("Cancel"),
+                  onPressed: () {
+                    final now = DateTime.now();
+                    if (_lastDialogActionTime != null && 
+                        now.difference(_lastDialogActionTime!).inMilliseconds < 500) {
+                      return; // Ignore rapid clicks
+                    }
+                    _lastDialogActionTime = now;
+                    Navigator.of(context).pop(null);
+                    HapticFeedback.selectionClick();
+                  },
+                ),
+              ],
               if (performer != username) ...[
                 CupertinoDialogAction(
                   child: const Text("View Profile"),
@@ -845,6 +854,8 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
       if (confirmation == null) return;
 
       try {
+    Logger.d('Dialog result: $confirmation', tag: 'Live');
+    
     switch (confirmation) {
       case true:
         if (!isCurrentPerformer) {
@@ -1322,16 +1333,16 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
                             ),
                           if (event.upNext != null)
                             Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 20.0),
                               child: _buildUpNextSection(event, isHost),
                             ),
                           if (event.rules.isNotEmpty)
                             Padding(
-                              padding: const EdgeInsets.all(16.0),
+                              padding: const EdgeInsets.all(20.0),
                               child: _buildRulesSection(event),
                             ),
                           Padding(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.all(20.0),
                             child: isHost && !event.ended
                                 ? _buildHostView(event, context)
                                 : _buildAttendeeView(event, context),
@@ -2534,7 +2545,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
         ),
       ),
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         color: isEventHost 
           ? AppColors.slottedOrange.withValues(alpha: 0.05)
           : CupertinoColors.secondaryLabel.withValues(alpha: 0.05),
@@ -2567,10 +2578,10 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
             Expanded(
               child: Padding(
                 padding: EdgeInsets.only(
-                  left: (isHost && !event.ended && !isEventHost) ? 8 : 16,
-                  right: 16,
-                  top: 8,
-                  bottom: 8,
+                  left: (isHost && !event.ended && !isEventHost) ? 12 : 20,
+                  right: 20,
+                  top: 16,
+                  bottom: 16,
                 ),
                 child: Row(
                   children: [
@@ -2605,7 +2616,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
                     // Name and Status
                     Expanded(
                       child: Row(
@@ -3270,13 +3281,24 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
           width: 1,
         ),
       ),
-                              child: Row(
-                                children: [
-          const Icon(
-            CupertinoIcons.arrow_up_circle_fill,
-            color: CupertinoColors.systemPurple,
-            size: 16,
-          ),
+      child: Row(
+        children: [
+          if (isHost)
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => _promoteUpNextToCurrent(event),
+              child: const Icon(
+                CupertinoIcons.arrow_up_circle_fill,
+                color: CupertinoColors.systemPurple,
+                size: 16,
+              ),
+            )
+          else
+            const Icon(
+              CupertinoIcons.arrow_up_circle_fill,
+              color: CupertinoColors.systemPurple,
+              size: 16,
+            ),
           const SizedBox(width: 6),
           const Text(
             "UP NEXT:",
@@ -3759,7 +3781,7 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
 
     // Show result dialog
     if (mounted) {
-      final result = await showCupertinoDialog<bool>(
+      final result = await showCupertinoDialog<dynamic>(
         context: context,
         barrierDismissible: false, // Prevent dismissing by tapping outside
         builder: (context) => CupertinoAlertDialog(
@@ -3831,6 +3853,21 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
               onPressed: () => Navigator.of(context).pop(false),
             ),
             CupertinoDialogAction(
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.arrow_up_circle,
+                    size: 18,
+                    color: CupertinoColors.systemPurple,
+                  ),
+                  SizedBox(width: 4),
+                  Text('Up Next'),
+                ],
+              ),
+              onPressed: () => Navigator.of(context).pop("up_next"),
+            ),
+            CupertinoDialogAction(
               isDefaultAction: true,
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -3850,10 +3887,16 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
         ),
       );
 
+      Logger.d('Shuffle result: $result', tag: 'Live');
+      
       if (result == true) {
         // Set the selected performer as current
         await _setShuffledPerformer(selectedPerformerId);
         HapticFeedback.mediumImpact();
+      } else if (result == "up_next") {
+        // Set the selected performer as up next
+        await _setShuffledUpNext(selectedPerformerId);
+        HapticFeedback.lightImpact();
       } else if (result == false) {
         // Shuffle again
         List<String> availablePerformers = event.attendees
@@ -3909,7 +3952,91 @@ class LivePageState extends State<LivePage> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _setShuffledUpNext(String performerId) async {
+    Logger.d('Setting shuffled up next: $performerId', tag: 'Live');
+    
+    // SECURITY: Final host check before setting up next
+    final bool isHost = widget.event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to set shuffled up next: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can set up next performers.');
+      return;
+    }
 
+    try {
+      await _retryOperation(
+        operation: () => FirebaseFirestore.instance
+            .doc('events/${widget.event.id}')
+            .update({
+          'upNext': performerId,
+        }),
+        operationName: 'setShuffledUpNext',
+      );
+
+      if (!mounted) return;
+      
+      setState(() {
+        widget.event.upNext = performerId;
+      });
+      
+      Logger.d('Successfully set up next: $performerId', tag: 'Live');
+      
+    } catch (e) {
+      Logger.e('Failed to set shuffled up next: $e', tag: 'Live');
+      _showErrorDialog('Failed to set up next performer. Please try again.');
+    }
+  }
+
+  Future<void> _promoteUpNextToCurrent(Event event) async {
+    Logger.d('Promoting up next to current: ${event.upNext}', tag: 'Live');
+    
+    // SECURITY: Verify user is host before allowing promotion
+    final bool isHost = event.host == widget.user?.uid;
+    if (!isHost) {
+      Logger.w('Non-host user attempted to promote up next: ${widget.user?.uid}', tag: 'Security');
+      HapticFeedback.heavyImpact();
+      _showErrorDialog('Only the event host can promote performers.');
+      return;
+    }
+
+    if (event.upNext == null) {
+      Logger.w('Attempted to promote up next but no up next performer set', tag: 'Live');
+      _showErrorDialog('No performer is set as up next.');
+      return;
+    }
+
+    try {
+      await _retryOperation(
+        operation: () => FirebaseFirestore.instance
+            .doc('events/${event.id}')
+            .update({
+          'performer': event.upNext,
+          'performerStart': Timestamp.now(),
+          'upNext': null, // Clear the up next since they're now current
+        }),
+        operationName: 'promoteUpNextToCurrent',
+      );
+
+      if (!mounted) return;
+      
+      setState(() {
+        widget.event.performer = event.upNext;
+        widget.event.performerStart = DateTime.now();
+        widget.event.upNext = null;
+      });
+
+      // Celebrate the promotion
+      HapticFeedback.mediumImpact();
+      _confettiController?.play();
+      
+      Logger.d('Successfully promoted up next to current: ${event.upNext}', tag: 'Live');
+      
+    } catch (e) {
+      Logger.e('Failed to promote up next to current: $e', tag: 'Live');
+      _showErrorDialog('Failed to promote performer. Please try again.');
+    }
+  }
 
   // Add this method to handle force adding a user
   Future<void> _forceAddUserToEvent(String userId, Event event) async {

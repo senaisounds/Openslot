@@ -58,7 +58,7 @@ class DesignSystem {
   // SHADOWS
   static List<BoxShadow> softShadow(Color color) => [
     BoxShadow(
-      color: color.withAlpha(76),
+      color: color.withValues(alpha: 0.3),
       blurRadius: 12,
       offset: const Offset(0, 4),
       spreadRadius: 0,
@@ -67,7 +67,7 @@ class DesignSystem {
   
   static List<BoxShadow> glowShadow(Color color) => [
     BoxShadow(
-      color: color.withAlpha(102),
+      color: color.withValues(alpha: 0.4),
       blurRadius: 20,
       spreadRadius: 2,
     ),
@@ -159,8 +159,8 @@ class ComponentStyles {
   static BoxDecoration sectionHeader = BoxDecoration(
     gradient: LinearGradient(
       colors: [
-        DesignSystem.primaryOrange.withAlpha(25),
-        DesignSystem.primaryOrange.withAlpha(13),
+        DesignSystem.primaryOrange.withValues(alpha: 0.1),
+        DesignSystem.primaryOrange.withValues(alpha: 0.05),
       ],
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,

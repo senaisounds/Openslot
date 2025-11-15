@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slotted/common/event_class.dart';
-import 'package:slotted/common/slotted_user.dart';
 import 'package:latlong2/latlong.dart';
 import '../test_setup.dart';
 
@@ -17,7 +16,6 @@ void main() {
   group('Payment Processing Tests', () {
     late Event paidEvent;
     late Event freeEvent;
-    late SlottedUser testUser;
 
     setUp(() async {
       await TestSetup.setupTestData();
@@ -57,17 +55,6 @@ void main() {
         location: const LatLng(40.7128, -74.0060),
         isPrivate: false,
       );
-
-      testUser = SlottedUser()
-        ..id = 'payment-test-user'
-        ..username = 'PaymentTestUser'
-        ..bio = 'Test user for payment testing'
-        ..photoUrl = ''
-        ..isFirstTimer = false
-        ..twitter = ''
-        ..instagram = ''
-        ..customerID = 'test-customer-id'
-        ..testCustomerID = 'test-customer-id-test';
     });
 
     testWidgets('Payment UI displays correctly for paid events', (WidgetTester tester) async {
@@ -192,7 +179,7 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 20)));
 
     testWidgets('Payment loading states work correctly', (WidgetTester tester) async {
-      bool isProcessingPayment = true;
+      const isProcessingPayment = true;
       
       await TestSetup.safePumpWidget(
         tester,
@@ -202,25 +189,23 @@ void main() {
               children: [
                 Text('Event: ${paidEvent.name}'),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: isProcessingPayment ? null : () {},
-                  child: isProcessingPayment
-                      ? const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text('Processing...'),
-                          ],
-                        )
-                      : Text('Pay \$${paidEvent.price.toStringAsFixed(2)}'),
+                const ElevatedButton(
+                  onPressed: null, // Disabled during processing
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text('Processing...'),
+                    ],
+                  ),
                 ),
                 if (isProcessingPayment)
                   const Padding(

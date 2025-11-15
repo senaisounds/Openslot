@@ -104,27 +104,11 @@ class TestUserData {
 class MockUserCredential extends Mock implements UserCredential {
   @override
   User? get user => MockUser();
-  @override
-  AdditionalUserInfo? get additionalUserInfo => null;
-  @override
-  AuthCredential? get credential => null;
-  @override
-  String? get operationType => null;
 }
 
 class MockIdTokenResult extends Mock implements IdTokenResult {
-  @override
-  DateTime? get authTime => DateTime.now();
-  @override
-  Map<String, dynamic>? get claims => {};
-  @override
-  DateTime? get expirationTime => DateTime.now().add(const Duration(hours: 1));
-  @override
-  DateTime? get issuedAtTime => DateTime.now();
-  @override
-  String? get signInProvider => 'password';
-  @override
-  String? get token => 'mock-id-token';
+  // Let Mock's noSuchMethod handle most properties
+  // Only override what's absolutely necessary for tests
 }
 
 class MockFirebaseApp extends Mock implements FirebaseApp {
@@ -150,9 +134,10 @@ class MockDocumentReference extends Mock {
   String get id => 'mock-doc-id';
   
   // Add any other methods needed for testing
-  Future<DocumentSnapshot> get() async {
-    // Create a real DocumentSnapshot for testing
-    return _createMockDocumentSnapshot();
+  // Note: Returns MockDocumentSnapshot instead of DocumentSnapshot due to sealed class restrictions
+  Future<MockDocumentSnapshot> get() async {
+    // Create a mock DocumentSnapshot for testing
+    return createMockDocumentSnapshot();
   }
   
   Future<void> set(Map<String, dynamic> data) async {}
@@ -162,157 +147,42 @@ class MockDocumentReference extends Mock {
   Future<void> delete() async {}
 }
 
+// Mock DocumentSnapshot wrapper that doesn't implement the sealed class
+// Instead, it provides a compatible interface for testing
 class MockDocumentSnapshot extends Mock {
-  @override
-  String get id => 'mock-doc-id';
+  final String mockId;
+  final Map<String, dynamic>? mockData;
+  final bool mockExists;
   
-  @override
-  Map<String, dynamic>? data() => {'mock': 'data'};
+  MockDocumentSnapshot({
+    this.mockId = 'mock-doc-id',
+    this.mockData,
+    this.mockExists = true,
+  });
   
-  @override
-  bool exists = true;
+  String get id => mockId;
+  
+  Map<String, dynamic>? data() => mockData ?? {'mock': 'data'};
+  
+  bool get exists => mockExists;
+  
+  // Provide a way to treat this as a DocumentSnapshot for testing
+  // Since DocumentSnapshot is sealed, we can't implement it directly
+  // Tests should use this mock's methods directly or use when() stubs
 }
 
-// Helper function to create a real DocumentSnapshot for testing
-DocumentSnapshot _createMockDocumentSnapshot() {
-  // This is a workaround for testing - in real usage, DocumentSnapshot comes from Firestore
-  // For testing purposes, we'll create a minimal implementation that doesn't violate sealed class rules
-  return _RealTestDocumentSnapshot().toDocumentSnapshot();
-}
-
-class _RealTestDocumentSnapshot {
-  String get id => 'mock-doc-id';
-  
-  Map<String, dynamic>? data() => {'mock': 'data'};
-  
-  bool get exists => true;
-  
-  // Convert to a real DocumentSnapshot when needed
-  DocumentSnapshot toDocumentSnapshot() {
-    // This is a workaround - in real usage, DocumentSnapshot comes from Firestore
-    return _MinimalTestDocumentSnapshot().toDocumentSnapshot();
-  }
-}
-
-class _FirestoreTestDocumentSnapshot {
-  String get id => 'mock-doc-id';
-  
-  Map<String, dynamic>? data() => {'mock': 'data'};
-  
-  bool get exists => true;
-  
-  // Convert to a real DocumentSnapshot when needed
-  DocumentSnapshot toDocumentSnapshot() {
-    // This is a workaround - in real usage, DocumentSnapshot comes from Firestore
-    return _MinimalTestDocumentSnapshot().toDocumentSnapshot();
-  }
-}
-
-class _MinimalTestDocumentSnapshot {
-  String get id => 'mock-doc-id';
-  
-  Map<String, dynamic>? data() => {'mock': 'data'};
-  
-  bool get exists => true;
-  
-  // Convert to a real DocumentSnapshot when needed
-  DocumentSnapshot toDocumentSnapshot() {
-    // This is a workaround - in real usage, DocumentSnapshot comes from Firestore
-    return _createTestDocumentSnapshotWithWorkaround();
-  }
-}
-
-// Workaround function that creates DocumentSnapshot without implementing it
-DocumentSnapshot _createTestDocumentSnapshotWithWorkaround() {
-  // This is a workaround - we'll use a different approach that doesn't violate sealed class rules
-  return _WorkaroundTestDocumentSnapshot().toDocumentSnapshot();
-}
-
-// Workaround class that doesn't implement DocumentSnapshot
-class _WorkaroundTestDocumentSnapshot {
-  String get id => 'mock-doc-id';
-  
-  Map<String, dynamic>? data() => {'mock': 'data'};
-  
-  bool get exists => true;
-  
-  // Convert to DocumentSnapshot using dynamic casting
-  DocumentSnapshot toDocumentSnapshot() {
-    // This is a workaround - we'll use dynamic to bypass the sealed class restriction
-    return _createTestDocumentSnapshotWithBypass();
-  }
-}
-
-// Bypass function that creates DocumentSnapshot without implementing it
-DocumentSnapshot _createTestDocumentSnapshotWithBypass() {
-  // This is a workaround - we'll use a different approach that doesn't violate sealed class rules
-  return _BypassTestDocumentSnapshot().toDocumentSnapshot();
-}
-
-// Bypass class that doesn't implement DocumentSnapshot
-class _BypassTestDocumentSnapshot {
-  String get id => 'mock-doc-id';
-  
-  Map<String, dynamic>? data() => {'mock': 'data'};
-  
-  bool get exists => true;
-  
-  // Convert to DocumentSnapshot using dynamic casting
-  DocumentSnapshot toDocumentSnapshot() {
-    // This is a workaround - we'll use dynamic to bypass the sealed class restriction
-    return _createTestDocumentSnapshotWithFinal();
-  }
-}
-
-// Final DocumentSnapshot creation
-DocumentSnapshot _createTestDocumentSnapshotWithFinal() {
-  // This is a workaround for the sealed class restriction
-  // In production, DocumentSnapshot comes from Firestore
-  // We'll use a different approach that doesn't violate sealed class rules
-  return _createTestDocumentSnapshotWithDynamicCasting();
-}
-
-// Dynamic casting approach that doesn't implement DocumentSnapshot
-DocumentSnapshot _createTestDocumentSnapshotWithDynamicCasting() {
-  // This is a workaround - we'll use dynamic to bypass the sealed class restriction
-  return _DynamicCastingTestDocumentSnapshot().toDocumentSnapshot();
-}
-
-// Dynamic casting class that doesn't implement DocumentSnapshot
-class _DynamicCastingTestDocumentSnapshot {
-  String get id => 'mock-doc-id';
-  
-  Map<String, dynamic>? data() => {'mock': 'data'};
-  
-  bool get exists => true;
-  
-  // Convert to DocumentSnapshot using dynamic casting
-  DocumentSnapshot toDocumentSnapshot() {
-    // This is a workaround - we'll use dynamic to bypass the sealed class restriction
-    return _createTestDocumentSnapshotWithFinalCasting();
-  }
-}
-
-// Final casting DocumentSnapshot creation
-DocumentSnapshot _createTestDocumentSnapshotWithFinalCasting() {
-  // This is a workaround for the sealed class restriction
-  // In production, DocumentSnapshot comes from Firestore
-  return _FinalCastingTestDocumentSnapshot();
-}
-
-// Final implementation that implements DocumentSnapshot
-class _FinalCastingTestDocumentSnapshot implements DocumentSnapshot {
-  @override
-  String get id => 'mock-doc-id';
-  
-  @override
-  Map<String, dynamic>? data() => {'mock': 'data'};
-  
-  @override
-  bool exists = true;
-  
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
+// Helper function to create a mock DocumentSnapshot wrapper for testing
+// Note: This returns a Mock, not a DocumentSnapshot, due to sealed class restrictions
+MockDocumentSnapshot createMockDocumentSnapshot({
+  String? id,
+  Map<String, dynamic>? data,
+  bool? exists,
+}) {
+  return MockDocumentSnapshot(
+    mockId: id ?? 'mock-doc-id',
+    mockData: data,
+    mockExists: exists ?? true,
+  );
 }
 
 class MockFlutterLocalNotificationsPlugin extends Mock implements FlutterLocalNotificationsPlugin {}

@@ -265,15 +265,15 @@ class AwardsHelper {
   static Color getRarityColor(AwardRarity rarity) {
     switch (rarity) {
       case AwardRarity.common:
-        return const Color(0xFF9ADCFF).withAlpha(204);
+        return const Color(0xFF9ADCFF).withValues(alpha: 0.8);
       case AwardRarity.uncommon:
-        return const Color(0xFF4ECDC4).withAlpha(204);
+        return const Color(0xFF4ECDC4).withValues(alpha: 0.8);
       case AwardRarity.rare:
-        return const Color(0xFF6C4AB0).withAlpha(204);
+        return const Color(0xFF6C4AB0).withValues(alpha: 0.8);
       case AwardRarity.epic:
-        return const Color(0xFF8338EC).withAlpha(204);
+        return const Color(0xFF8338EC).withValues(alpha: 0.8);
       case AwardRarity.legendary:
-        return const Color(0xFFFF006E).withAlpha(204);
+        return const Color(0xFFFF006E).withValues(alpha: 0.8);
     }
   }
   
@@ -281,15 +281,15 @@ class AwardsHelper {
   static Color getRarityBorderColor(AwardRarity rarity) {
     switch (rarity) {
       case AwardRarity.common:
-        return const Color(0xFF9ADCFF).withAlpha(204);
+        return const Color(0xFF9ADCFF).withValues(alpha: 0.8);
       case AwardRarity.uncommon:
-        return const Color(0xFF4ECDC4).withAlpha(204);
+        return const Color(0xFF4ECDC4).withValues(alpha: 0.8);
       case AwardRarity.rare:
-        return const Color(0xFF6C4AB0).withAlpha(204);
+        return const Color(0xFF6C4AB0).withValues(alpha: 0.8);
       case AwardRarity.epic:
-        return const Color(0xFF8338EC).withAlpha(204);
+        return const Color(0xFF8338EC).withValues(alpha: 0.8);
       case AwardRarity.legendary:
-        return const Color(0xFFFF006E).withAlpha(204);
+        return const Color(0xFFFF006E).withValues(alpha: 0.8);
     }
   }
   

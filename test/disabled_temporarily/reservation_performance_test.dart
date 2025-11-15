@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 // import 'package:firebase_auth/firebase_auth.dart';  // Removing unused import
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
-import 'package:slotted/pages/event_details.dart';
+// import 'package:slotted/pages/event_details.dart'; // Unused - commented out
 import '../test_helpers.dart';
 import 'package:latlong2/latlong.dart';  // Added LatLng import
 
@@ -17,10 +17,9 @@ class MockClient extends Mock implements http.Client {}
 class MockResponse extends Mock implements http.Response {
   final String _body;
   final int _statusCode;
-  final Duration _delay;
+  // final Duration _delay; // Unused - commented out
 
-  MockResponse(this._body, this._statusCode, {Duration delay = Duration.zero})
-      : _delay = delay;
+  MockResponse(this._body, this._statusCode, {Duration delay = Duration.zero});
 
   @override
   String get body => _body;
@@ -135,7 +134,7 @@ void main() {
       // Create an event with varying numbers of attendees for benchmarking
       final event = createBenchmarkEvent(numAttendees: 0, slots: 100);
       final testUser = TestUser();
-      final testSlottedUser = TestSlottedUser();
+      // final testSlottedUser = TestSlottedUser(); // Unused - commented out
       
       // Configure mock with different response times to simulate server load
       final responseTimeVariations = [
@@ -174,11 +173,11 @@ void main() {
         });
         
         // Measure reservation action with current response time
-        final eventDetailsPage = EventDetailsPage(
-          initialEvent: event,
-          debug: true,
-          authAction: (_, __, ___) async {},
-        );
+        // final eventDetailsPage = EventDetailsPage( // Unused - commented out
+        //   initialEvent: event,
+        //   debug: true,
+        //   authAction: (_, __, ___) async {},
+        // );
         
         // Use reflection or private access method to get the state
         // Note: This is a simplified approach for benchmarking, in real tests you'd
@@ -227,7 +226,7 @@ void main() {
         );
         
         final testUser = TestUser();
-        final testSlottedUser = TestSlottedUser();
+        // final testSlottedUser = TestSlottedUser(); // Unused - commented out
         
         // Mock response
         when(mockClient.post(
@@ -415,10 +414,10 @@ void main() {
         (i) => TestUser(uid: 'concurrent-user-$i')
       );
       
-      final slottedUsers = List.generate(
-        concurrentUsers, 
-        (i) => TestSlottedUser(id: 'concurrent-user-$i')
-      );
+      // final slottedUsers = List.generate( // Unused - commented out
+      //   concurrentUsers, 
+      //   (i) => TestSlottedUser(id: 'concurrent-user-$i')
+      // );
       
       // Mock response with delay to simulate server processing time
       when(mockClient.post(
@@ -465,7 +464,7 @@ void main() {
       
       for (int i = 0; i < concurrentUsers; i++) {
         final user = users[i];
-        final slottedUser = slottedUsers[i];
+        // final slottedUser = slottedUsers[i]; // Unused - commented out
         
         futures.add(measureExecution(() async {
           try {

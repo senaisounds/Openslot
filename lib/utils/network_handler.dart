@@ -4,15 +4,58 @@ import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'logger.dart';
-/// Network error types for better error classification
-enum NetworkErrorType {
-  noInternet,
-  timeout,
-  serverError,
-  badRequest,
-  unauthorized,
-  notFound,
-  unknown
+/// Network error types for better error classification - sealed classes for exhaustive pattern matching
+sealed class NetworkErrorType {
+  const NetworkErrorType();
+}
+
+/// No internet connection available
+final class NoInternetError extends NetworkErrorType {
+  const NoInternetError();
+  @override
+  String toString() => 'NoInternetError';
+}
+
+/// Request timed out
+final class TimeoutError extends NetworkErrorType {
+  const TimeoutError();
+  @override
+  String toString() => 'TimeoutError';
+}
+
+/// Server error (5xx status codes)
+final class ServerError extends NetworkErrorType {
+  const ServerError();
+  @override
+  String toString() => 'ServerError';
+}
+
+/// Bad request (4xx status codes)
+final class BadRequestError extends NetworkErrorType {
+  const BadRequestError();
+  @override
+  String toString() => 'BadRequestError';
+}
+
+/// Unauthorized access (401, 403)
+final class UnauthorizedError extends NetworkErrorType {
+  const UnauthorizedError();
+  @override
+  String toString() => 'UnauthorizedError';
+}
+
+/// Resource not found (404)
+final class NotFoundError extends NetworkErrorType {
+  const NotFoundError();
+  @override
+  String toString() => 'NotFoundError';
+}
+
+/// Unknown error type
+final class UnknownNetworkError extends NetworkErrorType {
+  const UnknownNetworkError();
+  @override
+  String toString() => 'UnknownNetworkError';
 }
 
 /// Custom exception for network errors
@@ -97,7 +140,7 @@ class NetworkHandler {
     if (!await hasInternetConnection()) {
       throw NetworkException(
         message: 'No internet connection available',
-        type: NetworkErrorType.noInternet,
+        type: const NoInternetError(),
       );
     }
     
@@ -128,7 +171,7 @@ class NetworkHandler {
       Logger.e('Unexpected error during network request', error: e, stackTrace: stackTrace);
       throw NetworkException(
         message: 'An unexpected error occurred',
-        type: NetworkErrorType.unknown,
+        type: const UnknownNetworkError(),
         originalError: e,
       );
     }
@@ -140,7 +183,7 @@ class NetworkHandler {
     
     // Default values
     String message = 'An unexpected error occurred';
-    NetworkErrorType errorType = NetworkErrorType.unknown;
+    NetworkErrorType errorType = const UnknownNetworkError();
     int? statusCode = error.response?.statusCode;
     
     switch (error.type) {
@@ -148,26 +191,24 @@ class NetworkHandler {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
         message = 'Request timed out. Please check your internet connection and try again.';
-        errorType = NetworkErrorType.timeout;
+        errorType = const TimeoutError();
         break;
         
       case DioExceptionType.badResponse:
-        if (statusCode != null) {
-          if (statusCode >= 500) {
-            message = 'Server error. Please try again later.';
-            errorType = NetworkErrorType.serverError;
-          } else if (statusCode == 404) {
-            message = 'Resource not found.';
-            errorType = NetworkErrorType.notFound;
-          } else if (statusCode == 401) {
-            message = 'Unauthorized. Please log in again.';
-            errorType = NetworkErrorType.unauthorized;
-          } else if (statusCode >= 400 && statusCode < 500) {
-            message = 'Invalid request.';
-            errorType = NetworkErrorType.badRequest;
-          }
+        if (statusCode != null && statusCode >= 500) {
+          message = 'Server error. Please try again later.';
+          errorType = const ServerError();
+        } else if (statusCode == 404) {
+          message = 'Resource not found.';
+          errorType = const NotFoundError();
+        } else if (statusCode == 401) {
+          message = 'Unauthorized. Please log in again.';
+          errorType = const UnauthorizedError();
+        } else if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+          message = 'Invalid request.';
+          errorType = const BadRequestError();
         }
-              break;
+                    break;
         
       case DioExceptionType.cancel:
         message = 'Request was cancelled';
@@ -175,14 +216,14 @@ class NetworkHandler {
         
       case DioExceptionType.connectionError:
         message = 'Connection error. Please check your internet and try again.';
-        errorType = NetworkErrorType.noInternet;
+        errorType = const NoInternetError();
         break;
         
       case DioExceptionType.unknown:
       default:
         if (error.error is SocketException) {
           message = 'Network connection error. Please check your internet.';
-          errorType = NetworkErrorType.noInternet;
+          errorType = const NoInternetError();
         }
         break;
     }

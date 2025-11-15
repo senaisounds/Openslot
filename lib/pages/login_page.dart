@@ -504,7 +504,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             decoration: BoxDecoration(
                               border: Border(
                                 right: BorderSide(
-                                  color: CupertinoColors.systemGrey4.withAlpha(77),
+                                  color: CupertinoColors.systemGrey4.withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                               ),
@@ -553,7 +553,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                  fontWeight: FontWeight.w600,
                                ),
                               placeholderStyle: TextStyle(
-                                color: CupertinoColors.systemGrey.withAlpha(179),
+                                color: CupertinoColors.systemGrey.withValues(alpha: 0.7),
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
                               ),

@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import 'package:slotted/api/firebase_auth_service.dart';
 import 'package:slotted/pages/login_page.dart';
 import 'package:slotted/pages/apple_signin_test_page.dart';
+import 'package:slotted/pages/stripe_settings_page.dart';
 import 'package:slotted/common/colors.dart' as app_colors;
 
 class SettingsPage extends StatefulWidget {
@@ -268,6 +269,43 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                     ],
                     isDarkMode: isDarkMode,
                   ),
+                  if (kDebugMode) ...[
+                    const SizedBox(height: 20),
+                    _buildSection(
+                      'Developer',
+                      [
+                        _buildSettingItem(
+                          context,
+                          icon: CupertinoIcons.creditcard_fill,
+                          title: 'Stripe Settings',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => const StripeSettingsPage(),
+                              ),
+                            );
+                          },
+                          isDarkMode: isDarkMode,
+                        ),
+                        _buildSettingItem(
+                          context,
+                          icon: CupertinoIcons.device_phone_portrait,
+                          title: 'Test Apple Sign In',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => const AppleSignInTestPage(),
+                              ),
+                            );
+                          },
+                          isDarkMode: isDarkMode,
+                        ),
+                      ],
+                      isDarkMode: isDarkMode,
+                    ),
+                  ],
                   if (widget.user != null) ...[
                     const SizedBox(height: 20),
                     _buildSection(
@@ -297,20 +335,6 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                           title: 'Change Password',
                           onTap: () {
                             // Handle password change
-                          },
-                          isDarkMode: isDarkMode,
-                        ),
-                        if (kDebugMode) _buildSettingItem(
-                          context,
-                          icon: CupertinoIcons.device_phone_portrait,
-                          title: 'Test Apple Sign In',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              CupertinoPageRoute(
-                                builder: (context) => const AppleSignInTestPage(),
-                              ),
-                            );
                           },
                           isDarkMode: isDarkMode,
                         ),

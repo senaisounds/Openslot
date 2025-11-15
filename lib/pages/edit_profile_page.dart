@@ -294,13 +294,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.primary.withAlpha(80),
-                    AppColors.orangeBackground.withAlpha(40),
+                    AppColors.primary.withValues(alpha: 0.31),
+                    AppColors.orangeBackground.withValues(alpha: 0.16),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.orangeBackground.withAlpha(40),
+                    color: AppColors.orangeBackground.withValues(alpha: 0.16),
                     blurRadius: 15,
                     spreadRadius: 2,
                   ),
@@ -308,7 +308,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               child: CircleAvatar(
                 radius: 60,
-                backgroundColor: AppColors.primary.withAlpha(30),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                 backgroundImage: _imageFile != null
                     ? FileImage(_imageFile!)
                     : (widget.user.photoUrl.isNotEmpty
@@ -318,7 +318,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ? Icon(
                         CupertinoIcons.person_fill,
                         size: 60,
-                        color: AppColors.backgroundLight.withAlpha(128),
+                        color: AppColors.backgroundLight.withValues(alpha: 0.5),
                       )
                     : null,
               ),
@@ -339,7 +339,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha(40),
+                      color: Colors.black.withValues(alpha: 0.16),
                       blurRadius: 6,
                       spreadRadius: 0,
                       offset: const Offset(0, 2),
@@ -380,14 +380,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             spreadRadius: 0,
             offset: const Offset(0, 2),
           ),
         ],
         border: Border.all(
-          color: AppColors.primary.withAlpha(30),
+          color: AppColors.primary.withValues(alpha: 0.12),
           width: 1,
         ),
       ),
@@ -410,7 +410,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppColors.primary.withAlpha(30),
+            color: AppColors.primary.withValues(alpha: 0.12),
             width: 0.5,
           ),
         ),
@@ -443,7 +443,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 fontSize: 16,
               ),
               placeholderStyle: TextStyle(
-                color: AppColors.backgroundLight.withAlpha(150),
+                color: AppColors.backgroundLight.withValues(alpha: 0.59),
                 fontSize: 16,
               ),
               decoration: const BoxDecoration(),
@@ -464,14 +464,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             spreadRadius: 0,
             offset: const Offset(0, 2),
           ),
         ],
         border: Border.all(
-          color: AppColors.primary.withAlpha(30),
+          color: AppColors.primary.withValues(alpha: 0.12),
           width: 1,
         ),
       ),
@@ -490,7 +490,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               Text(
                 placeholder,
                 style: TextStyle(
-                  color: AppColors.backgroundLight.withAlpha(180),
+                  color: AppColors.backgroundLight.withValues(alpha: 0.7),
                   fontSize: 16,
                 ),
               ),
@@ -501,10 +501,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
             height: 120,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withAlpha(20),
+              color: AppColors.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.primary.withAlpha(40),
+                color: AppColors.primary.withValues(alpha: 0.16),
                 width: 1,
               ),
             ),
@@ -518,7 +518,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 fontSize: 16,
               ),
               placeholderStyle: TextStyle(
-                color: AppColors.backgroundLight.withAlpha(120),
+                color: AppColors.backgroundLight.withValues(alpha: 0.47),
                 fontSize: 16,
               ),
               decoration: const BoxDecoration(
@@ -538,14 +538,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             spreadRadius: 0,
             offset: const Offset(0, 2),
           ),
         ],
         border: Border.all(
-          color: AppColors.primary.withAlpha(30),
+          color: AppColors.primary.withValues(alpha: 0.12),
           width: 1,
         ),
       ),
@@ -598,7 +598,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       decoration: BoxDecoration(
         border: isLast ? null : Border(
           bottom: BorderSide(
-            color: AppColors.primary.withAlpha(30),
+            color: AppColors.primary.withValues(alpha: 0.12),
             width: 0.5,
           ),
         ),
@@ -638,7 +638,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 fontSize: 16,
               ),
               placeholderStyle: TextStyle(
-                color: AppColors.backgroundLight.withAlpha(150),
+                color: AppColors.backgroundLight.withValues(alpha: 0.59),
                 fontSize: 16,
               ),
               decoration: const BoxDecoration(),

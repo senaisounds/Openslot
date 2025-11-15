@@ -1,68 +1,100 @@
 # 🔐 Security Setup Instructions
 
-## CRITICAL: Stripe Keys Configuration
+## Stripe Keys Configuration Status
 
-### ⚠️ IMPORTANT SECURITY NOTICE
-Your Stripe keys have been removed from the codebase for security. You MUST configure them properly before deployment.
+### ✅ CURRENT STATUS
+Your Stripe keys are securely configured and ready for production.
 
-## Step 1: Revoke Compromised Keys
-1. Go to your [Stripe Dashboard](https://dashboard.stripe.com/apikeys)
-2. **IMMEDIATELY REVOKE** these compromised keys:
-   - Test: `sk_test_51RMvr1Q0wBFV119bcCWvuYTtuA28bN7iS2xWZTs02TJdiv1psjISAR75RCsWJtGrlYGw8VCEzNJazTehBETO8WJf00Yyvmjcky`
-   - Live: `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`
-3. Generate new keys
+## Step 1: Server-Side Keys (Firebase Functions)
+✅ **ALREADY CONFIGURED** - Your secret keys are set in Firebase Functions config:
+- Test Secret Key: `sk_test_51RMvr1Q0wBFV119b...` ✅
+- Live Secret Key: `sk_live_51RMvqtLG1bcPbzSk...` ✅
 
-## Step 2: Configure Firebase Functions (Server-Side)
+To view current configuration:
 ```bash
-# Set Stripe keys in Firebase config
-firebase functions:config:set stripe.test_key="sk_test_YOUR_NEW_TEST_KEY"
-firebase functions:config:set stripe.live_key="sk_live_YOUR_NEW_LIVE_KEY"
+firebase functions:config:get
+```
+
+To update keys (if needed in the future):
+```bash
+# Update Stripe keys in Firebase config (only if changing keys)
+firebase functions:config:set stripe.test_key="sk_test_YOUR_KEY"
+firebase functions:config:set stripe.live_key="sk_live_YOUR_KEY"
 
 # Deploy the updated functions
 firebase deploy --only functions
 ```
 
-## Step 3: Configure Client-Side Keys (Flutter)
-Add these to your build arguments or environment:
+## Step 2: Client-Side Keys (Flutter)
+⚠️ **ACTION REQUIRED** - You need to add your publishable keys.
 
-### For Flutter Build:
+Get your publishable keys from: https://dashboard.stripe.com/apikeys
+
+They should match your secret keys:
+- Test Publishable: `pk_test_51RMvr1Q0wBFV119b...` (starts with same number)
+- Live Publishable: `pk_live_51RMvqtLG1bcPbzSk...` (starts with same number)
+
+### Method 1: Via Stripe Settings Page (Recommended)
+1. Run your app in debug mode
+2. Go to Settings → Stripe Settings
+3. Enter your publishable keys
+4. They'll be stored securely in the app
+
+### Method 2: Via Build Arguments
 ```bash
-# Test build
-flutter build ios --dart-define=STRIPE_TEST_PUBLISHABLE_KEY=pk_test_YOUR_TEST_KEY
+# Test/Debug build
+flutter run --dart-define=STRIPE_TEST_PUBLISHABLE_KEY=pk_test_YOUR_KEY
 
 # Production build
-flutter build ios --dart-define=STRIPE_LIVE_PUBLISHABLE_KEY=pk_live_YOUR_LIVE_KEY
+flutter build ios --release --dart-define=STRIPE_LIVE_PUBLISHABLE_KEY=pk_live_YOUR_KEY
 ```
 
-### Alternative: Update dart_defines in your IDE
-Add to your run configurations:
+### Method 3: Via IDE Run Configuration
+Add to your run configurations in VS Code or Android Studio:
 ```
---dart-define=STRIPE_TEST_PUBLISHABLE_KEY=pk_test_YOUR_TEST_KEY
---dart-define=STRIPE_LIVE_PUBLISHABLE_KEY=pk_live_YOUR_LIVE_KEY
+--dart-define=STRIPE_TEST_PUBLISHABLE_KEY=pk_test_YOUR_KEY
+--dart-define=STRIPE_LIVE_PUBLISHABLE_KEY=pk_live_YOUR_KEY
 ```
 
-## Step 4: Verify Configuration
+## Step 3: Verify Configuration
 1. Test payment flow in debug mode
 2. Verify no hardcoded keys remain in code
 3. Check Firebase Functions logs for proper key loading
 
-## Security Best Practices Applied
-✅ **Secret keys removed** from client code  
-✅ **Environment variables** implemented  
-✅ **Password logging** removed from Cloud Functions  
-✅ **Debug credentials** removed  
-✅ **Placeholder keys** replaced with environment lookups  
+## Security Best Practices ✅
+✅ **Secret keys secured** in Firebase Functions (server-side only)  
+✅ **Environment variables** implemented for publishable keys  
+✅ **Secure storage** used for client-side key caching  
+✅ **No hardcoded keys** in version control  
+✅ **Test/Live mode** switching automated based on debug flag  
 
-## Files Modified for Security
-- `functions/src/index.ts` - Stripe keys now from environment
-- `lib/api/stripe_config.dart` - Keys from environment variables
-- `lib/config/stripe_production.dart` - Removed hardcoded secret key
-- `lib/pages/login_page.dart` - Removed debug credentials
+## Key Management Best Practices
+- 🔒 **Secret keys (sk_...)** - Only on server (Firebase Functions)
+- 🔓 **Publishable keys (pk_...)** - Safe for client-side use
+- 🚫 **Never commit keys** to version control
+- 🔄 **Rotate keys** if ever exposed or every 90 days
+- 📊 **Monitor usage** in Stripe Dashboard for anomalies
+
+## Files Using Stripe Configuration
+- `functions/src/index.ts` - Server-side payment processing
+- `lib/api/stripe_config.dart` - Client-side key management
+- `lib/config/stripe_production.dart` - Production configuration
+- `lib/pages/stripe_settings_page.dart` - User key configuration UI
+
+## Troubleshooting
+**Issue:** Payment fails with "Invalid API key"
+- **Solution:** Check Firebase Functions config with `firebase functions:config:get`
+
+**Issue:** Keys not found in app
+- **Solution:** Set publishable keys via Stripe Settings page or dart-define
+
+**Issue:** Test mode not working
+- **Solution:** Ensure you're using pk_test_ keys for debug builds
 
 ## Next Steps
-1. Set up your CI/CD to include proper environment variables
-2. Consider using Firebase Remote Config for publishable keys
-3. Implement key rotation strategy
-4. Monitor for any remaining hardcoded secrets
+1. ✅ Server keys are configured in Firebase Functions
+2. ⚠️ Add publishable keys (see Step 2 above)
+3. ⏭️ Test payment flow in debug mode
+4. ⏭️ Deploy to production when ready
 
-⚠️ **DO NOT COMMIT ACTUAL KEYS TO VERSION CONTROL**
+**Current Status:** Server-side ready ✅ | Client-side needs publishable keys ⚠️

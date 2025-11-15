@@ -288,8 +288,8 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
     final currentShadow = [
       ...baseShadow,
       ...elevatedShadow.map((shadow) => shadow.copyWith(
-        color: shadow.color.withAlpha(
-          (shadow.color.a * _elevationAnimation.value).round(),
+        color: shadow.color.withValues(
+          alpha: (shadow.color.a / 255.0) * _elevationAnimation.value,
         ),
       )),
     ];
@@ -880,16 +880,10 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
     
     return StatefulBuilder(
       builder: (context, setLocalState) {
-        bool isPressed = false;
         final isSaved = _isEventSaved;  // Check saved state on each rebuild
         
         return GestureDetector(
-          onTapDown: (_) {
-            setLocalState(() => isPressed = true);
-            HapticFeedback.lightImpact(); // Add haptic feedback on press
-          },
-          onTapUp: (_) => setLocalState(() => isPressed = false),
-          onTapCancel: () => setLocalState(() => isPressed = false),
+
           onTap: () {
             HapticFeedback.selectionClick(); // Additional haptic feedback on release
             widget.onSave!();
@@ -902,30 +896,17 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
             width: buttonSize,
             height: buttonSize,
             decoration: BoxDecoration(
-              color: isPressed 
-                ? Colors.black.withValues(alpha: 0.7)  // Much darker when pressed
-                : isSaved 
+              color: isSaved 
                   ? Colors.white.withValues(alpha: 0.9)  // Clean white when saved
                   : Colors.white.withValues(alpha: 0.2),  // Default white
               borderRadius: AppStyling.borderRadiusCircular,
               border: Border.all(
-                color: isPressed 
-                  ? Colors.black.withValues(alpha: 0.6)  // Much darker border when pressed
-                  : isSaved
+                color: isSaved
                     ? Colors.grey.withValues(alpha: 0.4)  // Subtle gray border when saved
                     : Colors.white.withValues(alpha: 0.1),  // Default border
-                width: isPressed || isSaved ? 2 : 1  // Thicker border when pressed or saved
+                width: isSaved ? 2 : 1  // Thicker border when saved
               ),
-              boxShadow: isPressed 
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                      spreadRadius: 1,
-                    ),
-                  ]
-                : isSaved
+              boxShadow: isSaved
                   ? [
                       BoxShadow(
                         color: Colors.grey.withValues(alpha: 0.2),
@@ -943,13 +924,11 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
                     ],
             ),
             child: Transform.scale(
-              scale: isPressed ? 0.85 : 1.0,  // More noticeable size change when pressed
+              scale: 1.0,
               child: Icon(
                 isSaved ? CupertinoIcons.heart_fill : CupertinoIcons.heart,  // Filled heart when saved
                 size: iconSize,
-                color: isPressed 
-                  ? Colors.white.withValues(alpha: 0.9)  // White icon when pressed for contrast
-                  : isSaved
+                color: isSaved
                     ? Colors.grey.shade600  // Subtle gray heart when saved
                     : AppColors.textPrimary,  // Default color
               ),
@@ -969,15 +948,9 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
     
     return StatefulBuilder(
       builder: (context, setState) {
-        bool isPressed = false;
         
         return GestureDetector(
-          onTapDown: (_) {
-            setState(() => isPressed = true);
-            HapticFeedback.lightImpact(); // Add haptic feedback on press
-          },
-          onTapUp: (_) => setState(() => isPressed = false),
-          onTapCancel: () => setState(() => isPressed = false),
+
           onTap: () {
             HapticFeedback.selectionClick(); // Additional haptic feedback on release
             onTap();
@@ -988,26 +961,13 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
             width: buttonSize,
             height: buttonSize,
             decoration: BoxDecoration(
-              color: isPressed 
-                ? Colors.black.withValues(alpha: 0.7)  // Much darker when pressed
-                : Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: AppStyling.borderRadiusCircular,
               border: Border.all(
-                color: isPressed 
-                  ? Colors.black.withValues(alpha: 0.6)  // Much darker border when pressed
-                  : Colors.white.withValues(alpha: 0.1), 
-                width: isPressed ? 2 : 1  // Thicker border when pressed
+                color: Colors.white.withValues(alpha: 0.1), 
+                width: 1
               ),
-              boxShadow: isPressed 
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                      spreadRadius: 1,
-                    ),
-                  ]
-                : [
+              boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 20,
@@ -1016,13 +976,11 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
                   ],
             ),
             child: Transform.scale(
-              scale: isPressed ? 0.85 : 1.0,  // More noticeable size change when pressed
+              scale: 1.0,
               child: Icon(
                 icon,
                 size: iconSize,
-                color: isPressed 
-                  ? Colors.white.withValues(alpha: 0.9)  // White icon when pressed for contrast
-                  : AppColors.textPrimary,
+                color: AppColors.textPrimary,
               ),
             ),
           ),

@@ -172,22 +172,43 @@ class AppColors {
     );
   }
   
-  // Get category color for consistent UI
+  // Get category color for consistent UI - using switch expressions
   static Color getCategoryColor(String category) {
     final normalizedCategory = category.toUpperCase().split(' ')[0];
-    return eventCategory[normalizedCategory] ?? primary;
+    return switch (normalizedCategory) {
+      'COMEDY' => eventCategory['COMEDY']!,
+      'DJ' => eventCategory['DJ']!,
+      'POETRY' => eventCategory['POETRY']!,
+      'MUSIC' => eventCategory['MUSIC']!,
+      'OTHER' => eventCategory['OTHER']!,
+      _ => primary,
+    };
   }
   
-  // Get category icon (Material) for consistent UI
+  // Get category icon (Material) for consistent UI - using switch expressions
   static IconData getCategoryIcon(String category) {
     final normalizedCategory = category.toUpperCase().split(' ')[0];
-    return eventCategoryIcon[normalizedCategory] ?? Icons.event_rounded;
+    return switch (normalizedCategory) {
+      'COMEDY' => Icons.sentiment_very_satisfied_rounded,
+      'DJ' => Icons.headset_rounded,
+      'POETRY' => Icons.auto_stories_rounded,
+      'MUSIC' => Icons.music_note_rounded,
+      'OTHER' => Icons.event_rounded,
+      _ => Icons.event_rounded,
+    };
   }
   
-  // Get category icon (Cupertino) for consistent UI
+  // Get category icon (Cupertino) for consistent UI - using switch expressions
   static IconData getCategoryIconCupertino(String category) {
     final normalizedCategory = category.toUpperCase().split(' ')[0];
-    return eventCategoryIconCupertino[normalizedCategory] ?? CupertinoIcons.star_fill;
+    return switch (normalizedCategory) {
+      'COMEDY' => CupertinoIcons.smiley_fill,
+      'DJ' => CupertinoIcons.headphones,
+      'POETRY' => CupertinoIcons.text_quote,
+      'MUSIC' => CupertinoIcons.music_mic,
+      'OTHER' => CupertinoIcons.star_fill,
+      _ => CupertinoIcons.star_fill,
+    };
   }
   
   // Enhanced smoke effect gradient with better physics

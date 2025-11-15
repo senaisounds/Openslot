@@ -31,7 +31,14 @@ class SecureStorage {
   Future<String> _getEncryptionKey() async {
     String? encryptionKey = await _secureStorage.read(key: _encryptionKeyKey);
     
-    return encryptionKey ?? '';
+    if (encryptionKey == null || encryptionKey.isEmpty) {
+      // Generate a new 256-bit (32 byte) encryption key
+      final key = encrypt.Key.fromSecureRandom(32);
+      encryptionKey = key.base64;
+      await _secureStorage.write(key: _encryptionKeyKey, value: encryptionKey);
+    }
+    
+    return encryptionKey;
   }
   
   /// Encrypt data before storing

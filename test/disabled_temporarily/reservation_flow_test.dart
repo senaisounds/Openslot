@@ -96,17 +96,17 @@ void main() {
   late MockClient mockClient;
   late MockFirebaseAuth mockAuth;
   late MockUser mockUser;
-  late MockSlottedUser mockSlottedUser;
+  // late MockSlottedUser mockSlottedUser; // Unused - commented out
   
   setUp(() async {
     // Initialize mocks
     mockClient = MockClient();
     mockAuth = MockFirebaseAuth();
     mockUser = MockUser();
-    mockSlottedUser = MockSlottedUser(
-      id: 'test-user-id',
-      username: 'testuser',
-    );
+    // mockSlottedUser = MockSlottedUser(
+    //   id: 'test-user-id',
+    //   username: 'testuser',
+    // );
     
     // Setup Firebase mocks
     await setupTestMocks();

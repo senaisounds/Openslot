@@ -26,27 +26,15 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
   final List<Map<String, dynamic>> _onboardingSteps = [
     {
       'title': 'Welcome to OpenSlot! 🎤',
-      'description': 'Your personal event discovery platform for open mics, open decks, and performance opportunities.',
+      'description': 'Find and join open mics, open decks, and performance events near you.',
       'icon': CupertinoIcons.music_mic,
       'color': const Color(0xFFFF8C00),
     },
     {
-      'title': 'Discover Events Near You 📍',
-      'description': 'Find exciting events happening around you. Browse, search, and filter to find your perfect performance opportunity.',
-      'icon': CupertinoIcons.location_circle,
+      'title': 'Ready to Perform? 🎯',
+      'description': 'Discover events, reserve your spot, and connect with the performance community.',
+      'icon': CupertinoIcons.sparkles,
       'color': const Color(0xFF2DD4BF),
-    },
-    {
-      'title': 'Reserve Your Spot ⭐',
-      'description': 'Secure your spot at events with our easy reservation system. Join waitlists and get notified when spots open up.',
-      'icon': CupertinoIcons.star_circle,
-      'color': const Color(0xFFFFD700),
-    },
-    {
-      'title': 'Connect with Performers 🤝',
-      'description': 'Chat with other performers, share experiences, and build your network in the performance community.',
-      'icon': CupertinoIcons.person_circle,
-      'color': const Color(0xFF8B5CF6),
     },
   ];
 

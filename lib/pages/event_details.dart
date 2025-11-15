@@ -19,6 +19,11 @@ import 'package:slotted/common/slotted_user.dart';
 import 'package:http/http.dart' as http;
 import 'package:slotted/common/design_system.dart';
 import 'package:slotted/config/environment_config.dart';
+import 'package:slotted/api/stripe_usage_tracker.dart';
+import 'package:slotted/api/stripe_customer_service.dart';
+import 'package:slotted/utils/logger.dart';
+import 'package:slotted/widgets/modern_payment_widget.dart';
+import 'package:slotted/api/apple_pay.dart';
 
 class EventDetailsPage extends StatefulWidget {
   const EventDetailsPage({
@@ -174,23 +179,99 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
     try {
       if (event.price > 0 && !(isReserved || isWaitlisted)) {
+        // Create or get Stripe customer first
+        String? customerId;
+        try {
+          customerId = await StripeCustomerService.createOrGetCustomer(
+            userId: user.uid,
+            email: slottedUser.email,
+            name: slottedUser.username,
+            debug: widget.debug,
+          );
+          Logger.d('Got customer ID for payment: $customerId', tag: 'EventDetails');
+        } catch (e) {
+          Logger.w('Failed to create customer, proceeding with guest checkout: $e', tag: 'EventDetails');
+        }
+
+        // Create payment intent with customer ID (if available)
         final clientSecret = await createPaymentIntentOnBackend(
           amount: (event.price * 100).toInt(),
           currency: 'usd',
-          customerId: widget.debug ? slottedUser.testCustomerID : slottedUser.customerID,
+          customerId: customerId,
           debug: widget.debug,
         );
         if (clientSecret == null) throw Exception('No client secret returned');
-        await Stripe.instance.initPaymentSheet(
-          paymentSheetParameters: SetupPaymentSheetParameters(
-            paymentIntentClientSecret: clientSecret,
-            merchantDisplayName: 'OpenSlot',
-          ),
+        
+        // Show modern payment widget with Apple Pay support
+        PaymentProcessResult? paymentResult;
+        
+        await showCupertinoModalPopup<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: ModernPaymentWidget(
+                event: event,
+                clientSecret: clientSecret,
+                debug: widget.debug,
+                onPaymentResult: (result) {
+                  paymentResult = result;
+                  Navigator.of(context).pop();
+                },
+                onCancel: () {
+                  paymentResult = PaymentCancelled();
+                  Navigator.of(context).pop();
+                },
+              ),
+            );
+          },
         );
-        await Stripe.instance.presentPaymentSheet();
+        
+        // Handle payment result
+        if (paymentResult == null || paymentResult is PaymentCancelled) {
+          setState(() {
+            actionPending = false;
+          });
+          return;
+        }
+        
+        if (paymentResult is PaymentFailure) {
+          throw Exception((paymentResult as PaymentFailure).errorMessage);
+        }
+        
+        // Payment successful, continue with reservation
       }
 
-      await reserveAction('', event, slottedUser, user, passwordVerified: false);
+      final reservationResponse = await reserveAction('', event, slottedUser, user, passwordVerified: false);
+      
+      // CRITICAL: Report usage to Stripe for billing
+      if (event.price > 0) {
+        try {
+          final customerId = widget.debug ? slottedUser.testCustomerID : slottedUser.customerID;
+          if (customerId != null && customerId.isNotEmpty) {
+            final usageReported = await StripeUsageTracker.reportBookingCompleted(
+              customerId: customerId,
+              eventId: event.id,
+              bookingId: reservationResponse, // Use reservation ID as booking ID
+              amount: event.price,
+              debug: widget.debug,
+            );
+            
+            if (!usageReported) {
+              Logger.w('Failed to report usage to Stripe - billing may be affected', tag: 'EventDetails');
+            }
+          } else {
+            Logger.w('No customer ID available - usage tracking skipped', tag: 'EventDetails');
+          }
+        } catch (e) {
+          Logger.e('Error reporting usage to Stripe: $e', tag: 'EventDetails');
+          // Don't fail the booking if usage tracking fails
+        }
+      }
     } catch (e) {
       String errorMessage =
           'There was an error processing your payment. Please try again.\n$e';

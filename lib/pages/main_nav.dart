@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:slotted/api/stripe_usage_tracker.dart';
+import 'package:slotted/api/stripe_customer_service.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/common/constants.dart' as constants;
@@ -18,6 +20,8 @@ import 'package:slotted/utils/logger.dart';
 import 'package:slotted/common/private_event_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slotted/config/environment_config.dart';
+import 'package:slotted/widgets/modern_payment_widget.dart';
+import 'package:slotted/api/apple_pay.dart';
 
 // Animation constants from constants.dart
 const kAnimationDurationLong = constants.kAnimationDurationLong;
@@ -309,21 +313,96 @@ final FocusNode authFocusNode = FocusNode();
       // Continue with payment and reservation if password verification passed
       if (event.price > 0 && !(isReserved || isWaitlisted)) {
         try {
+          // Create or get Stripe customer first
+          String? customerId;
+          try {
+            customerId = await StripeCustomerService.createOrGetCustomer(
+              userId: slottedUser.id,
+              email: slottedUser.email,
+              name: slottedUser.username,
+              debug: widget.debug,
+            );
+            Logger.d('Got customer ID for payment: $customerId', tag: 'Main_nav');
+          } catch (e) {
+            Logger.w('Failed to create customer, proceeding with guest checkout: $e', tag: 'Main_nav');
+          }
+
+          // Create payment intent with customer ID (if available)
           final clientSecret = await createPaymentIntentOnBackend(
             amount: (event.price * 100).toInt(),
             currency: 'usd',
-            customerId: widget.debug ? slottedUser.testCustomerID : slottedUser.customerID,
+            customerId: customerId,
             debug: widget.debug,
           );
           if (clientSecret == null) throw Exception('No client secret returned');
           
-          await Stripe.instance.initPaymentSheet(
-            paymentSheetParameters: SetupPaymentSheetParameters(
-              paymentIntentClientSecret: clientSecret,
-              merchantDisplayName: 'OpenSlot',
-            ),
+          // Show modern payment widget with Apple Pay support
+          PaymentProcessResult? paymentResult;
+          
+          await showCupertinoModalPopup<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return Container(
+                height: MediaQuery.of(context).size.height * 0.7,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: ModernPaymentWidget(
+                  event: event,
+                  clientSecret: clientSecret,
+                  debug: widget.debug,
+                  onPaymentResult: (result) {
+                    paymentResult = result;
+                    Navigator.of(context).pop();
+                  },
+                  onCancel: () {
+                    paymentResult = PaymentCancelled();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              );
+            },
           );
-          await Stripe.instance.presentPaymentSheet();
+          
+          // Handle payment result
+          if (paymentResult == null || paymentResult is PaymentCancelled) {
+            setState(() {
+              isLoading = false;
+            });
+            return;
+          }
+          
+          if (paymentResult is PaymentFailure) {
+            throw Exception((paymentResult as PaymentFailure).errorMessage);
+          }
+          
+          // Payment successful, continue with reservation
+          Logger.d('Payment successful: ${(paymentResult as PaymentSuccess).paymentId}', tag: 'Main_nav');
+          
+          // CRITICAL: Report usage to Stripe for billing
+          try {
+            final customerId = widget.debug ? slottedUser.testCustomerID : slottedUser.customerID;
+            if (customerId != null && customerId.isNotEmpty) {
+              final usageReported = await StripeUsageTracker.reportBookingCompleted(
+                customerId: customerId,
+                eventId: event.id,
+                bookingId: (paymentResult as PaymentSuccess).paymentId,
+                amount: event.price,
+                debug: widget.debug,
+              );
+              
+              if (!usageReported) {
+                Logger.w('Failed to report usage to Stripe - billing may be affected', tag: 'Main_nav');
+              }
+            } else {
+              Logger.w('No customer ID available - usage tracking skipped', tag: 'Main_nav');
+            }
+          } catch (e) {
+            Logger.e('Error reporting usage to Stripe: $e', tag: 'Main_nav');
+            // Don't fail the booking if usage tracking fails
+          }
+          
         } catch (e) {
           Logger.d('Payment error: $e', tag: 'Main_nav');
           if (!mounted) return;

@@ -314,4 +314,47 @@ class NotificationService {
       eventId,
     );
   }
+
+  /// Show custom notification with specified channel and content
+  Future<void> showCustomNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+    required String channelId,
+    required String channelName,
+    required String channelDescription,
+  }) async {
+    if (!_initialized) {
+      Logger.w('NotificationService not initialized', tag: 'notification_service');
+      return;
+    }
+
+    try {
+      // Create notification details
+      final DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        categoryIdentifier: channelId,
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      final NotificationDetails notificationDetails = NotificationDetails(
+        iOS: iosDetails,
+      );
+
+      // Show notification
+      await _flutterLocalNotificationsPlugin.show(
+        id,
+        title,
+        body,
+        notificationDetails,
+        payload: payload,
+      );
+
+      Logger.d('Custom notification sent: $title', tag: 'notification_service');
+    } catch (e) {
+      Logger.e('Error showing custom notification: $e', tag: 'notification_service');
+    }
+  }
 } 

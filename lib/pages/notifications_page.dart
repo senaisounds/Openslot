@@ -538,13 +538,13 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
                                           colors: [
-                                            AppColors.primary.withAlpha(30),
-                                            AppColors.highlight.withAlpha(20),
+                                            AppColors.primary.withValues(alpha: 0.12),
+                                            AppColors.highlight.withValues(alpha: 0.08),
                                           ],
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: AppColors.primary.withAlpha(20),
+                                            color: AppColors.primary.withValues(alpha: 0.08),
                                             blurRadius: 20,
                                             offset: const Offset(0, 8),
                                           ),
@@ -553,7 +553,7 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                                       child: Icon(
                                         CupertinoIcons.bell_slash_fill,
                                         size: 60,
-                                        color: AppColors.primary.withAlpha(150),
+                                        color: AppColors.primary.withValues(alpha: 0.59),
                                       ),
                                     ),
                                     const SizedBox(height: 32),
@@ -574,7 +574,7 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: context.watch<ThemeProvider>().textColor.withAlpha(180),
+                                          color: context.watch<ThemeProvider>().textColor.withValues(alpha: 0.7),
                                           height: 1.5,
                                         ),
                                       ),
@@ -716,18 +716,18 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          AppColors.primary.withAlpha(40),
-                          AppColors.highlight.withAlpha(30),
+                          AppColors.primary.withValues(alpha: 0.16),
+                          AppColors.highlight.withValues(alpha: 0.12),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: AppColors.primary.withAlpha(60),
+                        color: AppColors.primary.withValues(alpha: 0.24),
                         width: 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withAlpha(20),
+                          color: AppColors.primary.withValues(alpha: 0.08),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -752,8 +752,8 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            AppColors.primary.withAlpha(60),
-                            AppColors.primary.withAlpha(0),
+                            AppColors.primary.withValues(alpha: 0.24),
+                            AppColors.primary.withValues(alpha: 0.0),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(1),
@@ -795,22 +795,12 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
     // Create a stateful builder to handle the pressed state
     final notificationWidget = StatefulBuilder(
       builder: (context, setState) {
-        bool isPressed = false;
+
         
         return Padding(
           padding: const EdgeInsets.only(bottom: 16, left: 20, right: 20),
           child: GestureDetector(
-            onTapDown: (_) {
-              setState(() => isPressed = true);
-              // Light haptic feedback on press
-              HapticFeedback.lightImpact();
-            },
-            onTapUp: (_) {
-              setState(() => isPressed = false);
-            },
-            onTapCancel: () {
-              setState(() => isPressed = false);
-            },
+
             onTap: () {
               // Medium haptic feedback on tap
               HapticFeedback.mediumImpact();
@@ -839,7 +829,7 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              transform: Matrix4.identity()..scale(isPressed ? 0.98 : 1.0),
+              transform: Matrix4.identity(),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: BackdropFilter(
@@ -851,14 +841,14 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            AppColors.backgroundDark.withAlpha(isPressed ? 200 : 180),
-                            AppColors.backgroundDark.withAlpha(isPressed ? 150 : 120),
+                            AppColors.backgroundDark.withValues(alpha: 0.7),
+                            AppColors.backgroundDark.withValues(alpha: 0.47),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(14),
-                        boxShadow: isPressed ? [] : [
+                        boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withAlpha(25),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                             spreadRadius: 1,
@@ -866,8 +856,8 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                         ],
                         border: Border.all(
                           color: eventId != null
-                              ? AppColors.primary.withAlpha(60)
-                              : AppColors.primary.withAlpha(30),
+                              ? AppColors.primary.withValues(alpha: 0.24)
+                              : AppColors.primary.withValues(alpha: 0.12),
                           width: eventId != null ? 2 : 1,
                         ),
                       ),
@@ -887,18 +877,18 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                       colors: [
-                                        AppColors.primary.withAlpha(40),
-                                        AppColors.highlight.withAlpha(30),
+                                        AppColors.primary.withValues(alpha: 0.16),
+                                        AppColors.highlight.withValues(alpha: 0.12),
                                       ],
                                     ),
                                     borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
-                                      color: AppColors.primary.withAlpha(60),
+                                      color: AppColors.primary.withValues(alpha: 0.24),
                                       width: 1,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.primary.withAlpha(20),
+                                        color: AppColors.primary.withValues(alpha: 0.08),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
@@ -931,7 +921,7 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                                         body,
                                         style: TextStyle(
                                           fontSize: 15,
-                                          color: context.watch<ThemeProvider>().textColor.withAlpha(200),
+                                          color: context.watch<ThemeProvider>().textColor.withValues(alpha: 0.78),
                                           height: 1.4,
                                         ),
                                       ),
@@ -952,13 +942,13 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [
-                                        AppColors.accent.withAlpha(30),
-                                        AppColors.accent.withAlpha(20),
+                                        AppColors.accent.withValues(alpha: 0.12),
+                                        AppColors.accent.withValues(alpha: 0.08),
                                       ],
                                     ),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: AppColors.accent.withAlpha(40),
+                                      color: AppColors.accent.withValues(alpha: 0.16),
                                       width: 1,
                                     ),
                                   ),
@@ -966,7 +956,7 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                                     _getTimeAgo(timestamp),
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: context.watch<ThemeProvider>().textColor.withAlpha(180),
+                                      color: context.watch<ThemeProvider>().textColor.withValues(alpha: 0.7),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -991,7 +981,7 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                                         borderRadius: BorderRadius.circular(25),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: AppColors.primary.withAlpha(40),
+                                            color: AppColors.primary.withValues(alpha: 0.16),
                                             blurRadius: 8,
                                             offset: const Offset(0, 4),
                                           ),
@@ -1037,18 +1027,18 @@ class _NotificationsPageState extends State<NotificationsPage> with AutomaticKee
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    AppColors.primary.withAlpha(80),
-                                    AppColors.highlight.withAlpha(60),
+                                    AppColors.primary.withValues(alpha: 0.31),
+                                    AppColors.highlight.withValues(alpha: 0.24),
                                   ],
                                 ),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppColors.primary.withAlpha(100),
+                                  color: AppColors.primary.withValues(alpha: 0.39),
                                   width: 1,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary.withAlpha(30),
+                                    color: AppColors.primary.withValues(alpha: 0.12),
                                     blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),

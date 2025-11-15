@@ -25,7 +25,6 @@ import 'package:slotted/pages/profile_page.dart';
 import 'package:slotted/pages/my_events.dart';
 import 'package:slotted/pages/events_map_page.dart' hide kPrimaryColor, kSecondaryColor, kAccentColor, kHighlightColor, kBackgroundDark, kBackgroundLight;
 import 'package:slotted/pages/host_payout_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slotted/utils/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:slotted/providers/theme_provider.dart';
@@ -203,35 +202,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   bool actionPending = false;
   String headerTitle = 'UPCOMING';
   final ScrollController eventsScrollController = ScrollController();
-
-  bool _showTutorial = false;
-  int _currentTutorialStep = 0;
-  final List<Map<String, dynamic>> _tutorialSteps = [
-    {
-      'title': 'Welcome to OpenSlot!',
-      'description': 'Your personal event discovery platform. Let\'s take a quick tour to help you get started!',
-    },
-    {
-      'title': 'Discover Events',
-      'description': 'Browse through exciting events happening around you. Swipe up to explore more!',
-    },
-    {
-      'title': 'Search & Filter',
-      'description': 'Looking for something specific? Use the search bar to find events or apply filters to narrow down your options.',
-    },
-    {
-      'title': 'Event Details',
-      'description': 'Tap on any event card to see more details, reserve a spot, or add it to your calendar.',
-    },
-    {
-      'title': 'Navigation',
-      'description': 'Use the bottom navigation to explore the map, create events, check notifications, and access your profile.',
-    },
-    {
-      'title': 'You\'re All Set!',
-      'description': 'Now you\'re ready to discover and join amazing events. Enjoy using OpenSlot!',
-    },
-  ];
 
   late PageController _pageController;
   int _currentPage = 0;
@@ -527,9 +497,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
       }
     });
 
-    // Check if this is a first-time user
-    _checkFirstTimeUser();
-
     // Initialize other components
     // Calendar initialization removed as unused
     selectedTimeFilter = '';
@@ -581,46 +548,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     });
   }
 
-  Future<void> _checkFirstTimeUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenTutorial = prefs.getBool('has_seen_home_tutorial') ?? false;
-    
-    if (!hasSeenTutorial) {
-      // Delay showing tutorial to allow the page to load first
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() {
-            _showTutorial = true;
-          });
-        }
-      });
-    }
-  }
-
-  Future<void> _markTutorialComplete() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('has_seen_home_tutorial', true);
-  }
-
-  void _nextTutorialStep() {
-    if (_currentTutorialStep < _tutorialSteps.length - 1) {
-      setState(() {
-        _currentTutorialStep++;
-      });
-    } else {
-      setState(() {
-        _showTutorial = false;
-      });
-      _markTutorialComplete();
-    }
-  }
-
-  void _skipTutorial() {
-    setState(() {
-      _showTutorial = false;
-    });
-    _markTutorialComplete();
-  }
 
   void _startSlideshow() {
     if (!mounted) return;
@@ -1616,10 +1543,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                   child: _buildBottomNav(),
                 ),
                 
-                // Tutorial overlay
-                if (_showTutorial)
-                  _buildTutorialOverlay(),
-                
                 // Top Navigation Bar (placed before search overlay when not searching)
                 if (!_showSearchOverlay)
                   _buildTopNavigationBar(),
@@ -1651,8 +1574,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withAlpha(240),
-              Colors.black.withAlpha(200),
+              Colors.black.withValues(alpha: 0.94),
+              Colors.black.withValues(alpha: 0.78),
               Colors.transparent,
             ],
             stops: const [0.0, 0.7, 1.0],
@@ -1731,13 +1654,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              const Color(0xFF2DD4BF).withAlpha(51), // Teal accent for location
-                              const Color(0xFF2DD4BF).withAlpha(25),
+                              const Color(0xFF2DD4BF).withValues(alpha: 0.2), // Teal accent for location
+                              const Color(0xFF2DD4BF).withValues(alpha: 0.1),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF2DD4BF).withAlpha(76),
+                            color: const Color(0xFF2DD4BF).withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -1767,13 +1690,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              const Color(0xFF4A90E2).withAlpha(51), // Blue accent for search
-                              const Color(0xFF4A90E2).withAlpha(25),
+                              const Color(0xFF4A90E2).withValues(alpha: 0.2), // Blue accent for search
+                              const Color(0xFF4A90E2).withValues(alpha: 0.1),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF4A90E2).withAlpha(76),
+                            color: const Color(0xFF4A90E2).withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -1810,13 +1733,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              const Color(0xFF8B5CF6).withAlpha(51), // Purple accent for exploration
-                              const Color(0xFF8B5CF6).withAlpha(25),
+                              const Color(0xFF8B5CF6).withValues(alpha: 0.2), // Purple accent for exploration
+                              const Color(0xFF8B5CF6).withValues(alpha: 0.1),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF8B5CF6).withAlpha(76),
+                            color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -1837,167 +1760,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
         ),
       ),
     );
-  }
-
-  Widget _buildTutorialOverlay() {
-    final step = _tutorialSteps[_currentTutorialStep];
-    final screenSize = MediaQuery.of(context).size;
-    
-    Widget tutorialCard = Container(
-      width: screenSize.width * 0.85,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            kPrimary.withValues(alpha: 0.9),
-            kSecondary.withValues(alpha: 0.9),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: kBackgroundDark.withValues(alpha: 0.5),
-            blurRadius: 15,
-            spreadRadius: 5,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            step['icon'],
-            color: kBackgroundLight,
-            size: 48,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            step['title'],
-            style: const TextStyle(
-              color: kBackgroundLight,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            step['description'],
-            style: TextStyle(
-              color: kBackgroundLight.withValues(alpha: 0.9),
-              fontSize: 16,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: _skipTutorial,
-                child: Text(
-                  'Skip',
-                  style: TextStyle(
-                    color: kBackgroundLight.withValues(alpha: 0.8),
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              Row(
-                children: List.generate(
-                  _tutorialSteps.length,
-                  (index) => Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _currentTutorialStep == index
-                          ? kHighlight
-                          : kBackgroundLight.withValues(alpha: 0.4),
-                    ),
-                  ),
-                ),
-              ),
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: _nextTutorialStep,
-                child: Text(
-                  _currentTutorialStep == _tutorialSteps.length - 1 ? 'Done' : 'Next',
-                  style: const TextStyle(
-                    color: kHighlight,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    
-    // Position the tutorial card based on the step
-    switch (step['position']) {
-      case 'top':
-        return Stack(
-          children: [
-            GestureDetector(
-              onTap: _nextTutorialStep,
-              child: Container(
-                color: kBackgroundDark.withValues(alpha: 0.7),
-                width: screenSize.width,
-                height: screenSize.height,
-              ),
-            ),
-            Positioned(
-              top: screenSize.height * 0.15,
-              left: (screenSize.width - (screenSize.width * 0.85)) / 2,
-              child: tutorialCard,
-            ),
-          ],
-        );
-      case 'bottom':
-        return Stack(
-          children: [
-            GestureDetector(
-              onTap: _nextTutorialStep,
-              child: Container(
-                color: kBackgroundDark.withValues(alpha: 0.7),
-                width: screenSize.width,
-                height: screenSize.height,
-              ),
-            ),
-            Positioned(
-              bottom: screenSize.height * 0.15,
-              left: (screenSize.width - (screenSize.width * 0.85)) / 2,
-              child: tutorialCard,
-            ),
-          ],
-        );
-      case 'center':
-      default:
-        return Stack(
-          children: [
-            GestureDetector(
-              onTap: _nextTutorialStep,
-              child: Container(
-                color: kBackgroundDark.withValues(alpha: 0.7),
-                width: screenSize.width,
-                height: screenSize.height,
-              ),
-            ),
-            Positioned(
-              top: (screenSize.height - 300) / 2,
-              left: (screenSize.width - (screenSize.width * 0.85)) / 2,
-              child: tutorialCard,
-            ),
-          ],
-        );
-    }
   }
 
   Widget _buildHeader(String title) {
@@ -3060,8 +2822,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black.withAlpha(0),
-            Colors.black.withAlpha(240),
+            Colors.black.withValues(alpha: 0.0),
+            Colors.black.withValues(alpha: 0.94),
           ],
         ),
       ),
@@ -3118,14 +2880,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
           children: [
             Icon(
               icon,
-              color: isSelected ? const Color(0xFFFF8C00) : Colors.white.withAlpha(180),
+              color: isSelected ? const Color(0xFFFF8C00) : Colors.white.withValues(alpha: 0.7),
               size: 26,
             ),
             const SizedBox(height: 4),
                           Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? const Color(0xFFFF8C00) : Colors.white.withAlpha(180),
+                  color: isSelected ? const Color(0xFFFF8C00) : Colors.white.withValues(alpha: 0.7),
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
@@ -3153,7 +2915,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
           borderRadius: BorderRadius.circular(kBorderRadiusLarge + 4),
                       boxShadow: [
               BoxShadow(
-                color: const Color(0xFFFF8C00).withAlpha(76),
+                color: const Color(0xFFFF8C00).withValues(alpha: 0.3),
                 blurRadius: 12,
                 spreadRadius: 2,
               ),
