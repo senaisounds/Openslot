@@ -17,6 +17,7 @@ import 'package:slotted/utils/event_cache_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:slotted/widgets/enhanced_event_card.dart';
+import 'package:slotted/utils/safe_state_mixin.dart';
 
 // Custom painter for grid pattern - moved outside the class
 class GridPainter extends CustomPainter {
@@ -56,7 +57,7 @@ class SavedEventsPage extends StatefulWidget {
   State<SavedEventsPage> createState() => _SavedEventsPageState();
 }
 
-class _SavedEventsPageState extends State<SavedEventsPage> with SingleTickerProviderStateMixin {
+class _SavedEventsPageState extends State<SavedEventsPage> with SingleTickerProviderStateMixin, SafeStateMixin {
   final FirebaseAuthService _authService = FirebaseAuthService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final EventCacheService _eventCacheService = EventCacheService.instance;

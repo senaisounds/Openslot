@@ -8,6 +8,7 @@ import 'package:slotted/common/event_class.dart';
 import 'package:slotted/common/slotted_user.dart';
 import 'package:slotted/utils/logger.dart';
 import 'dart:async';
+import 'package:slotted/utils/safe_state_mixin.dart';
 
 
 class EventChatPage extends StatefulWidget {
@@ -26,7 +27,7 @@ class EventChatPage extends StatefulWidget {
   State<EventChatPage> createState() => _EventChatPageState();
 }
 
-class _EventChatPageState extends State<EventChatPage> with TickerProviderStateMixin {
+class _EventChatPageState extends State<EventChatPage> with TickerProviderStateMixin, SafeStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _messageFocusNode = FocusNode();

@@ -27,6 +27,7 @@ import 'package:slotted/utils/logger.dart';
 import 'package:slotted/common/design_system.dart';
 
 import 'package:slotted/widgets/ds_section_header.dart';
+import 'package:slotted/utils/safe_state_mixin.dart';
 
 
 
@@ -41,7 +42,7 @@ class EditEventPage extends StatefulWidget {
   EditEventPageState createState() => EditEventPageState();
 }
 
-class EditEventPageState extends State<EditEventPage> {
+class EditEventPageState extends State<EditEventPage> with SafeStateMixin {
   late FocusNode eventNameNode;
   late FocusNode eventDateNode;
   late FocusNode eventSlotsNode;
@@ -2840,7 +2841,7 @@ class PulsingWidget extends StatefulWidget {
   State<PulsingWidget> createState() => _PulsingWidgetState();
 }
 
-class _PulsingWidgetState extends State<PulsingWidget> with SingleTickerProviderStateMixin {
+class _PulsingWidgetState extends State<PulsingWidget> with SingleTickerProviderStateMixin, SafeStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 

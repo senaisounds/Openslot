@@ -33,6 +33,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:slotted/widgets/enhanced_event_card.dart';
 import 'package:slotted/widgets/moving_background.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
+import 'package:slotted/utils/connectivity_service.dart';
+import 'package:slotted/utils/simple_offline_cache.dart';
 class MyHomePage extends StatefulWidget {
   final User? user;
   final bool debug;
@@ -227,6 +229,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   List<event_class.Event> _searchResults = [];
   bool _isSearching = false;
   
+  // Offline mode tracking
+  bool _isOffline = false;
+  
   // Location filter state
   bool _showLocationFilter = false;
   String _selectedDistanceFilter = 'All';
@@ -382,7 +387,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
       vsync: this,
     )..repeat(reverse: true);
 
-
+    // Set up connectivity monitoring for offline mode
+    _isOffline = !ConnectivityService.instance.isOnline;
+    ConnectivityService.instance.addListener(_onConnectivityChanged);
 
     // Initialize scroll controller with optimized debounced updates
     eventsScrollController.addListener(() {
@@ -584,7 +591,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     eventsScrollController.dispose();
     _slideshowTimer?.cancel();
     _searchController.dispose();
+    ConnectivityService.instance.removeListener(_onConnectivityChanged);
     super.dispose();
+  }
+  
+  // Handle connectivity changes
+  void _onConnectivityChanged() {
+    if (mounted) {
+      setState(() {
+        _isOffline = !ConnectivityService.instance.isOnline;
+      });
+    }
   }
 
   // Pull-to-refresh functionality
@@ -1554,6 +1571,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                 // Search overlay (placed last to stay on top when active)
                 if (_showSearchOverlay)
                   _buildSearchOverlay(),
+                
+                // Offline indicator (always on top)
+                if (_isOffline)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: OfflineIndicator(isOffline: _isOffline),
+                  ),
               ],
             ),
           ),

@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
 import 'package:slotted/common/colors.dart';
+import 'package:slotted/utils/safe_state_mixin.dart';
 
 /// Address suggestion model
 class AddressSuggestion {
@@ -47,7 +48,7 @@ class LocationPage extends StatefulWidget {
   LocationPageState createState() => LocationPageState();
 }
 
-class LocationPageState extends State<LocationPage> {
+class LocationPageState extends State<LocationPage> with SafeStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final MapController _mapController = MapController();
   List<AddressSuggestion> _suggestions = [];
@@ -63,6 +64,9 @@ class LocationPageState extends State<LocationPage> {
     if (widget.eventLocation != null) {
       _selectedLocation = widget.eventLocation!;
       _reverseGeocode(_selectedLocation.latitude, _selectedLocation.longitude);
+    } else {
+      // When creating a new event, automatically get user's current location
+      _getCurrentLocation();
     }
     _searchController.addListener(_onSearchChanged);
   }
@@ -81,14 +85,14 @@ class LocationPageState extends State<LocationPage> {
       if (_searchController.text.length >= 3) {
         _searchLocation(_searchController.text);
       } else {
-        setState(() => _suggestions = []);
+        safeSetState(() => _suggestions = []);
       }
     });
   }
   
   /// Search for locations using Nominatim (US only)
   Future<void> _searchLocation(String query) async {
-    setState(() => _isSearching = true);
+    safeSetState(() => _isSearching = true);
     
     try {
       // Restrict search to United States using bounding box
@@ -109,7 +113,7 @@ class LocationPageState extends State<LocationPage> {
       
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        setState(() {
+        safeSetState(() {
           _suggestions = data.map((item) {
             return AddressSuggestion.fromNominatim(item as Map<String, dynamic>);
           }).toList();
@@ -118,13 +122,13 @@ class LocationPageState extends State<LocationPage> {
     } catch (e) {
       Logger.w('Search error: $e', tag: 'location');
     } finally {
-      setState(() => _isSearching = false);
+      safeSetState(() => _isSearching = false);
     }
   }
   
   /// Select suggestion from search results
   void _selectSuggestion(AddressSuggestion suggestion) {
-    setState(() {
+    safeSetState(() {
       _searchController.text = suggestion.text;
       _selectedAddress = suggestion.text;
       _suggestions = [];
@@ -139,7 +143,7 @@ class LocationPageState extends State<LocationPage> {
   Future<void> _getCurrentLocation() async {
     if (_isLoadingLocation) return;
     
-    setState(() => _isLoadingLocation = true);
+    safeSetState(() => _isLoadingLocation = true);
     
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -160,7 +164,7 @@ class LocationPageState extends State<LocationPage> {
         ),
       );
       
-      setState(() {
+      safeSetState(() {
         _selectedLocation = LatLng(position.latitude, position.longitude);
         _mapController.move(_selectedLocation, 15.0);
       });
@@ -170,7 +174,7 @@ class LocationPageState extends State<LocationPage> {
       Logger.e('Location error: $e', tag: 'location');
       _showError('Unable to get location');
     } finally {
-      setState(() => _isLoadingLocation = false);
+      safeSetState(() => _isLoadingLocation = false);
     }
   }
   
@@ -189,14 +193,14 @@ class LocationPageState extends State<LocationPage> {
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
+        safeSetState(() {
           _selectedAddress = data['display_name'] as String;
           _searchController.text = _selectedAddress!;
         });
       }
     } catch (e) {
       Logger.w('Reverse geocode error: $e', tag: 'location');
-      setState(() {
+      safeSetState(() {
         _selectedAddress = 'Lat: ${lat.toStringAsFixed(4)}, Lng: ${lng.toStringAsFixed(4)}';
         _searchController.text = _selectedAddress!;
       });
@@ -263,7 +267,7 @@ class LocationPageState extends State<LocationPage> {
                 initialCenter: _selectedLocation,
                 initialZoom: 13.0,
                 onTap: (tapPosition, point) async {
-                  setState(() => _selectedLocation = point);
+                  safeSetState(() => _selectedLocation = point);
                   await _reverseGeocode(point.latitude, point.longitude);
                 },
               ),

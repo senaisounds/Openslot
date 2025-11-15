@@ -24,6 +24,7 @@ import 'package:slotted/api/stripe_customer_service.dart';
 import 'package:slotted/utils/logger.dart';
 import 'package:slotted/widgets/modern_payment_widget.dart';
 import 'package:slotted/api/apple_pay.dart';
+import 'package:slotted/utils/safe_state_mixin.dart';
 
 class EventDetailsPage extends StatefulWidget {
   const EventDetailsPage({
@@ -41,7 +42,7 @@ class EventDetailsPage extends StatefulWidget {
   State<EventDetailsPage> createState() => _EventDetailsPageState();
 }
 
-class _EventDetailsPageState extends State<EventDetailsPage> {
+class _EventDetailsPageState extends State<EventDetailsPage> with SafeStateMixin {
   final MapController mapController = MapController();
   bool actionPending = false;
 

@@ -2,6 +2,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
@@ -283,6 +284,18 @@ Future<void> _initializeApp() async {
       Logger.e('Failed to initialize Firebase: $error', tag: 'Initialization', error: error);
       throw Exception('Could not initialize Firebase');
     });
+
+    // Enable Firestore offline persistence for better offline support
+    try {
+      FirebaseFirestore.instance.settings = Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+      Logger.d('Firestore offline persistence enabled', tag: 'Initialization');
+    } catch (e) {
+      Logger.e('Failed to enable Firestore persistence: $e', tag: 'Initialization', error: e);
+      // Continue despite persistence setup errors - app will still work without it
+    }
 
     // Set up global error handling for cache database issues
     FlutterError.onError = (FlutterErrorDetails details) {

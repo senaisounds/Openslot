@@ -21,6 +21,7 @@ import 'package:slotted/pages/event_chat.dart';
 import 'package:slotted/utils/logger.dart';
 import 'package:slotted/widgets/moving_background.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:slotted/utils/safe_state_mixin.dart';
 
 // Add these constants at the top of the file
 const int maxRetries = 3;
@@ -53,7 +54,7 @@ class LivePage extends StatefulWidget {
   LivePageState createState() => LivePageState();
 }
 
-class LivePageState extends State<LivePage> with TickerProviderStateMixin {
+class LivePageState extends State<LivePage> with TickerProviderStateMixin, SafeStateMixin {
   Timer? timer;
   bool _isFlashlightOn = false;
   bool _disposed = false;
@@ -4257,7 +4258,7 @@ class _SpinningWheelDialog extends StatefulWidget {
 }
 
 class _SpinningWheelDialogState extends State<_SpinningWheelDialog> 
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, SafeStateMixin {
   late AnimationController _controller;
   late Animation<double> _rotationAnimation;
   
