@@ -1327,7 +1327,8 @@ export const createStripeCustomer = functions.https.onRequest(async (req, res) =
 });
 
 /**
- * Scrape public open mic listings (Eventbrite discover pages) and upsert into Firestore.
+ * Scrape public open mic / comedy listings and upsert into Firestore.
+ * Sources: Comediq (NYC/LA comedy mics), Do512 (Austin), Eventbrite open-mic + comedy.
  * Runs daily. Also invokable via HTTP for manual refreshes.
  */
 export const scrapeOpenMics = functions
