@@ -1,31 +1,54 @@
 import 'package:flutter/cupertino.dart';
 import 'package:slotted/common/colors.dart' as app_colors;
-// Main Theme Colors
-// Rich Purple - Stage Lights
-// Soft Purple - Energy
-// Electric Blue - Microphone Glow
-// Warm Yellow - Spotlight
-// Dark Stage
-// Light Mode
+import 'package:slotted/utils/event_password_verifier.dart';
 
+/// Private-event password dialog that verifies via Cloud Function.
+/// Does not accept or compare a local "correctPassword".
 class PasswordVerificationDialog extends StatefulWidget {
   final String eventName;
-  final String correctPassword;
+  final String eventId;
 
   const PasswordVerificationDialog({
     super.key,
     required this.eventName,
-    required this.correctPassword,
+    required this.eventId,
   });
 
   @override
-  State<PasswordVerificationDialog> createState() => _PasswordVerificationDialogState();
+  State<PasswordVerificationDialog> createState() =>
+      _PasswordVerificationDialogState();
 }
 
-class _PasswordVerificationDialogState extends State<PasswordVerificationDialog> {
+class _PasswordVerificationDialogState
+    extends State<PasswordVerificationDialog> {
   final TextEditingController _passwordController = TextEditingController();
   String? _errorMessage;
   bool _isObscured = true;
+  bool _isVerifying = false;
+
+  Future<void> _verify() async {
+    if (_isVerifying) return;
+    setState(() {
+      _isVerifying = true;
+      _errorMessage = null;
+    });
+
+    final ok = await EventPasswordVerifier.verify(
+      widget.eventId,
+      _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _isVerifying = false;
+        _errorMessage = 'Incorrect password. Please try again.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +81,7 @@ class _PasswordVerificationDialogState extends State<PasswordVerificationDialog>
                     controller: _passwordController,
                     placeholder: 'Enter event password',
                     obscureText: _isObscured,
+                    enabled: !_isVerifying,
                     style: const TextStyle(
                       color: CupertinoColors.label,
                     ),
@@ -66,11 +90,13 @@ class _PasswordVerificationDialogState extends State<PasswordVerificationDialog>
                 ),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  onPressed: () {
-                    setState(() {
-                      _isObscured = !_isObscured;
-                    });
-                  },
+                  onPressed: _isVerifying
+                      ? null
+                      : () {
+                          setState(() {
+                            _isObscured = !_isObscured;
+                          });
+                        },
                   child: Icon(
                     _isObscured ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
                     color: app_colors.AppColors.primary,
@@ -94,21 +120,13 @@ class _PasswordVerificationDialogState extends State<PasswordVerificationDialog>
       ),
       actions: [
         CupertinoDialogAction(
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: _isVerifying ? null : () => Navigator.of(context).pop(false),
           isDestructiveAction: true,
           child: const Text('Cancel'),
         ),
         CupertinoDialogAction(
-          onPressed: () {
-            if (_passwordController.text == widget.correctPassword) {
-              Navigator.of(context).pop(true);
-            } else {
-              setState(() {
-                _errorMessage = 'Incorrect password. Please try again.';
-              });
-            }
-          },
-          child: const Text('Join Event'),
+          onPressed: _isVerifying ? null : _verify,
+          child: Text(_isVerifying ? 'Checking…' : 'Join Event'),
         ),
       ],
     );
@@ -119,4 +137,4 @@ class _PasswordVerificationDialogState extends State<PasswordVerificationDialog>
     _passwordController.dispose();
     super.dispose();
   }
-} 
+}

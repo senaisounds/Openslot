@@ -17,6 +17,8 @@ import 'package:slotted/utils/event_cache_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:slotted/widgets/enhanced_event_card.dart';
+import 'package:slotted/api/functions_http_client.dart';
+import 'package:slotted/common/private_event_dialog.dart';
 
 // Custom painter for grid pattern - moved outside the class
 class GridPainter extends CustomPainter {
@@ -641,17 +643,35 @@ class _SavedEventsPageState extends State<SavedEventsPage> with SingleTickerProv
     }
     
     try {
-      // Import the main_nav.dart reserveAction method
+      String? privatePassword;
+      final alreadyJoined = event.attendees.contains(_user!.id) ||
+          event.waitlist.contains(_user!.id);
+      if (event.isPrivate && !alreadyJoined) {
+        final password = await showCupertinoDialog<String>(
+          context: context,
+          barrierDismissible: true,
+          builder: (context) => PrivateEventDialog(
+            eventName: event.name,
+            onSubmit: (value) => Navigator.of(context).pop(value),
+            onCancel: () => Navigator.of(context).pop(null),
+          ),
+        );
+        if (password == null) return;
+        privatePassword = password;
+      }
+
+      final headers = await FunctionsHttpClient.authHeaders(
+        contentType: 'application/x-www-form-urlencoded',
+      );
       final response = await http.post(
-        Uri.parse('https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'paymentIntent': '',
-          'eventId': event.id,
-          'userId': _user!.id,
-          'userEmail': _user!.email,
-          'userName': _user!.username,
-        }),
+        Uri.parse('${FunctionsHttpClient.baseUrl}/reserveAction'),
+        headers: headers,
+        body: {
+          'eventID': event.id,
+          'pi': '',
+          if (privatePassword != null)
+            'password': Uri.encodeComponent(privatePassword),
+        },
       );
 
       if (response.statusCode == 200) {
