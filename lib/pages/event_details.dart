@@ -91,6 +91,15 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
   Future<void> _reserveAction(
       Event event, SlottedUser slottedUser, User user) async {
+    if (event.isExternalListing) {
+      final rawUrl = event.externalUrl?.trim() ?? '';
+      final uri = Uri.tryParse(rawUrl);
+      if (uri != null) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+
         setState(() {
       actionPending = true;
     });
@@ -610,7 +619,9 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                               // if (!event.attendees.contains(user?.uid) &&
                               //     !event.waitlist.contains(user?.uid))
                               Text(
-                                '${max(0, event.openSlots)} / ${event.slots} slots',
+                                event.isExternalListing
+                                    ? 'Discovered on ${event.source.isNotEmpty ? event.source : 'the web'}'
+                                    : '${max(0, event.openSlots)} / ${event.slots} slots',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 18,
@@ -641,6 +652,20 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         padding: EdgeInsets.zero,
                                     onPressed: () => actionPending
                                         ? null
+                                        : event.isExternalListing
+                                            ? () async {
+                                                final rawUrl =
+                                                    event.externalUrl?.trim() ??
+                                                        '';
+                                                final uri = Uri.tryParse(rawUrl);
+                                                if (uri != null) {
+                                                  await launchUrl(
+                                                    uri,
+                                                    mode: LaunchMode
+                                                        .externalApplication,
+                                                  );
+                                                }
+                                              }()
                                         : event.live
                                             ? Navigator.of(context).pop()
                                             : event.host == slottedUser?.id ||
@@ -674,6 +699,14 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                                                     : CupertinoColors
                                                         .secondarySystemBackground,
                                           )
+                                        : event.isExternalListing
+                                            ? const Text('Open listing',
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 20,
+                                                    height: 1.2),
+                                                textAlign: TextAlign.center)
                                         : event.live
                                             ? const Text('Live',
                                                 style: TextStyle(

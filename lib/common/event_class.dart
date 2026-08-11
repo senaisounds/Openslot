@@ -39,6 +39,14 @@ class Event {
   bool isFeatured;
   int capacity;
   List<String> checkedPerformersList;
+  /// True when this listing was discovered by the web scraper.
+  bool isScraped;
+  /// Origin platform for scraped listings (e.g. eventbrite).
+  String source;
+  /// Canonical public URL for scraped/external listings.
+  String? externalUrl;
+  /// City label used for discovery / location filters.
+  String city;
 
   Event({
     required this.id,
@@ -71,6 +79,10 @@ class Event {
     this.isFeatured = false,
     this.capacity = 0,
     this.checkedPerformersList = const [],
+    this.isScraped = false,
+    this.source = 'openslot',
+    this.externalUrl,
+    this.city = '',
   }) : 
     location = location ?? const LatLng(0, 0),
     date = date ?? DateTime.now(),
@@ -127,8 +139,47 @@ class Event {
       isFeatured: data['isFeatured'] as bool? ?? false,
       capacity: (data['capacity'] as num?)?.toInt() ?? 0,
       checkedPerformersList: List<String>.from(data['checkedPerformers'] as List? ?? []),
+      isScraped: data['isScraped'] as bool? ?? false,
+      source: data['source'] as String? ?? 'openslot',
+      externalUrl: data['externalUrl'] as String?,
+      city: data['city'] as String? ?? '',
     );
   }
+
+  /// Build an event from the bundled web-discovery snapshot JSON.
+  factory Event.fromDiscoveryMap(Map<String, dynamic> data) {
+    return Event(
+      id: data['id'] as String? ?? '',
+      name: data['name'] as String? ?? '',
+      host: 'openslot_web_scraper',
+      description: data['description'] as String? ?? '',
+      rules: data['rules'] as String? ??
+          'Discovered from the web. Sign up on the original listing.',
+      location: LatLng(
+        (data['lat'] as num?)?.toDouble() ?? 0,
+        (data['lng'] as num?)?.toDouble() ?? 0,
+      ),
+      date: DateTime.tryParse(data['date'] as String? ?? '') ?? DateTime.now(),
+      live: data['live'] as bool? ?? false,
+      ended: data['ended'] as bool? ?? false,
+      address: data['address'] as String? ?? '',
+      category: data['category'] as String? ?? 'comedy',
+      hostName: data['hostName'] as String? ?? '',
+      price: (data['price'] as num?)?.toDouble() ?? 0,
+      signupOnLocation: data['signupOnLocation'] as bool? ?? true,
+      slots: (data['slots'] as num?)?.toInt() ?? 0,
+      type: data['type'] == 'deck' ? EventType.deck : EventType.mic,
+      coverUrl: data['coverUrl'] as String? ?? '',
+      isScraped: data['isScraped'] as bool? ?? true,
+      source: data['source'] as String? ?? 'web',
+      externalUrl: data['externalUrl'] as String?,
+      city: data['city'] as String? ?? '',
+    );
+  }
+
+  /// Whether this event should open an external listing instead of in-app reserve.
+  bool get isExternalListing =>
+      isScraped || (externalUrl != null && externalUrl!.trim().isNotEmpty);
 
   Map<String, dynamic> toDocument() {
     return {
@@ -163,6 +214,10 @@ class Event {
       'isFeatured': isFeatured,
       'capacity': capacity,
       'checkedPerformersList': checkedPerformersList,
+      'isScraped': isScraped,
+      'source': source,
+      'externalUrl': externalUrl,
+      'city': city,
     };
   }
 

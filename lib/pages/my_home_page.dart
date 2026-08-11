@@ -33,6 +33,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:slotted/widgets/enhanced_event_card.dart';
 import 'package:slotted/widgets/moving_background.dart';
 import 'package:slotted/api/firebase_auth_service.dart';
+import 'package:slotted/common/city_data.dart';
+import 'package:slotted/services/open_mic_discovery_service.dart';
 class MyHomePage extends StatefulWidget {
   final User? user;
   final bool debug;
@@ -232,6 +234,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   String _selectedDistanceFilter = 'All';
   final List<String> _distanceOptions = ['All', '5 mi', '10 mi', '25 mi', '50 mi', '100 mi'];
   LatLng _currentPosition = const LatLng(40.7128, -74.0060); // Default to NYC
+  List<event_class.Event> _discoveredOpenMics = [];
   
   // Dynamic title tracking
   String _currentSectionTitle = 'OpenSlot';
@@ -253,8 +256,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   bool _isBottomNavVisible = true;
   DateTime? _lastHomeTapTime;
 
-  // Remove redundant cities list and coordinates map since we're importing them
-  String selectedCity = 'Near Me';
+  // Default to New York so scraped comedy mics are visible immediately.
+  String selectedCity = 'New York';
 
   @override
   bool get wantKeepAlive => true;
@@ -503,6 +506,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     
     // Initialize location
     _initializeLocation();
+    _loadDiscoveredOpenMics();
     
     // Initialize page controller EARLY to prevent lookup failures
     _pageController = PageController(initialPage: 0);
@@ -592,6 +596,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     try {
       // Add haptic feedback
       HapticFeedback.lightImpact();
+      await _loadDiscoveredOpenMics(forceReload: true);
       
       // Force refresh by clearing cache and reloading
       setState(() {
@@ -607,6 +612,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     }
   }
 
+  Future<void> _loadDiscoveredOpenMics({bool forceReload = false}) async {
+    try {
+      final discovered =
+          await OpenMicDiscoveryService.instance.loadDiscoveredOpenMics(
+        forceReload: forceReload,
+      );
+      if (!mounted) return;
+      setState(() {
+        _discoveredOpenMics = discovered;
+      });
+    } catch (e) {
+      Logger.e('Error loading discovered open mics: $e', tag: 'MyHomePage');
+    }
+  }
+
   // Optimize event filtering
   List<event_class.Event> _filterEvents(List<event_class.Event> events, String query) {
     List<event_class.Event> filteredEvents = events;
@@ -615,28 +635,50 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     List<event_class.Event> categoryFilteredEvents = [];
     List<event_class.Event> timeFilteredEvents = [];
     List<event_class.Event> distanceFilteredEvents = [];
+    List<event_class.Event> cityFilteredEvents = [];
     bool hasTimeFilter = selectedTimeFilter.isNotEmpty;
     bool hasCategoryFilter = query.isNotEmpty;
-    // Location filtering temporarily disabled for debugging
     bool hasDistanceFilter = _selectedDistanceFilter != 'All';
+    bool hasCityFilter = selectedCity != 'Near Me';
     
     Logger.d('Filtering events:', tag: 'My_home_page');
     Logger.d('Total events before filtering: ${events.length}', tag: 'My_home_page');
     Logger.d('Selected city: $selectedCity', tag: 'My_home_page');
     Logger.d('Selected category filter: $query', tag: 'My_home_page');
     
-    // Apply location filter if a specific city is selected
-    // TODO: Re-enable location filtering when needed
-    // Location filtering is temporarily disabled for debugging
-    
+    // Apply city filter (discovered + hosted events by city label / address / radius)
+    if (hasCityFilter) {
+      final cityCoords = cityCoordinates[selectedCity];
+      cityFilteredEvents = events.where((event) {
+        final cityLabel = event.city.trim().toLowerCase();
+        final selected = selectedCity.toLowerCase();
+        if (cityLabel == selected) return true;
+        if (event.address.toLowerCase().contains(selected)) return true;
+
+        if (cityCoords != null &&
+            !(event.location.latitude == 0 && event.location.longitude == 0)) {
+          final distance = _calculateDistance(
+            cityCoords.latitude,
+            cityCoords.longitude,
+            event.location.latitude,
+            event.location.longitude,
+          );
+          return distance <= 40;
+        }
+        return false;
+      }).toList();
+      Logger.d('Events after city filter: ${cityFilteredEvents.length}', tag: 'My_home_page');
+    }
+
     // Apply distance filter if active
     if (hasDistanceFilter) {
       Logger.d('Applying distance filter: $_selectedDistanceFilter', tag: 'My_home_page');
       
       // Parse the selected distance (e.g., "5 mi" -> 5.0)
       final maxDistanceMi = double.tryParse(_selectedDistanceFilter.split(' ')[0]) ?? 50.0;
+      final sourceEvents = hasCityFilter ? cityFilteredEvents : events;
       
-      distanceFilteredEvents = events.where((event) {
+      distanceFilteredEvents = sourceEvents.where((event) {
         // Skip events with invalid coordinates (0,0)
         if (event.location.latitude == 0 && event.location.longitude == 0) {
           Logger.d('Event has invalid coordinates for distance filter: ${event.name}', tag: 'My_home_page');
@@ -651,11 +693,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
           event.location.longitude,
         );
         
-        Logger.d('Event: ${event.name}', tag: 'My_home_page');
-        Logger.d('  Distance from current location: ${distance.toStringAsFixed(2)}mi', tag: 'My_home_page');
-        Logger.d('  Max distance: ${maxDistanceMi}mi', tag: 'My_home_page');
-        Logger.d('  Will include: ${distance <= maxDistanceMi}', tag: 'My_home_page');
-        
         return distance <= maxDistanceMi;
       }).toList();
       
@@ -665,25 +702,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     // Apply category filter if present
     if (hasCategoryFilter) {
       Logger.d('Applying category filter with query: "$query"', tag: 'My_home_page');
+      final sourceEvents = hasDistanceFilter
+          ? distanceFilteredEvents
+          : (hasCityFilter ? cityFilteredEvents : events);
       
-      categoryFilteredEvents = events.where((event) {
+      categoryFilteredEvents = sourceEvents.where((event) {
         // Match only the first word of the category (COMEDY, DJ, POETRY, MUSIC)
         final eventCategory = event.category.split(' ')[0].toUpperCase().trim();
         final queryCategory = query.split(' ')[0].toUpperCase().trim(); // Split to handle emojis
-        
-        Logger.d('Event: "${event.name}"', tag: 'My_home_page');
-        Logger.d('  Category: "$eventCategory"', tag: 'My_home_page');
-        Logger.d('  Query: "$queryCategory"', tag: 'My_home_page');
-        Logger.d('  Match: ${eventCategory == queryCategory}', tag: 'My_home_page');
         
         return eventCategory == queryCategory;
       }).toList();
       
       Logger.d('Events after category filter: ${categoryFilteredEvents.length}', tag: 'My_home_page');
-      Logger.d('Filtered events:', tag: 'My_home_page');
-      for (var event in categoryFilteredEvents) {
-        Logger.d('  ${event.name} (${event.category})', tag: 'My_home_page');
-      }
       
       // If no events found after category filter, show a notification
       if (mounted && categoryFilteredEvents.isEmpty) {
@@ -705,10 +736,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
       final effectiveYear = today.year < 2025 ? 2025 : today.year;
       final baseDate = DateTime(effectiveYear, today.month, today.day);
       final tomorrow = baseDate.add(const Duration(days: 1));
+      final sourceEvents = hasCategoryFilter
+          ? categoryFilteredEvents
+          : (hasDistanceFilter
+              ? distanceFilteredEvents
+              : (hasCityFilter ? cityFilteredEvents : events));
       
-      timeFilteredEvents = events.where((event) {
+      timeFilteredEvents = sourceEvents.where((event) {
         if (event.ended) {
-          Logger.d('  ${event.name} is ended, filtering out', tag: 'My_home_page');
           return false;
         }
         
@@ -718,44 +753,30 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
           event.date.day,
         );
         
-        bool matches = false;
         switch (selectedTimeFilter) {
           case 'Today':
-            matches = eventDate.isAtSameMomentAs(baseDate) || event.live;
-            Logger.d('  ${event.name} - Today filter: $matches', tag: 'My_home_page');
-            break;
+            return eventDate.isAtSameMomentAs(baseDate) || event.live;
           case 'Tomorrow':
-            matches = eventDate.isAtSameMomentAs(tomorrow);
-            Logger.d('  ${event.name} - Tomorrow filter: $matches', tag: 'My_home_page');
-            break;
+            return eventDate.isAtSameMomentAs(tomorrow);
           case 'Upcoming':
-            matches = eventDate.isAfter(tomorrow);
-            Logger.d('  ${event.name} - Upcoming filter: $matches', tag: 'My_home_page');
-            break;
+            return eventDate.isAfter(tomorrow);
           default:
-            matches = false;
-            Logger.d('  ${event.name} - Unknown time filter', tag: 'My_home_page');
+            return false;
         }
-        return matches;
       }).toList();
       
       Logger.d('Events after time filter: ${timeFilteredEvents.length}', tag: 'My_home_page');
-      Logger.d('Time filtered events:', tag: 'My_home_page');
-      for (var event in timeFilteredEvents) {
-        Logger.d('  ${event.name} (${event.date})', tag: 'My_home_page');
-      }
     }
     
-    // Combine all active filters
-    if (hasDistanceFilter) {
-      filteredEvents = distanceFilteredEvents;
-      Logger.d('Applied distance filter', tag: 'My_home_page');
+    // Combine all active filters (progressive)
+    if (hasTimeFilter) {
+      filteredEvents = timeFilteredEvents;
     } else if (hasCategoryFilter) {
       filteredEvents = categoryFilteredEvents;
-      Logger.d('Applied category filter', tag: 'My_home_page');
-    } else if (hasTimeFilter) {
-      filteredEvents = timeFilteredEvents;
-      Logger.d('Applied time filter', tag: 'My_home_page');
+    } else if (hasDistanceFilter) {
+      filteredEvents = distanceFilteredEvents;
+    } else if (hasCityFilter) {
+      filteredEvents = cityFilteredEvents;
     }
     
     Logger.d('Final filtered events count: ${filteredEvents.length}', tag: 'My_home_page');
@@ -1419,6 +1440,30 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                       builder: (context, snapshot) {
                         if (snapshot.hasError) {
                           Logger.d('Error loading events: ${snapshot.error}', tag: 'My_home_page');
+                          // Still show discovered open mics when Firestore is unavailable.
+                          if (_discoveredOpenMics.isNotEmpty) {
+                            final filteredEvents = _filterEvents(
+                              List<event_class.Event>.from(_discoveredOpenMics)
+                                ..sort((a, b) => a.date.compareTo(b.date)),
+                              selectedFilter,
+                            );
+                            return RefreshIndicator(
+                              onRefresh: _refreshEvents,
+                              color: kAccent,
+                              backgroundColor: kBackgroundDark,
+                              child: CustomScrollView(
+                                controller: eventsScrollController,
+                                physics: const ClampingScrollPhysics(),
+                                slivers: [
+                                  const SliverPadding(
+                                    padding: EdgeInsets.only(top: kSpacingLayout + kSpacingLarge),
+                                    sliver: SliverToBoxAdapter(child: SizedBox()),
+                                  ),
+                                  _buildEventsList(filteredEvents, slottedUser),
+                                ],
+                              ),
+                            );
+                          }
                           return Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -1450,6 +1495,29 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
 
                         if (!snapshot.hasData || snapshot.data == null) {
                           Logger.d('No events data available - hasData: ${snapshot.hasData}, data: ${snapshot.data}', tag: 'My_home_page');
+                          if (_discoveredOpenMics.isNotEmpty) {
+                            final filteredEvents = _filterEvents(
+                              List<event_class.Event>.from(_discoveredOpenMics)
+                                ..sort((a, b) => a.date.compareTo(b.date)),
+                              selectedFilter,
+                            );
+                            return RefreshIndicator(
+                              onRefresh: _refreshEvents,
+                              color: kAccent,
+                              backgroundColor: kBackgroundDark,
+                              child: CustomScrollView(
+                                controller: eventsScrollController,
+                                physics: const ClampingScrollPhysics(),
+                                slivers: [
+                                  const SliverPadding(
+                                    padding: EdgeInsets.only(top: kSpacingLayout + kSpacingLarge),
+                                    sliver: SliverToBoxAdapter(child: SizedBox()),
+                                  ),
+                                  _buildEventsList(filteredEvents, slottedUser),
+                                ],
+                              ),
+                            );
+                          }
                           return Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -2528,6 +2596,72 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
                 ),
                 
                 const SizedBox(height: 24),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'City',
+                      style: TextStyle(
+                        color: kBackgroundLight.withValues(alpha: 0.85),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 42,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: cities.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final city = cities[index];
+                      final isSelected = selectedCity == city;
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            selectedCity = city;
+                            final coords = cityCoordinates[city];
+                            if (coords != null) {
+                              _currentPosition = coords;
+                            }
+                          });
+                          _applyLocationFilter();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? kAccent.withValues(alpha: 0.35)
+                                : kPrimary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected
+                                  ? kAccent.withValues(alpha: 0.7)
+                                  : kPrimary.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Text(
+                            city,
+                            style: TextStyle(
+                              color: kBackgroundLight,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
                 
                 // Distance options
                 Expanded(
@@ -2671,8 +2805,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
   }
 
   void _applyLocationFilter() {
-    // This will trigger a rebuild and filter events based on distance
-    // The filtering logic will be applied in the event building methods
+    // Rebuild so city + distance filters re-run against the merged feed.
     setState(() {});
   }
 
@@ -3105,28 +3238,26 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin, 
     Logger.d('Converting QuerySnapshot to Events', tag: 'My_home_page');
     Logger.d('Document count: ${snapshot.docs.length}', tag: 'My_home_page');
     
-    final events = snapshot.docs.map((doc) {
+    final firestoreEvents = snapshot.docs.map((doc) {
       try {
-        Logger.d('Converting document: ${doc.id}', tag: 'My_home_page');
-        final data = doc.data() as Map<String, dynamic>;
-        Logger.d('Document data:', tag: 'My_home_page');
-        Logger.d('  Name: ${data['name']}', tag: 'My_home_page');
-        Logger.d('  Location: ${data['location']}', tag: 'My_home_page');
-        Logger.d('  Address: ${data['address']}', tag: 'My_home_page');
-        
-        final event = event_class.Event.fromDocument(doc);
-        Logger.d('Successfully converted to Event object', tag: 'My_home_page');
-        return event;
+        return event_class.Event.fromDocument(doc);
       } catch (e) {
         Logger.d('Error converting document: $e', tag: 'My_home_page');
         return event_class.Event.empty();
       }
     })
     .where((event) => event.id.isNotEmpty)
-    .toList()
-    ..sort((a, b) => a.date.compareTo(b.date));
+    .toList();
+
+    final events = OpenMicDiscoveryService.instance.mergeWithFirestoreEvents(
+      firestoreEvents,
+      _discoveredOpenMics,
+    );
     
-    Logger.d('Final converted events count: ${events.length}', tag: 'My_home_page');
+    Logger.d(
+      'Final converted events count: ${events.length} (firestore ${firestoreEvents.length} + discovered ${_discoveredOpenMics.length})',
+      tag: 'My_home_page',
+    );
     return events;
   }
 

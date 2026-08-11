@@ -1,10 +1,11 @@
 "use strict";
 var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createStripeCustomer = exports.reportStripeUsage = exports.getReviewedReports = exports.getPendingReports = exports.checkPendingReports = exports.reviewReport = exports.getUserReports = exports.reportContent = exports.getBlockedUsers = exports.isUserBlocked = exports.blockUser = exports.deleteEvent = exports.createPaymentIntent = exports.getEphemeralKey = exports.forceAddUserToEvent = exports.reserveAction = exports.verifyEventPassword = void 0;
+exports.scrapeOpenMicsNow = exports.scrapeOpenMics = exports.createStripeCustomer = exports.reportStripeUsage = exports.getReviewedReports = exports.getPendingReports = exports.checkPendingReports = exports.reviewReport = exports.getUserReports = exports.reportContent = exports.getBlockedUsers = exports.isUserBlocked = exports.blockUser = exports.deleteEvent = exports.createPaymentIntent = exports.getEphemeralKey = exports.forceAddUserToEvent = exports.reserveAction = exports.verifyEventPassword = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe_1 = require("stripe");
+const scrape_open_mics_1 = require("./scrape_open_mics");
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -153,6 +154,15 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
         const eventData = eventDoc.data();
         if (!eventData) {
             res.status(500).json({ error: 'Event data is missing', eventID });
+            return;
+        }
+        // Scraped/external listings are not bookable inside OpenSlot.
+        if (eventData.isScraped || eventData.externalUrl) {
+            res.status(400).json({
+                error: 'External listing',
+                details: 'This open mic was discovered on the web. Sign up on the original listing.',
+                externalUrl: eventData.externalUrl || null,
+            });
             return;
         }
         // Initialize arrays if they don't exist
@@ -1134,6 +1144,78 @@ exports.createStripeCustomer = functions.https.onRequest(async (req, res) => {
         res.status(500).json({
             error: error.message || 'Failed to create customer',
             details: ((_b = error.raw) === null || _b === void 0 ? void 0 : _b.message) || error.toString(),
+        });
+    }
+});
+/**
+ * Scrape public open mic / comedy listings and upsert into Firestore.
+ * Sources: Comediq (NYC/LA comedy mics), Do512 (Austin), Eventbrite open-mic + comedy.
+ * Runs daily. Also invokable via HTTP for manual refreshes.
+ */
+exports.scrapeOpenMics = functions
+    .runWith({ timeoutSeconds: 540, memory: '512MB' })
+    .pubsub.schedule('every 24 hours')
+    .onRun(async () => {
+    console.log('Starting scheduled open mic scrape for cities:', Object.keys(scrape_open_mics_1.EVENTBRITE_CITY_SLUGS));
+    const { results, totalUpserted } = await (0, scrape_open_mics_1.scrapeOpenMicsForCities)();
+    console.log('Open mic scrape complete', { totalUpserted, results });
+    return null;
+});
+/**
+ * Manual trigger for open mic discovery.
+ * POST with header `X-Scraper-Secret` matching functions config scraper.secret
+ * (or env SCRAPER_SECRET). Optional JSON body: { "cities": ["New York"] }.
+ */
+exports.scrapeOpenMicsNow = functions
+    .runWith({ timeoutSeconds: 540, memory: '512MB' })
+    .https.onRequest(async (req, res) => {
+    var _a, _b;
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, X-Scraper-Secret');
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
+    const configuredSecret = ((_a = functions.config().scraper) === null || _a === void 0 ? void 0 : _a.secret) || process.env.SCRAPER_SECRET || '';
+    const providedSecret = String(req.get('X-Scraper-Secret') || '');
+    if (!configuredSecret || providedSecret !== configuredSecret) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    try {
+        let cities = scrape_open_mics_1.EVENTBRITE_CITY_SLUGS;
+        const requestedCities = (_b = req.body) === null || _b === void 0 ? void 0 : _b.cities;
+        if (Array.isArray(requestedCities) && requestedCities.length > 0) {
+            cities = {};
+            for (const city of requestedCities) {
+                if (typeof city === 'string' && scrape_open_mics_1.EVENTBRITE_CITY_SLUGS[city]) {
+                    cities[city] = scrape_open_mics_1.EVENTBRITE_CITY_SLUGS[city];
+                }
+            }
+            if (Object.keys(cities).length === 0) {
+                res.status(400).json({
+                    error: 'No valid cities',
+                    supported: Object.keys(scrape_open_mics_1.EVENTBRITE_CITY_SLUGS),
+                });
+                return;
+            }
+        }
+        const { results, totalUpserted } = await (0, scrape_open_mics_1.scrapeOpenMicsForCities)(cities);
+        res.status(200).json({
+            success: true,
+            totalUpserted,
+            results,
+        });
+    }
+    catch (error) {
+        console.error('Manual open mic scrape failed:', error);
+        res.status(500).json({
+            error: error instanceof Error ? error.message : 'Scrape failed',
         });
     }
 });
