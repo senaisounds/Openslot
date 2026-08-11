@@ -29,11 +29,35 @@ void main() {
         isScraped: true,
         source: 'eventbrite',
         externalUrl: 'https://www.eventbrite.com/e/web-mic',
+        city: 'New York',
       );
       final doc = event.toDocument();
       expect(doc['isScraped'], isTrue);
       expect(doc['source'], 'eventbrite');
       expect(doc['externalUrl'], 'https://www.eventbrite.com/e/web-mic');
+      expect(doc['city'], 'New York');
+    });
+
+    test('fromDiscoveryMap builds scraped event', () {
+      final event = Event.fromDiscoveryMap({
+        'id': 'scraped_abc',
+        'name': "Producer's Club",
+        'description': 'Comedy open mic',
+        'lat': 40.76,
+        'lng': -73.99,
+        'date': '2026-08-12T17:00:00.000Z',
+        'address': '358 W 44th St, New York, NY',
+        'category': 'comedy',
+        'hostName': "Producer's Club",
+        'isScraped': true,
+        'source': 'comediq',
+        'externalUrl': 'https://comediq.us/open-mics?mic=abc',
+        'city': 'New York',
+      });
+      expect(event.isExternalListing, isTrue);
+      expect(event.city, 'New York');
+      expect(event.source, 'comediq');
+      expect(event.location.latitude, closeTo(40.76, 0.001));
     });
   });
 }
