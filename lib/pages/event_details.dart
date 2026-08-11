@@ -21,9 +21,11 @@ import 'package:slotted/common/design_system.dart';
 import 'package:slotted/config/environment_config.dart';
 import 'package:slotted/api/stripe_usage_tracker.dart';
 import 'package:slotted/api/stripe_customer_service.dart';
+import 'package:slotted/api/functions_http_client.dart';
 import 'package:slotted/utils/logger.dart';
 import 'package:slotted/widgets/modern_payment_widget.dart';
 import 'package:slotted/api/apple_pay.dart';
+import 'package:slotted/common/private_event_dialog.dart';
 
 class EventDetailsPage extends StatefulWidget {
   const EventDetailsPage({
@@ -46,20 +48,20 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   bool actionPending = false;
 
   Future<String> reserveAction(dynamic paymentIntent, Event event,
-      SlottedUser slottedUser, User user, {bool passwordVerified = false}) async {
+      SlottedUser slottedUser, User user, {String? password}) async {
+    final headers = await FunctionsHttpClient.authHeaders(
+      contentType: 'application/x-www-form-urlencoded',
+    );
     var response = await http.post(
       Uri.parse(
           'https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+      headers: headers,
+      body: {
+        'eventID': event.id,
+        'pi': paymentIntent == '' ? paymentIntent.toString() : json.encode(paymentIntent),
+        if (password != null && password.isNotEmpty)
+          'password': Uri.encodeComponent(password),
       },
-              body: {
-          'eventID': event.id,
-          'userID': user.uid,
-          'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
-          'debug': widget.debug ? 'true' : 'false',
-          'passwordVerified': passwordVerified ? 'true' : 'false',
-        },
     );
     return response.body;
   }
@@ -68,17 +70,18 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     required int amount, // in cents
     required String currency,
     String? customerId,
+    String? eventID,
     bool debug = true,
   }) async {
-    final url = '${EnvironmentConfig.apiBaseUrl}/createPaymentIntent';
+    final headers = await FunctionsHttpClient.authHeaders();
     final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
+      Uri.parse('${EnvironmentConfig.apiBaseUrl}/createPaymentIntent'),
+      headers: headers,
       body: jsonEncode({
         'amount': amount.toString(),
         'currency': currency,
         'customerId': customerId,
-        'debug': debug,
+        if (eventID != null) 'eventID': eventID,
       }),
     );
     if (response.statusCode == 200) {
@@ -99,6 +102,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
     final isReserved = event.attendees.contains(user.uid);
     final isWaitlisted = event.waitlist.contains(user.uid);
+    String? privateEventPassword;
 
     if (isReserved || isWaitlisted) {
       // ignore: use_build_context_synchronously
@@ -178,6 +182,25 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     }
 
     try {
+      if (event.isPrivate && !(isReserved || isWaitlisted)) {
+        final password = await showCupertinoDialog<String>(
+          context: context,
+          barrierDismissible: true,
+          builder: (context) => PrivateEventDialog(
+            eventName: event.name,
+            onSubmit: (value) => Navigator.of(context).pop(value),
+            onCancel: () => Navigator.of(context).pop(null),
+          ),
+        );
+        if (password == null) {
+          setState(() {
+            actionPending = false;
+          });
+          return;
+        }
+        privateEventPassword = password;
+      }
+
       if (event.price > 0 && !(isReserved || isWaitlisted)) {
         // Create or get Stripe customer first
         String? customerId;
@@ -198,6 +221,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
           amount: (event.price * 100).toInt(),
           currency: 'usd',
           customerId: customerId,
+          eventID: event.id,
           debug: widget.debug,
         );
         if (clientSecret == null) throw Exception('No client secret returned');
@@ -246,7 +270,13 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
         // Payment successful, continue with reservation
       }
 
-      final reservationResponse = await reserveAction('', event, slottedUser, user, passwordVerified: false);
+      final reservationResponse = await reserveAction(
+        '',
+        event,
+        slottedUser,
+        user,
+        password: privateEventPassword,
+      );
       
       // CRITICAL: Report usage to Stripe for billing
       if (event.price > 0) {

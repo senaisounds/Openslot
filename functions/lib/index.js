@@ -5,6 +5,7 @@ exports.createStripeCustomer = exports.reportStripeUsage = exports.getReviewedRe
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe_1 = require("stripe");
+const http_auth_1 = require("./http_auth");
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
     admin.initializeApp();
@@ -18,123 +19,91 @@ if (!stripeTestKey || !stripeLiveKey) {
 const stripeTest = new stripe_1.default(stripeTestKey);
 const stripeLive = new stripe_1.default(stripeLiveKey);
 exports.verifyEventPassword = functions.https.onRequest(async (req, res) => {
+    (0, http_auth_1.setCorsHeaders)(res);
+    if ((0, http_auth_1.handleOptions)(req, res))
+        return;
     try {
-        console.log('Received password verification request:', { eventID: req.body.eventID });
-        // Validate request method
         if (req.method !== 'POST') {
-            console.error('Invalid method:', req.method);
-            res.status(405).send({ error: 'Method not allowed' });
+            res.status(405).json({ error: 'Method not allowed' });
             return;
         }
-        // Validate required parameters
+        const decoded = await (0, http_auth_1.requireAuth)(req, res);
+        if (!decoded)
+            return;
         const { eventID, password } = req.body;
         if (!eventID || !password) {
-            console.error('Missing parameters:', { eventID: !!eventID, password: !!password });
-            res.status(400).send({ error: 'Missing required parameters' });
+            res.status(400).json({ error: 'Missing required parameters' });
             return;
         }
-        // Get event document
         const eventDoc = await admin.firestore().collection('events').doc(eventID).get();
         if (!eventDoc.exists) {
-            console.error('Event not found:', eventID);
-            res.status(404).send({ error: 'Event not found' });
+            res.status(404).json({ error: 'Event not found' });
             return;
         }
         const eventData = eventDoc.data();
         if (!eventData) {
-            console.error('Event data is missing:', eventID);
-            res.status(500).send({ error: 'Event data is missing' });
+            res.status(500).json({ error: 'Event data is missing' });
             return;
         }
-        console.log('Event data retrieved:', {
-            eventID,
-            isPrivate: eventData.isPrivate,
-            hasPassword: !!eventData.password
-            // Passwords intentionally not logged for security
-        });
-        // Check if event is private
         if (!eventData.isPrivate) {
-            console.error('Event is not private:', eventID);
-            res.status(400).send({ error: 'Event is not private' });
+            res.status(400).json({ error: 'Event is not private' });
             return;
         }
-        // Verify password
         if (!eventData.password) {
-            console.error('Event has no password set:', eventID);
-            res.status(500).send({ error: 'Event has no password set' });
+            res.status(500).json({ error: 'Event has no password set' });
             return;
         }
-        // Compare passwords (both should be URL-encoded)
-        const decodedReceivedPassword = decodeURIComponent(password);
-        const encodedStoredPassword = encodeURIComponent(eventData.password);
-        const encodedReceivedPassword = encodeURIComponent(decodedReceivedPassword);
-        if (encodedStoredPassword !== encodedReceivedPassword) {
-            console.error('Invalid password provided for event:', {
-                eventID,
-                storedPassword: eventData.password,
-                receivedPassword: decodedReceivedPassword,
-                encodedStoredPassword,
-                encodedReceivedPassword
-            });
-            res.status(401).send({ error: 'Invalid password' });
+        if (!(0, http_auth_1.passwordsMatch)(eventData.password, password)) {
+            // Never log password values
+            console.warn('Invalid password provided for event:', { eventID, uid: decoded.uid });
+            res.status(401).json({ error: 'Invalid password' });
             return;
         }
-        // Password is correct
-        console.log('Password verification successful:', eventID);
-        res.status(200).send({ success: true });
+        console.log('Password verification successful:', { eventID, uid: decoded.uid });
+        res.status(200).json({ success: true, valid: true });
     }
     catch (error) {
         console.error('Error verifying event password:', error);
-        res.status(500).send({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 exports.reserveAction = functions.https.onRequest(async (req, res) => {
-    // Enhanced CORS headers for better browser compatibility
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-OpenSlot-Client, X-Requested-With');
-    res.set('Access-Control-Max-Age', '3600');
-    // Handle preflight requests (OPTIONS)
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
+    (0, http_auth_1.setCorsHeaders)(res, 'GET, POST, OPTIONS');
+    if ((0, http_auth_1.handleOptions)(req, res))
         return;
-    }
     try {
-        // Start timing the request for performance monitoring
         const startTime = Date.now();
-        // Validate request method
         if (req.method !== 'POST') {
             res.status(405).json({ error: 'Method not allowed', details: 'Only POST requests are accepted' });
             return;
         }
-        // Log request details for debugging
-        const requestDetails = {
-            body: req.body,
-            headers: req.headers,
-            method: req.method,
-            path: req.path,
-            url: req.url,
-            ip: req.ip,
-            timestamp: new Date().toISOString()
-        };
-        console.log('Reservation request received:', requestDetails);
-        // Validate required parameters
-        const { eventID, userID, passwordVerified } = req.body;
-        if (!eventID || !userID) {
+        const decoded = await (0, http_auth_1.requireAuth)(req, res);
+        if (!decoded)
+            return;
+        // Identity comes from the verified token only — never trust body.userID
+        const userID = decoded.uid;
+        const eventID = req.body.eventID || req.body.eventId;
+        const password = req.body.password;
+        if (!eventID) {
             res.status(400).json({
                 error: 'Missing required parameters',
-                details: `Missing: ${!eventID ? 'eventID' : ''} ${!userID ? 'userID' : ''}`.trim()
+                details: 'Missing: eventID',
             });
             return;
         }
-        // Get event document with retries
+        console.log('Reservation request received:', {
+            eventID,
+            uid: userID,
+            hasPassword: !!password,
+            timestamp: new Date().toISOString(),
+        });
         let eventDoc = null;
         let retryCount = 0;
         const maxRetries = 3;
         while (retryCount < maxRetries) {
             try {
                 eventDoc = await admin.firestore().collection('events').doc(eventID).get();
-                break; // If successful, exit the retry loop
+                break;
             }
             catch (dbError) {
                 console.error(`Database fetch error (attempt ${retryCount + 1}/${maxRetries}):`, dbError);
@@ -142,7 +111,6 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
                 if (retryCount >= maxRetries) {
                     throw new Error(`Failed to fetch event after ${maxRetries} attempts: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
                 }
-                // Wait before retrying with exponential backoff
                 await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
             }
         }
@@ -155,27 +123,23 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
             res.status(500).json({ error: 'Event data is missing', eventID });
             return;
         }
-        // Initialize arrays if they don't exist
         const attendees = eventData.attendees || [];
         const waitlist = eventData.waitlist || [];
-        let reservationTimestamps = eventData.reservationTimestamps || {};
-        // Check if event is private and user is not already registered
-        if (eventData.isPrivate &&
-            !attendees.includes(userID) &&
-            !waitlist.includes(userID) &&
-            passwordVerified !== 'true') {
-            // For private events, require password verification before proceeding
-            res.status(403).json({ error: 'Password verification required for private event' });
-            return;
+        const reservationTimestamps = eventData.reservationTimestamps || {};
+        const alreadyJoined = attendees.includes(userID) || waitlist.includes(userID);
+        // Private events: require password on join (ignore client passwordVerified boolean)
+        if (eventData.isPrivate && !alreadyJoined) {
+            if (!password || !eventData.password || !(0, http_auth_1.passwordsMatch)(eventData.password, password)) {
+                res.status(403).json({ error: 'Password verification required for private event' });
+                return;
+            }
         }
         // Handle removing user from event (unreserve)
-        if (attendees.includes(userID) || waitlist.includes(userID)) {
+        if (alreadyJoined) {
             const updatedAttendees = attendees.filter((id) => id !== userID);
             const updatedWaitlist = waitlist.filter((id) => id !== userID);
-            // Remove from reservation timestamps
             const updatedReservationTimestamps = Object.assign({}, reservationTimestamps);
             delete updatedReservationTimestamps[userID];
-            // Update event document with retries
             let updateSuccess = false;
             retryCount = 0;
             while (retryCount < maxRetries && !updateSuccess) {
@@ -193,38 +157,32 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
                     if (retryCount >= maxRetries) {
                         throw new Error(`Failed to update event after ${maxRetries} attempts: ${updateError instanceof Error ? updateError.message : String(updateError)}`);
                     }
-                    // Wait before retrying with exponential backoff
                     await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
                 }
             }
-            // Log successful unreserve action
             console.log('User unreserved successfully:', {
                 eventID,
                 userID,
                 previousStatus: attendees.includes(userID) ? 'attendee' : 'waitlisted'
             });
-            // If user was in the main attendees list and there are people on the waitlist,
-            // move the first waitlisted person to the attendees list
             if (attendees.includes(userID) && updatedWaitlist.length > 0) {
                 const firstWaitlistedUser = updatedWaitlist[0];
                 const remainingWaitlist = updatedWaitlist.slice(1);
-                // Add to attendees and update timestamp
                 const newAttendees = [...updatedAttendees, firstWaitlistedUser];
                 const newReservationTimestamps = Object.assign(Object.assign({}, updatedReservationTimestamps), { [firstWaitlistedUser]: admin.firestore.Timestamp.now() });
-                // Update document with promoted user
                 await eventDoc.ref.update({
                     attendees: newAttendees,
                     waitlist: remainingWaitlist,
                     reservationTimestamps: newReservationTimestamps
                 });
-                // Send notification to the promoted user
                 try {
                     const userDoc = await admin.firestore().collection('users').doc(firstWaitlistedUser).get();
                     if (userDoc.exists) {
                         const userData = userDoc.data();
-                        if (userData && userData.fcmToken) {
+                        const pushToken = (userData === null || userData === void 0 ? void 0 : userData.fcmToken) || (userData === null || userData === void 0 ? void 0 : userData.pushToken);
+                        if (pushToken) {
                             await admin.messaging().send({
-                                token: userData.fcmToken,
+                                token: pushToken,
                                 notification: {
                                     title: 'Spot Available!',
                                     body: `You've been moved from the waitlist to the attendee list for ${eventData.name}`
@@ -239,7 +197,6 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
                 }
                 catch (notificationError) {
                     console.error('Error sending notification:', notificationError);
-                    // Continue even if notification fails
                 }
             }
             const processingTime = Date.now() - startTime;
@@ -251,13 +208,10 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
             });
             return;
         }
-        // Handle new reservation
         const openSlots = eventData.slots - attendees.length;
-        // If there are open slots, add user to attendees
         if (openSlots > 0) {
             const newAttendees = [...attendees, userID];
             const newReservationTimestamps = Object.assign(Object.assign({}, reservationTimestamps), { [userID]: admin.firestore.Timestamp.now() });
-            // Update event document with retries
             let updateSuccess = false;
             retryCount = 0;
             while (retryCount < maxRetries && !updateSuccess) {
@@ -274,7 +228,6 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
                     if (retryCount >= maxRetries) {
                         throw new Error(`Failed to update event after ${maxRetries} attempts: ${updateError instanceof Error ? updateError.message : String(updateError)}`);
                     }
-                    // Wait before retrying with exponential backoff
                     await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
                 }
             }
@@ -287,9 +240,7 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
             });
         }
         else {
-            // Event is full, add user to waitlist
             const newWaitlist = [...waitlist, userID];
-            // Update event document with retries
             let updateSuccess = false;
             retryCount = 0;
             while (retryCount < maxRetries && !updateSuccess) {
@@ -305,11 +256,9 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
                     if (retryCount >= maxRetries) {
                         throw new Error(`Failed to update event after ${maxRetries} attempts: ${updateError instanceof Error ? updateError.message : String(updateError)}`);
                     }
-                    // Wait before retrying with exponential backoff
                     await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, retryCount)));
                 }
             }
-            // Return the waitlist position
             const waitlistPosition = newWaitlist.indexOf(userID) + 1;
             const processingTime = Date.now() - startTime;
             console.log(`Waitlist request completed in ${processingTime}ms`);
@@ -322,7 +271,6 @@ exports.reserveAction = functions.https.onRequest(async (req, res) => {
     }
     catch (error) {
         console.error('Error in reserveAction:', error);
-        // Return a structured error response
         res.status(500).json({
             error: 'Internal server error',
             message: error instanceof Error ? error.message : 'Unknown error',
@@ -415,141 +363,135 @@ exports.forceAddUserToEvent = functions.https.onCall(async (data, context) => {
 });
 // Function to get Stripe ephemeral key
 exports.getEphemeralKey = functions.https.onRequest(async (req, res) => {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    // Handle preflight OPTIONS request
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
+    var _a;
+    (0, http_auth_1.setCorsHeaders)(res, 'GET, POST, OPTIONS');
+    if ((0, http_auth_1.handleOptions)(req, res))
         return;
-    }
-    try {
-        // Only allow POST requests
-        if (req.method !== 'POST') {
-            res.status(405).send({ error: 'Method not allowed' });
-            return;
-        }
-        // Get customer ID and debug mode from request
-        const { cusID, debug } = req.body;
-        if (!cusID) {
-            res.status(400).send({ error: 'Customer ID is required' });
-            return;
-        }
-        // Get the appropriate Stripe instance based on debug mode
-        const stripe = debug === 'true' ? stripeTest : stripeLive;
-        // Create ephemeral key
-        const ephemeralKey = await stripe.ephemeralKeys.create({ customer: cusID }, { apiVersion: '2023-10-16' } // Use the latest Stripe API version
-        );
-        // Return the ephemeral key
-        res.status(200).send({ secret: ephemeralKey.secret });
-    }
-    catch (error) {
-        console.error('Error creating ephemeral key:', error);
-        res.status(500).send({
-            error: error instanceof Error ? error.message : 'Internal server error'
-        });
-    }
-});
-exports.createPaymentIntent = functions.https.onRequest(async (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.set('Access-Control-Max-Age', '3600');
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
-        return;
-    }
     try {
         if (req.method !== 'POST') {
             res.status(405).json({ error: 'Method not allowed' });
             return;
         }
-        const { amount, currency, customerId, debug } = req.body;
+        const decoded = await (0, http_auth_1.requireAuth)(req, res);
+        if (!decoded)
+            return;
+        const { stripe, isTest } = (0, http_auth_1.resolveStripeInstance)(stripeTest, stripeLive);
+        const field = (0, http_auth_1.customerIdField)(isTest);
+        // Resolve customer from the authenticated user's Firestore doc — ignore client cusID
+        const userDoc = await admin.firestore().collection('users').doc(decoded.uid).get();
+        const cusID = (_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a[field];
+        if (!cusID || typeof cusID !== 'string' || !cusID.startsWith('cus_')) {
+            res.status(400).json({ error: 'No Stripe customer found for authenticated user' });
+            return;
+        }
+        const ephemeralKey = await stripe.ephemeralKeys.create({ customer: cusID }, { apiVersion: '2023-10-16' });
+        res.status(200).json({ secret: ephemeralKey.secret });
+    }
+    catch (error) {
+        console.error('Error creating ephemeral key:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+exports.createPaymentIntent = functions.https.onRequest(async (req, res) => {
+    var _a;
+    (0, http_auth_1.setCorsHeaders)(res, 'GET, POST, OPTIONS');
+    if ((0, http_auth_1.handleOptions)(req, res))
+        return;
+    try {
+        if (req.method !== 'POST') {
+            res.status(405).json({ error: 'Method not allowed' });
+            return;
+        }
+        const decoded = await (0, http_auth_1.requireAuth)(req, res);
+        if (!decoded)
+            return;
+        const { amount, currency, eventID } = req.body;
         if (!amount || !currency) {
             res.status(400).json({ error: 'Missing required parameters: amount, currency' });
             return;
         }
-        // Use test or live Stripe key
-        const stripe = debug ? stripeTest : stripeLive;
-        // Enhanced payment method support
-        let paymentIntentParams = {
-            amount: parseInt(amount, 10), // amount in cents
+        const parsedAmount = parseInt(amount, 10);
+        if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > 500000) {
+            res.status(400).json({ error: 'Invalid amount' });
+            return;
+        }
+        const { stripe, isTest } = (0, http_auth_1.resolveStripeInstance)(stripeTest, stripeLive);
+        const field = (0, http_auth_1.customerIdField)(isTest);
+        // Bind customer to authenticated user only
+        const userDoc = await admin.firestore().collection('users').doc(decoded.uid).get();
+        const ownedCustomerId = (_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a[field];
+        const paymentIntentParams = {
+            amount: parsedAmount,
             currency,
-            payment_method_types: ['card'],
             automatic_payment_methods: {
                 enabled: true,
-                allow_redirects: 'never', // Keep flow within app
+                allow_redirects: 'never',
             },
             metadata: {
                 app_name: 'OpenSlot',
-                version: '1.0',
-                platform: 'mobile',
+                firebaseUID: decoded.uid,
+                eventID: typeof eventID === 'string' ? eventID : '',
+                environment: isTest ? 'test' : 'live',
             },
         };
-        if (typeof customerId === 'string' &&
-            customerId.startsWith('cus_') &&
-            customerId.length > 4 // basic check for valid Stripe customer ID
-        ) {
-            paymentIntentParams.customer = customerId;
+        if (typeof ownedCustomerId === 'string' &&
+            ownedCustomerId.startsWith('cus_')) {
+            paymentIntentParams.customer = ownedCustomerId;
         }
-        // Create PaymentIntent
         const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
         res.status(200).json({ clientSecret: paymentIntent.client_secret });
     }
     catch (error) {
         console.error('Error creating PaymentIntent:', error);
-        res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 // Function to delete an event
 exports.deleteEvent = functions.https.onRequest(async (req, res) => {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.set('Access-Control-Max-Age', '3600');
-    // Handle preflight OPTIONS request
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
+    (0, http_auth_1.setCorsHeaders)(res, 'GET, POST, OPTIONS');
+    if ((0, http_auth_1.handleOptions)(req, res))
         return;
-    }
     try {
-        // Only allow POST requests
         if (req.method !== 'POST') {
-            res.status(405).send({ error: 'Method not allowed' });
+            res.status(405).json({ error: 'Method not allowed' });
             return;
         }
-        // Get eventID and debug mode from request
-        const { eventID, debug } = req.body;
+        const decoded = await (0, http_auth_1.requireAuth)(req, res);
+        if (!decoded)
+            return;
+        const eventID = req.body.eventID || req.body.eventId;
         if (!eventID) {
-            res.status(400).send({ error: 'Event ID is required' });
+            res.status(400).json({ error: 'Event ID is required' });
             return;
         }
-        console.log('Deleting event:', { eventID, debug });
-        // Get event document
+        console.log('Deleting event:', { eventID, uid: decoded.uid });
         const eventDoc = await admin.firestore().collection('events').doc(eventID).get();
         if (!eventDoc.exists) {
-            res.status(404).send({ error: 'Event not found' });
+            res.status(404).json({ error: 'Event not found' });
             return;
         }
         const eventData = eventDoc.data();
         if (!eventData) {
-            res.status(500).send({ error: 'Event data is missing' });
+            res.status(500).json({ error: 'Event data is missing' });
+            return;
+        }
+        const isHost = eventData.host === decoded.uid;
+        const adminUser = await (0, http_auth_1.isAdminUid)(decoded.uid);
+        if (!isHost && !adminUser) {
+            res.status(403).json({ error: 'Only the event host or an admin can delete this event' });
             return;
         }
         console.log('Event found, proceeding with deletion:', {
             eventID,
             eventName: eventData.name,
-            hostID: eventData.host
+            hostID: eventData.host,
+            deletedBy: decoded.uid,
         });
-        // Delete the event document
         await admin.firestore().collection('events').doc(eventID).delete();
-        // Remove event from all users' savedEvents arrays
         if (eventData.attendees && eventData.attendees.length > 0) {
             const batch = admin.firestore().batch();
-            for (const userID of eventData.attendees) {
-                const userRef = admin.firestore().collection('users').doc(userID);
+            for (const attendeeId of eventData.attendees) {
+                const userRef = admin.firestore().collection('users').doc(attendeeId);
                 batch.update(userRef, {
                     savedEvents: admin.firestore.FieldValue.arrayRemove(eventID)
                 });
@@ -557,7 +499,6 @@ exports.deleteEvent = functions.https.onRequest(async (req, res) => {
             await batch.commit();
             console.log('Removed event from attendees savedEvents lists');
         }
-        // Remove event from host's openMics array (if applicable)
         if (eventData.host) {
             try {
                 const hostRef = admin.firestore().collection('users').doc(eventData.host);
@@ -568,11 +509,10 @@ exports.deleteEvent = functions.https.onRequest(async (req, res) => {
             }
             catch (error) {
                 console.warn('Could not remove event from host openMics:', error);
-                // Continue even if this fails
             }
         }
         console.log('Event deletion completed successfully:', eventID);
-        res.status(200).send({
+        res.status(200).json({
             success: true,
             message: 'Event deleted successfully',
             eventID: eventID
@@ -580,9 +520,7 @@ exports.deleteEvent = functions.https.onRequest(async (req, res) => {
     }
     catch (error) {
         console.error('Error deleting event:', error);
-        res.status(500).send({
-            error: error instanceof Error ? error.message : 'Internal server error'
-        });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 // Block/Unblock user functionality
@@ -635,8 +573,7 @@ exports.blockUser = functions.https.onCall(async (data, context) => {
                                 body: 'Your account has been blocked by another user'
                             },
                             data: {
-                                type: 'account_blocked',
-                                blockedBy: currentUserId
+                                type: 'account_blocked'
                             }
                         });
                     }
@@ -740,11 +677,12 @@ exports.reportContent = functions.https.onCall(async (data, context) => {
         if (!context.auth) {
             throw new functions.https.HttpsError('unauthenticated', 'User must be logged in to report content');
         }
-        const { contentType, contentId, reportType, description, reporterId } = data;
+        const { contentType, contentId, reportType, description } = data;
         if (!contentType || !contentId || !reportType) {
             throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
         }
-        const reporter = reporterId || context.auth.uid;
+        // Always use authenticated caller — never trust client reporterId
+        const reporter = context.auth.uid;
         const timestamp = new Date().toISOString();
         // Create report document
         const reportData = {
@@ -807,12 +745,9 @@ exports.reviewReport = functions.https.onCall(async (data, context) => {
         if (!reportId || !action) {
             throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
         }
-        // Check if user is admin
-        // TEMPORARY: Disable admin check for testing
-        // const adminDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
-        // if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
-        //   throw new functions.https.HttpsError('permission-denied', 'Only admins can review reports');
-        // }
+        if (!(await (0, http_auth_1.isAdminUid)(context.auth.uid))) {
+            throw new functions.https.HttpsError('permission-denied', 'Only admins can review reports');
+        }
         const reportRef = admin.firestore().collection('reports').doc(reportId);
         const reportDoc = await reportRef.get();
         if (!reportDoc.exists) {
@@ -883,12 +818,9 @@ exports.getPendingReports = functions.https.onCall(async (data, context) => {
         if (!context.auth) {
             throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
         }
-        // Check if user is admin
-        // TEMPORARY: Disable admin check for testing
-        // const adminDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
-        // if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
-        //   throw new functions.https.HttpsError('permission-denied', 'Only admins can view pending reports');
-        // }
+        if (!(await (0, http_auth_1.isAdminUid)(context.auth.uid))) {
+            throw new functions.https.HttpsError('permission-denied', 'Only admins can view pending reports');
+        }
         const pendingReportsSnapshot = await admin.firestore()
             .collection('reports')
             .where('status', '==', 'pending')
@@ -909,12 +841,9 @@ exports.getReviewedReports = functions.https.onCall(async (data, context) => {
         if (!context.auth) {
             throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
         }
-        // Check if user is admin
-        // TEMPORARY: Disable admin check for testing
-        // const adminDoc = await admin.firestore().collection('admins').doc(context.auth.uid).get();
-        // if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
-        //   throw new functions.https.HttpsError('permission-denied', 'Only admins can view reviewed reports');
-        // }
+        if (!(await (0, http_auth_1.isAdminUid)(context.auth.uid))) {
+            throw new functions.https.HttpsError('permission-denied', 'Only admins can view reviewed reports');
+        }
         const reviewedReportsSnapshot = await admin.firestore()
             .collection('reports')
             .where('status', '==', 'reviewed')
@@ -962,64 +891,66 @@ async function _sendWarningToUser(contentType, contentId) {
 // This is CRITICAL for usage-based billing ($0.99 per booking)
 exports.reportStripeUsage = functions.https.onRequest(async (req, res) => {
     var _a;
-    // CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
+    (0, http_auth_1.setCorsHeaders)(res);
+    if ((0, http_auth_1.handleOptions)(req, res))
         return;
-    }
     try {
         if (req.method !== 'POST') {
             res.status(405).json({ error: 'Method not allowed' });
             return;
         }
-        const { customerId, eventName, quantity, timestamp, metadata, debug } = req.body;
-        // Validate required parameters
-        if (!customerId || !eventName) {
-            res.status(400).json({ error: 'Missing required parameters: customerId, eventName' });
+        const decoded = await (0, http_auth_1.requireAuth)(req, res);
+        if (!decoded)
+            return;
+        const { eventName, quantity, timestamp, metadata } = req.body;
+        if (!eventName) {
+            res.status(400).json({ error: 'Missing required parameters: eventName' });
             return;
         }
-        // Validate customer ID format
-        if (!customerId.startsWith('cus_')) {
-            res.status(400).json({ error: 'Invalid customer ID format' });
+        // Only allow known meter event names
+        if (eventName !== 'booking_completed') {
+            res.status(400).json({ error: 'Unsupported event name' });
             return;
         }
-        // Use test or live Stripe key
-        const stripe = debug ? stripeTest : stripeLive;
+        const { stripe, isTest } = (0, http_auth_1.resolveStripeInstance)(stripeTest, stripeLive);
+        const field = (0, http_auth_1.customerIdField)(isTest);
+        // Customer must belong to the authenticated user
+        const userDoc = await admin.firestore().collection('users').doc(decoded.uid).get();
+        const customerId = (_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a[field];
+        if (!customerId || typeof customerId !== 'string' || !customerId.startsWith('cus_')) {
+            res.status(400).json({ error: 'No Stripe customer found for authenticated user' });
+            return;
+        }
         console.log('Reporting usage to Stripe:', {
+            uid: decoded.uid,
             customerId,
             eventName,
             quantity: quantity || 1,
-            debug: debug || false,
+            isTest,
         });
-        // Report usage to Stripe Billing
-        // This sends the event to your "Event Bookings" meter
         const usageRecord = await stripe.billing.meterEvents.create({
-            event_name: eventName, // Should be 'booking_completed'
+            event_name: eventName,
             payload: {
                 stripe_customer_id: customerId,
-                value: String(quantity || 1), // Number of bookings (usually 1)
+                value: String(quantity || 1),
             },
             timestamp: timestamp ? Math.floor(new Date(timestamp).getTime() / 1000) : Math.floor(Date.now() / 1000),
         });
-        // Store usage record in Firestore for tracking
         try {
             await admin.firestore().collection('stripe_usage').add({
                 customerId,
+                firebaseUID: decoded.uid,
                 eventName,
                 quantity: quantity || 1,
                 timestamp: timestamp || new Date().toISOString(),
                 metadata: metadata || {},
                 stripeEventId: usageRecord.identifier,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                debug: debug || false,
+                isTest,
             });
         }
         catch (firestoreError) {
             console.error('Warning: Failed to store usage in Firestore:', firestoreError);
-            // Don't fail the request if Firestore fails
         }
         console.log('Usage reported successfully:', usageRecord.identifier);
         res.status(200).json({
@@ -1031,43 +962,37 @@ exports.reportStripeUsage = functions.https.onRequest(async (req, res) => {
     catch (error) {
         console.error('Error reporting usage to Stripe:', error);
         res.status(500).json({
-            error: error.message || 'Failed to report usage',
-            details: ((_a = error.raw) === null || _a === void 0 ? void 0 : _a.message) || error.toString(),
+            error: 'Failed to report usage',
         });
     }
 });
 // Create Stripe Customer
 exports.createStripeCustomer = functions.https.onRequest(async (req, res) => {
-    var _a, _b;
-    // CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.set('Access-Control-Max-Age', '3600');
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
+    var _a;
+    (0, http_auth_1.setCorsHeaders)(res);
+    if ((0, http_auth_1.handleOptions)(req, res))
         return;
-    }
     try {
         if (req.method !== 'POST') {
             res.status(405).json({ error: 'Method not allowed' });
             return;
         }
-        const { email, userId, name, debug } = req.body;
-        // Validate required parameters
-        if (!userId) {
-            res.status(400).json({ error: 'Missing required parameter: userId' });
+        const decoded = await (0, http_auth_1.requireAuth)(req, res);
+        if (!decoded)
+            return;
+        // Only allow creating/updating customer for the authenticated user
+        const userId = decoded.uid;
+        const { email, name } = req.body;
+        const { stripe, isTest } = (0, http_auth_1.resolveStripeInstance)(stripeTest, stripeLive);
+        const field = (0, http_auth_1.customerIdField)(isTest);
+        console.log(`Creating Stripe customer for user ${userId} (isTest: ${isTest})`);
+        const userDoc = await admin.firestore().collection('users').doc(userId).get();
+        if (!userDoc.exists) {
+            res.status(404).json({ error: 'User profile not found' });
             return;
         }
-        // Use test or live Stripe key
-        const stripe = debug ? stripeTest : stripeLive;
-        console.log(`Creating Stripe customer for user ${userId} (debug: ${debug})`);
-        // Check if customer already exists in Firestore
-        const userDoc = await admin.firestore().collection('users').doc(userId).get();
         const userData = userDoc.data();
-        const customerIdField = debug ? 'test-customerID' : 'customerID';
-        const existingCustomerId = userData === null || userData === void 0 ? void 0 : userData[customerIdField];
-        // If customer ID exists, verify it's valid in Stripe
+        const existingCustomerId = userData === null || userData === void 0 ? void 0 : userData[field];
         if (existingCustomerId && typeof existingCustomerId === 'string' && existingCustomerId.startsWith('cus_')) {
             try {
                 const existingCustomer = await stripe.customers.retrieve(existingCustomerId);
@@ -1082,23 +1007,21 @@ exports.createStripeCustomer = functions.https.onRequest(async (req, res) => {
                 }
             }
             catch (error) {
-                console.log(`Existing customer ID ${existingCustomerId} is invalid, creating new one`);
+                console.log('Existing customer ID is invalid, creating new one', error);
             }
         }
-        // Create new customer
         const customerParams = {
             metadata: {
                 firebaseUID: userId,
                 app: 'OpenSlot',
-                environment: debug ? 'test' : 'live',
+                environment: isTest ? 'test' : 'live',
             },
         };
-        // Add optional fields if provided
-        if (email && email.trim() !== '') {
-            customerParams.email = email;
+        if (email && typeof email === 'string' && email.trim() !== '') {
+            customerParams.email = email.trim();
         }
-        if (name && name.trim() !== '') {
-            customerParams.name = name;
+        if (name && typeof name === 'string' && name.trim() !== '') {
+            customerParams.name = name.trim();
         }
         let customer;
         try {
@@ -1106,7 +1029,6 @@ exports.createStripeCustomer = functions.https.onRequest(async (req, res) => {
             console.log(`Created new Stripe customer: ${customer.id}`);
         }
         catch (createError) {
-            // If email validation fails, try without email
             if (createError.type === 'StripeInvalidRequestError' && ((_a = createError.message) === null || _a === void 0 ? void 0 : _a.includes('email'))) {
                 console.log('Email validation failed, creating customer without email');
                 delete customerParams.email;
@@ -1117,10 +1039,9 @@ exports.createStripeCustomer = functions.https.onRequest(async (req, res) => {
                 throw createError;
             }
         }
-        // Update Firestore with new customer ID
         await admin.firestore().collection('users').doc(userId).update({
-            [customerIdField]: customer.id,
-            [`${customerIdField}_created`]: admin.firestore.FieldValue.serverTimestamp(),
+            [field]: customer.id,
+            [`${field}_created`]: admin.firestore.FieldValue.serverTimestamp(),
         });
         console.log(`Updated Firestore user ${userId} with customer ID: ${customer.id}`);
         res.status(200).json({
@@ -1132,8 +1053,7 @@ exports.createStripeCustomer = functions.https.onRequest(async (req, res) => {
     catch (error) {
         console.error('Error creating Stripe customer:', error);
         res.status(500).json({
-            error: error.message || 'Failed to create customer',
-            details: ((_b = error.raw) === null || _b === void 0 ? void 0 : _b.message) || error.toString(),
+            error: 'Failed to create customer',
         });
     }
 });

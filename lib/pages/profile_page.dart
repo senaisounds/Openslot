@@ -24,6 +24,7 @@ import 'package:slotted/pages/blocked_users_page.dart';
 import 'package:slotted/pages/admin_moderation_panel.dart';
 import 'package:slotted/pages/stripe_settings_page.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:slotted/widgets/ds_section_header.dart';
 
@@ -47,6 +48,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final FirebaseAuthService _authService = FirebaseAuthService();
   SlottedUser? _user;
   bool _isLoading = true;
+  bool _isAdmin = false;
 
   
   // Sample awards for demo purposes
@@ -70,50 +72,37 @@ class _ProfilePageState extends State<ProfilePage> {
     return _authService.currentUser != null;
   }
 
-  // Check if the current user is an admin
-  bool get _isAdmin {
-    // Check if the current user is in the list of admin emails
+  Future<void> _loadAdminStatus() async {
     final currentUser = _authService.currentUser;
     if (currentUser == null) {
-      Logger.d('No current user found for admin check', tag: 'Profile_page');
-      return false;
+      if (mounted) setState(() => _isAdmin = false);
+      return;
     }
-    
-    // List of admin emails - add your admin users here
-    const List<String> adminEmails = [
-      'senai@openslot.me',
-      'senaimotley@gmail.com', // Add your personal Gmail if you use it
-      // Add other admin emails here as needed
-    ];
-    
-    // Debug logging
-    Logger.d('Admin check - Current user email: ${currentUser.email}', tag: 'Profile_page');
-    Logger.d('Admin check - Is current user profile: $_isCurrentUserProfile', tag: 'Profile_page');
-    Logger.d('Admin check - Admin emails: $adminEmails', tag: 'Profile_page');
-    Logger.d('Admin check - Email match: ${adminEmails.contains(currentUser.email?.toLowerCase())}', tag: 'Profile_page');
 
-    
-    // Check email-based admin status
-    final isAdmin = adminEmails.contains(currentUser.email?.toLowerCase());
-    Logger.d('Admin check - Final result: $isAdmin', tag: 'Profile_page');
-    
-    return isAdmin;
-    //     .collection('admins')
-    //     .doc(currentUser.uid)
-    //     .get();
-    //   return adminDoc.exists && adminDoc.data()?['isAdmin'] == true;
-    // } catch (e) {
-    //   Logger.e('Error checking admin status: $e', tag: 'Profile_page');
-    //   return false;
-    // }
+    try {
+      final adminDoc = await FirebaseFirestore.instance
+          .collection('admins')
+          .doc(currentUser.uid)
+          .get();
+      final isAdmin =
+          adminDoc.exists && adminDoc.data()?['isAdmin'] == true;
+      if (mounted) {
+        setState(() {
+          _isAdmin = isAdmin;
+        });
+      }
+      Logger.d('Admin check (Firestore): $isAdmin', tag: 'Profile_page');
+    } catch (e) {
+      Logger.e('Error checking admin status: $e', tag: 'Profile_page');
+      if (mounted) setState(() => _isAdmin = false);
+    }
   }
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    // Temporarily disable Firestore admin check to avoid permission errors
-    // _checkFirestoreAdminStatus();
+    _loadAdminStatus();
     
     // Debug logging to understand authentication state
     Logger.d('ProfilePage initState - Current user: ${_authService.currentUser?.uid}', tag: 'Profile_page');

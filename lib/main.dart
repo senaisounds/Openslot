@@ -41,9 +41,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 
 import 'package:slotted/common/colors.dart';
+import 'package:slotted/config/environment_config.dart';
 
 // We can't directly override print, but we can use Logger consistently
-const bool _debug = true; // Set to true for testing with test Stripe key
+// Release-safe: false unless explicitly enabled via --dart-define=DEBUG_STRIPE=true
+// Debug/profile builds still get test Stripe via kDebugMode at MyApp construction.
+const bool _debugStripeDefine =
+    bool.fromEnvironment('DEBUG_STRIPE', defaultValue: false);
+const bool _useFunctionsEmulator =
+    bool.fromEnvironment('USE_FIREBASE_EMULATOR', defaultValue: false);
 
 // Main Theme Colors
 const Color primaryColor = AppColors.primary; // Vibrant Orange - Stage Lights
@@ -138,7 +144,7 @@ Future<void> _initializeCrashlytics() async {
   
   try {
     // Pass all Flutter errors to Crashlytics
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!_debug);
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
     
     // Log app initialization 
     Logger.i('Firebase Crashlytics initialized successfully', tag: 'Initialization');
@@ -161,7 +167,7 @@ void main() async {
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(create: (_) => PlatformProvider()),
         ],
-        child: const MyApp(debug: _debug),
+        child: MyApp(debug: kDebugMode || _debugStripeDefine),
       ),
     );
   }, (error, stack) {
@@ -309,8 +315,8 @@ Future<void> _initializeApp() async {
     // Initialize Firebase Crashlytics for improved error reporting (platform-dependent)
     await _initializeCrashlytics();
 
-    // Configure Firebase Functions to use local emulator in debug mode
-    if (_debug) {
+    // Emulator is opt-in only — never auto-enable from a hardcoded debug flag
+    if (_useFunctionsEmulator || EnvironmentConfig.useFirebaseEmulator) {
       try {
         FirebaseFunctions.instance.useFunctionsEmulator('localhost', 5001);
         Logger.d('Firebase Functions emulator configured', tag: 'Initialization');
@@ -321,15 +327,13 @@ Future<void> _initializeApp() async {
 
     // Initialize Stripe with enhanced security
     try {
-      print('🔑 Attempting to load Stripe key (debug mode: $kDebugMode)...');
+      final useTestStripe = kDebugMode || _debugStripeDefine;
+      Logger.d('Attempting to load Stripe key (test mode: $useTestStripe)...', tag: 'Initialization');
       Stripe.merchantIdentifier = StripeConfig.merchantIdentifier;
-      final publishableKey = await StripeConfig.getPublishableKey(kDebugMode);
+      final publishableKey = await StripeConfig.getPublishableKey(useTestStripe);
       Stripe.publishableKey = publishableKey;
-      print('✅ Stripe initialized successfully with ${kDebugMode ? 'test' : 'live'} key');
-      print('   Key starts with: ${publishableKey.substring(0, 20)}...');
-      Logger.i('Stripe initialized successfully with ${kDebugMode ? 'test' : 'live'} key', tag: 'Initialization');
+      Logger.i('Stripe initialized successfully with ${useTestStripe ? 'test' : 'live'} key', tag: 'Initialization');
     } catch (e) {
-      print('❌ Failed to initialize Stripe: $e');
       Logger.e('Failed to initialize Stripe: $e', tag: 'Initialization', error: e);
       // Continue despite Stripe initialization errors, but log the issue
       Logger.w('App will continue without Stripe payment processing', tag: 'Initialization');

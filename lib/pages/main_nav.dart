@@ -22,6 +22,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:slotted/config/environment_config.dart';
 import 'package:slotted/widgets/modern_payment_widget.dart';
 import 'package:slotted/api/apple_pay.dart';
+import 'package:slotted/api/functions_http_client.dart';
 
 // Animation constants from constants.dart
 const kAnimationDurationLong = constants.kAnimationDurationLong;
@@ -58,7 +59,7 @@ final FocusNode authFocusNode = FocusNode();
   final TextEditingController phoneController = TextEditingController();
 
   Future<String> reserveAction(
-      dynamic paymentIntent, Event event, SlottedUser slottedUser, {bool passwordVerified = false}) async {
+      dynamic paymentIntent, Event event, SlottedUser slottedUser, {String? password}) async {
     try {
       Logger.d('Starting reserveAction for event: ${event.id}, user: ${slottedUser.id}', tag: 'Main_nav');
       
@@ -77,22 +78,23 @@ final FocusNode authFocusNode = FocusNode();
 
       Logger.d('Making reservation request for event: ${event.id}, user: ${slottedUser.id}', tag: 'Main_nav');
       
-      final requestBody = {
+      // Identity comes from Firebase ID token on the server — do not send userID
+      final requestBody = <String, String>{
         'eventID': event.id,
-        'userID': slottedUser.id,
-        'pi': paymentIntent == '' ? paymentIntent : json.encode(paymentIntent),
-        'debug': widget.debug ? 'true' : 'false',
-        'passwordVerified': passwordVerified ? 'true' : 'false',
+        'pi': paymentIntent == '' ? paymentIntent.toString() : json.encode(paymentIntent),
+        if (password != null && password.isNotEmpty)
+          'password': Uri.encodeComponent(password),
       };
       
-      Logger.d('Request body: $requestBody', tag: 'Main_nav');
+      Logger.d('Request body keys: ${requestBody.keys.toList()}', tag: 'Main_nav');
       
+      final headers = await FunctionsHttpClient.authHeaders(
+        contentType: 'application/x-www-form-urlencoded',
+      );
       var response = await http.post(
         Uri.parse(
             'https://us-central1-open-mic-5cc8e.cloudfunctions.net/reserveAction'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: headers,
         body: requestBody,
       ).timeout(const Duration(seconds: 30));
       
@@ -140,15 +142,15 @@ final FocusNode authFocusNode = FocusNode();
     });
 
     try {
+      final headers = await FunctionsHttpClient.authHeaders(
+        contentType: 'application/x-www-form-urlencoded',
+      );
       var response = await http.post(
         Uri.parse(
             'https://us-central1-open-mic-5cc8e.cloudfunctions.net/deleteEvent'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: headers,
         body: {
           'eventID': eventId,
-          'debug': widget.debug ? 'true' : 'false',
         },
       );
       final body = response.body;
@@ -224,6 +226,7 @@ final FocusNode authFocusNode = FocusNode();
 
     final isReserved = event.attendees.contains(slottedUser.id);
     final isWaitlisted = event.waitlist.contains(slottedUser.id);
+    String? privateEventPassword;
 
     try {
       // Check if event is private and requires password verification
@@ -247,15 +250,18 @@ final FocusNode authFocusNode = FocusNode();
           return;
         }
 
-        // Verify password with backend
+        privateEventPassword = password;
+
+        // Verify password with backend (UI gate; reserveAction re-verifies server-side)
         try {
           Logger.d('Verifying password for event: ${event.id}', tag: 'Main_nav');
+          final verifyHeaders = await FunctionsHttpClient.authHeaders(
+            contentType: 'application/x-www-form-urlencoded',
+          );
           final verifyResponse = await http.post(
             Uri.parse(
                 'https://us-central1-open-mic-5cc8e.cloudfunctions.net/verifyEventPassword'),
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: verifyHeaders,
             body: {
               'eventID': event.id,
               'password': Uri.encodeComponent(password),
@@ -332,6 +338,7 @@ final FocusNode authFocusNode = FocusNode();
             amount: (event.price * 100).toInt(),
             currency: 'usd',
             customerId: customerId,
+            eventID: event.id,
             debug: widget.debug,
           );
           if (clientSecret == null) throw Exception('No client secret returned');
@@ -429,8 +436,13 @@ final FocusNode authFocusNode = FocusNode();
         }
       }
 
-      // Make the reservation request
-      final result = await reserveAction('', event, slottedUser, passwordVerified: true);
+      // Make the reservation request (password re-checked server-side for private events)
+      final result = await reserveAction(
+        '',
+        event,
+        slottedUser,
+        password: privateEventPassword,
+      );
       Logger.d('Reservation result: $result', tag: 'Main_nav');
       
       // Show success message
@@ -628,23 +640,25 @@ Future<String?> createPaymentIntentOnBackend({
   required int amount, // in cents
   required String currency,
   String? customerId,
+  String? eventID,
   bool debug = true,
 }) async {
-  final url = '${EnvironmentConfig.apiBaseUrl}/createPaymentIntent';
+  final headers = await FunctionsHttpClient.authHeaders();
   final response = await http.post(
-    Uri.parse(url),
-    headers: {'Content-Type': 'application/json'},
+    Uri.parse('${EnvironmentConfig.apiBaseUrl}/createPaymentIntent'),
+    headers: headers,
     body: jsonEncode({
       'amount': amount.toString(),
       'currency': currency,
+      // customerId ignored server-side; kept for backward compatibility
       'customerId': customerId,
-      'debug': debug,
+      if (eventID != null) 'eventID': eventID,
     }),
   );
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);
     return data['clientSecret'];
   } else {
-    throw Exception('Failed to create PaymentIntent: \\${response.body}');
+    throw Exception('Failed to create PaymentIntent: ${response.body}');
   }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
+import 'package:slotted/api/functions_http_client.dart';
 import 'package:slotted/common/event_class.dart';
 import 'package:slotted/utils/logger.dart';
 
@@ -36,15 +37,16 @@ class StripeApi {
         throw SlottedStripeError('Customer ID is required');
       }
 
+      final headers = await FunctionsHttpClient.authHeaders(
+        contentType: 'application/x-www-form-urlencoded',
+      );
+      // Server resolves customer from authenticated user; cusID ignored server-side
       var response = await http.post(
         Uri.parse(
             'https://us-central1-open-mic-5cc8e.cloudfunctions.net/getEphemeralKey'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: headers,
         body: {
           'cusID': customerId,
-          'debug': debug ? 'true' : 'false',
         },
       );
 

@@ -1,23 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:slotted/api/functions_http_client.dart';
 import 'package:slotted/config/environment_config.dart';
 import 'package:slotted/utils/logger.dart';
 
 /// Service for managing Stripe customer creation and management
 class StripeCustomerService {
-  /// Create or retrieve a Stripe customer for a user
-  /// 
-  /// This function will:
-  /// 1. Check if user already has a valid customer ID
-  /// 2. If not, create a new customer in Stripe
-  /// 3. Store the customer ID in Firestore
-  /// 4. Return the customer ID
-  /// 
-  /// Parameters:
-  /// - [userId]: Firebase user ID
-  /// - [email]: User's email (optional)
-  /// - [name]: User's name (optional)
-  /// - [debug]: Whether to use test or live Stripe key
+  /// Create or retrieve a Stripe customer for the authenticated user.
+  ///
+  /// Server derives identity from the Firebase ID token — [userId] is
+  /// only used for client-side validation/logging.
   static Future<String?> createOrGetCustomer({
     required String userId,
     String? email,
@@ -32,15 +24,14 @@ class StripeCustomerService {
 
       Logger.d('Creating/retrieving Stripe customer for user: $userId', tag: 'StripeCustomer');
 
+      final headers = await FunctionsHttpClient.authHeaders();
       final url = '${EnvironmentConfig.apiBaseUrl}/createStripeCustomer';
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({
-          'userId': userId,
           'email': email,
           'name': name,
-          'debug': debug,
         }),
       );
 
@@ -61,8 +52,7 @@ class StripeCustomerService {
           return null;
         }
       } else {
-        final errorData = jsonDecode(response.body);
-        Logger.e('Failed to create customer: ${errorData['error']}', tag: 'StripeCustomer');
+        Logger.e('Failed to create customer: ${response.body}', tag: 'StripeCustomer');
         return null;
       }
     } catch (e) {
@@ -72,8 +62,6 @@ class StripeCustomerService {
   }
 
   /// Clean up invalid customer ID from user profile
-  /// 
-  /// This will attempt to create a valid customer and replace the invalid one
   static Future<bool> cleanupInvalidCustomerId({
     required String userId,
     String? email,
@@ -82,7 +70,7 @@ class StripeCustomerService {
   }) async {
     try {
       Logger.i('Cleaning up invalid customer ID for user: $userId', tag: 'StripeCustomer');
-      
+
       final customerId = await createOrGetCustomer(
         userId: userId,
         email: email,
@@ -103,4 +91,3 @@ class StripeCustomerService {
     }
   }
 }
-
