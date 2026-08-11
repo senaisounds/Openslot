@@ -4,10 +4,14 @@ import * as admin from 'firebase-admin';
 /** System host id for events discovered by the web scraper. */
 export const SCRAPER_HOST_ID = 'openslot_web_scraper';
 
-/** Cities OpenSlot already supports, mapped to Eventbrite discover slugs. */
+/**
+ * Major US cities mapped to Eventbrite discover slugs.
+ * Includes New York, Austin, Los Angeles, and other large markets.
+ */
 export const EVENTBRITE_CITY_SLUGS: Record<string, string> = {
   'New York': 'ny--new-york',
   'Los Angeles': 'ca--los-angeles',
+  Austin: 'tx--austin',
   Chicago: 'il--chicago',
   Houston: 'tx--houston',
   Philadelphia: 'pa--philadelphia',
@@ -16,6 +20,17 @@ export const EVENTBRITE_CITY_SLUGS: Record<string, string> = {
   'San Diego': 'ca--san-diego',
   Dallas: 'tx--dallas',
   'San Francisco': 'ca--san-francisco',
+  Miami: 'fl--miami',
+  Seattle: 'wa--seattle',
+  Boston: 'ma--boston',
+  Denver: 'co--denver',
+  Atlanta: 'ga--atlanta',
+  Nashville: 'tn--nashville',
+  Portland: 'or--portland',
+  Washington: 'dc--washington',
+  'Las Vegas': 'nv--las-vegas',
+  Detroit: 'mi--detroit',
+  Minneapolis: 'mn--minneapolis',
 };
 
 export interface ScrapedOpenMic {
