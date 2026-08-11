@@ -1,6 +1,10 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
+import {
+  EVENTBRITE_CITY_SLUGS,
+  scrapeOpenMicsForCities,
+} from './scrape_open_mics';
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
@@ -172,6 +176,16 @@ export const reserveAction = functions.https.onRequest(async (req, res) => {
     const eventData = eventDoc.data();
     if (!eventData) {
       res.status(500).json({ error: 'Event data is missing', eventID });
+      return;
+    }
+
+    // Scraped/external listings are not bookable inside OpenSlot.
+    if (eventData.isScraped || eventData.externalUrl) {
+      res.status(400).json({
+        error: 'External listing',
+        details: 'This open mic was discovered on the web. Sign up on the original listing.',
+        externalUrl: eventData.externalUrl || null,
+      });
       return;
     }
 
@@ -1310,4 +1324,83 @@ export const createStripeCustomer = functions.https.onRequest(async (req, res) =
       details: error.raw?.message || error.toString(),
     });
   }
-}); 
+});
+
+/**
+ * Scrape public open mic listings (Eventbrite discover pages) and upsert into Firestore.
+ * Runs daily. Also invokable via HTTP for manual refreshes.
+ */
+export const scrapeOpenMics = functions
+  .runWith({ timeoutSeconds: 540, memory: '512MB' })
+  .pubsub.schedule('every 24 hours')
+  .onRun(async () => {
+    console.log('Starting scheduled open mic scrape for cities:', Object.keys(EVENTBRITE_CITY_SLUGS));
+    const { results, totalUpserted } = await scrapeOpenMicsForCities();
+    console.log('Open mic scrape complete', { totalUpserted, results });
+    return null;
+  });
+
+/**
+ * Manual trigger for open mic discovery.
+ * POST with header `X-Scraper-Secret` matching functions config scraper.secret
+ * (or env SCRAPER_SECRET). Optional JSON body: { "cities": ["New York"] }.
+ */
+export const scrapeOpenMicsNow = functions
+  .runWith({ timeoutSeconds: 540, memory: '512MB' })
+  .https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, X-Scraper-Secret');
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    const configuredSecret =
+      functions.config().scraper?.secret || process.env.SCRAPER_SECRET || '';
+    const providedSecret = String(req.get('X-Scraper-Secret') || '');
+
+    if (!configuredSecret || providedSecret !== configuredSecret) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    try {
+      let cities: Record<string, string> = EVENTBRITE_CITY_SLUGS;
+      const requestedCities = req.body?.cities;
+      if (Array.isArray(requestedCities) && requestedCities.length > 0) {
+        cities = {};
+        for (const city of requestedCities) {
+          if (typeof city === 'string' && EVENTBRITE_CITY_SLUGS[city]) {
+            cities[city] = EVENTBRITE_CITY_SLUGS[city];
+          }
+        }
+        if (Object.keys(cities).length === 0) {
+          res.status(400).json({
+            error: 'No valid cities',
+            supported: Object.keys(EVENTBRITE_CITY_SLUGS),
+          });
+          return;
+        }
+      }
+
+      const { results, totalUpserted } = await scrapeOpenMicsForCities(cities);
+      res.status(200).json({
+        success: true,
+        totalUpserted,
+        results,
+      });
+    } catch (error) {
+      console.error('Manual open mic scrape failed:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Scrape failed',
+      });
+    }
+  });
+ 

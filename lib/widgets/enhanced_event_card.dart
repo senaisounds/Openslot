@@ -111,6 +111,7 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
 
   /// Get reservation button text
   String get _reservationButtonText {
+    if (widget.event.isExternalListing) return 'Open listing';
     if (_isReserved) return 'Reserved';
     if (_isWaitlisted) return 'Waitlist';
     if (widget.event.openSlots > 0) {
@@ -121,15 +122,53 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
 
   /// Get reservation button icon
   IconData get _reservationButtonIcon {
+    if (widget.event.isExternalListing) return CupertinoIcons.compass;
     if (_isReserved) return CupertinoIcons.checkmark_circle_fill;
     if (_isWaitlisted) return CupertinoIcons.clock_fill;
     if (widget.event.openSlots > 0) return CupertinoIcons.plus_circle_fill;
     return CupertinoIcons.person_2_fill;
   }
 
+  Future<void> _openExternalListing() async {
+    final rawUrl = widget.event.externalUrl?.trim() ?? '';
+    if (rawUrl.isEmpty) return;
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   /// Handle reservation action
   Future<void> _handleReservation() async {
-    if (widget.onReserve == null || _isReserving) return;
+    if (_isReserving) return;
+
+    if (widget.event.isExternalListing) {
+      setState(() => _isReserving = true);
+      try {
+        HapticFeedback.lightImpact();
+        await _openExternalListing();
+      } catch (e) {
+        if (mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Unable to open listing'),
+              content: Text(e.toString()),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isReserving = false);
+      }
+      return;
+    }
+
+    if (widget.onReserve == null) return;
     
     setState(() => _isReserving = true);
     
@@ -377,7 +416,9 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
           _buildSubtitle(),
           const SizedBox(height: 12),
           _buildEventDetails(),
-          if (widget.onReserve != null && widget.currentUser != null && !_isCurrentUserHost) ...[
+          if (!_isCurrentUserHost &&
+              (widget.event.isExternalListing ||
+                  (widget.onReserve != null && widget.currentUser != null))) ...[
             const SizedBox(height: 12),
             _buildReservationButton(),
           ],
@@ -508,18 +549,23 @@ class _EnhancedEventCardState extends State<EnhancedEventCard>
   }
 
   Widget _buildHostInfo() {
+    final hostLabel = widget.event.isExternalListing
+        ? 'At ${widget.event.hostName}'
+        : 'Hosted by ${widget.event.hostName}';
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
-          CupertinoIcons.person_circle,
+        Icon(
+          widget.event.isExternalListing
+              ? CupertinoIcons.building_2_fill
+              : CupertinoIcons.person_circle,
           size: 16,
           color: AppColors.textSecondary,
         ),
         AppStyling.getSpacing(width: AppStyling.spacingXSmall),
         Expanded(
           child: Text(
-            'Hosted by ${widget.event.hostName}',
+            hostLabel,
             style: AppStyling.labelMedium.copyWith(
               color: AppColors.textSecondary,
             ),

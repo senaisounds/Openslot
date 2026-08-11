@@ -39,6 +39,12 @@ class Event {
   bool isFeatured;
   int capacity;
   List<String> checkedPerformersList;
+  /// True when this listing was discovered by the web scraper.
+  bool isScraped;
+  /// Origin platform for scraped listings (e.g. eventbrite).
+  String source;
+  /// Canonical public URL for scraped/external listings.
+  String? externalUrl;
 
   Event({
     required this.id,
@@ -71,6 +77,9 @@ class Event {
     this.isFeatured = false,
     this.capacity = 0,
     this.checkedPerformersList = const [],
+    this.isScraped = false,
+    this.source = 'openslot',
+    this.externalUrl,
   }) : 
     location = location ?? const LatLng(0, 0),
     date = date ?? DateTime.now(),
@@ -127,8 +136,15 @@ class Event {
       isFeatured: data['isFeatured'] as bool? ?? false,
       capacity: (data['capacity'] as num?)?.toInt() ?? 0,
       checkedPerformersList: List<String>.from(data['checkedPerformers'] as List? ?? []),
+      isScraped: data['isScraped'] as bool? ?? false,
+      source: data['source'] as String? ?? 'openslot',
+      externalUrl: data['externalUrl'] as String?,
     );
   }
+
+  /// Whether this event should open an external listing instead of in-app reserve.
+  bool get isExternalListing =>
+      isScraped || (externalUrl != null && externalUrl!.trim().isNotEmpty);
 
   Map<String, dynamic> toDocument() {
     return {
@@ -163,6 +179,9 @@ class Event {
       'isFeatured': isFeatured,
       'capacity': capacity,
       'checkedPerformersList': checkedPerformersList,
+      'isScraped': isScraped,
+      'source': source,
+      'externalUrl': externalUrl,
     };
   }
 
